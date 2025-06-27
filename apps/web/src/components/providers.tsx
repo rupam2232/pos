@@ -1,7 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ThemeProvider as NextThemesProvider } from "next-themes"
+import * as React from "react";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Provider as ReduxProvider } from "react-redux";
+import store from "@/store/store";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -12,7 +15,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
       enableColorScheme
     >
-      {children}
+      <ReduxProvider store={store}>
+        <GoogleOAuthProvider
+          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        >
+          {children}
+        </GoogleOAuthProvider>
+      </ReduxProvider>
     </NextThemesProvider>
-  )
+  );
 }

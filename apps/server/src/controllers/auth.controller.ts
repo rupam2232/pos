@@ -151,6 +151,10 @@ export const signup = async (
           {
             _id: user[0]._id,
             email: user[0].email,
+            role: user[0].role,
+            firstName: user[0].firstName || "",
+            lastName: user[0].lastName || "",
+            avatar: user[0].avatar || "",
           },
           "Signup successful"
         )
@@ -282,6 +286,10 @@ export const signin = async (
           {
             _id: user._id,
             email: user.email,
+            role: user.role,
+            firstName: user.firstName || "",
+            lastName: user.lastName || "",
+            avatar: user.avatar || "",
           },
           "Signin successful"
         )
@@ -434,6 +442,10 @@ export const google = async (
             {
               _id: user._id,
               email: user.email,
+              role: user.role,
+              firstName: user.firstName || "",
+              lastName: user.lastName || "",
+              avatar: user.avatar || "",
             },
             "Google Signin successful"
           )
@@ -552,6 +564,10 @@ export const google = async (
             {
               _id: user[0]._id,
               email: user[0].email,
+              role: user[0].role,
+              firstName: user[0].firstName || "",
+              lastName: user[0].lastName || "",
+              avatar: user[0].avatar || "",
             },
             "Google Signup successful"
           )
