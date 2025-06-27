@@ -156,7 +156,7 @@ export const signup = async (
             lastName: user[0].lastName || "",
             avatar: user[0].avatar || "",
           },
-          "Signup successful"
+          "Sign up successful"
         )
       );
   } catch (err) {
@@ -291,7 +291,7 @@ export const signin = async (
             lastName: user.lastName || "",
             avatar: user.avatar || "",
           },
-          "Signin successful"
+          "Sign in successful"
         )
       );
   } catch (err) {
@@ -447,7 +447,7 @@ export const google = async (
               lastName: user.lastName || "",
               avatar: user.avatar || "",
             },
-            "Google Signin successful"
+            "Google Sign in successful"
           )
         );
     } else {
@@ -569,7 +569,7 @@ export const google = async (
               lastName: user[0].lastName || "",
               avatar: user[0].avatar || "",
             },
-            "Google Signup successful"
+            "Google Sign up successful"
           )
         );
     }

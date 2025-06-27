@@ -19,11 +19,24 @@ import {
 import axios from "@/utils/axiosInstance";
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "@/store/store";
+import { signIn, signOut } from "@/store/authSlice";
+import { AxiosError } from "axios";
+import type { ApiResponse } from "@repo/ui/types/ApiResponse";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
-export function LoginForm({
+export function SigninForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
+  const [emailLoginLoading, setEmailLoginLoading] = useState(false);
+  const [googleLoginLoading, setGoogleLoginLoading] = useState(false);
+
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -32,24 +45,52 @@ export function LoginForm({
     },
   });
 
-  const handleGoogleLogin = async (idToken: string)=> {
+  const handleGoogleLogin = async (idToken: string) => {
+    if (!idToken) {
+      toast.error("Google sign in failed. Please try again.");
+      return;
+    }
+    setGoogleLoginLoading(true);
     try {
       const response = await axios.post("/auth/google", { idToken });
-      console.log(response);
-      // Handle successful login, e.g., redirect or show a success message
+      dispatch(signIn(response.data.data));
+      toast.success(response.data.message || "Sign in successful!");
+      router.replace("/dashboard");
     } catch (error) {
-      toast.error("Google login failed. Please try again.");
-      console.error(error || "An error occurred during Google login");
+      dispatch(signOut());
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "Google sign in failed. Please try again."
+      );
+      console.error(
+        axiosError.response?.data.message ||
+          "An error occurred during Google sign in"
+      );
+    } finally {
+      setGoogleLoginLoading(false);
     }
-  }
+  };
 
   const onSubmit = async (data: z.infer<typeof signInSchema>) => {
+    setEmailLoginLoading(true);
     try {
       const response = await axios.post("/auth/signin", data);
-      console.log(response);
+      dispatch(signIn(response.data.data));
+      toast.success(response.data.message || "Sign in successful!");
+      router.replace("/dashboard");
     } catch (error) {
-      toast.error("Login failed. Please check your credentials.");
-      console.error(error || "An error occurred during login");
+      dispatch(signOut());
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "Sign in failed. Please check your credentials."
+      );
+      console.error(
+        axiosError.response?.data.message || "An error occurred during sign in"
+      );
+    } finally {
+      setEmailLoginLoading(false);
     }
   };
 
@@ -67,25 +108,40 @@ export function LoginForm({
                   </p>
                 </div>
 
-                <div>
-                  <GoogleLogin
-                    onSuccess={async (credentialResponse) => {
-                      if (!credentialResponse.credential) {
-                        toast.error("Google login failed. Please try again.");
-                        return;
-                      }
-                      // Handle the Google login with the credential
-                      handleGoogleLogin(credentialResponse.credential);
-                    }}
-                    onError={() => {
-                      toast.error("Google login failed. Please try again.");
-                    }}
-                    logo_alignment="center"
-                    useOneTap={true}
-                    auto_select={true}
-                  />
+                <div className="relative">
+                  {googleLoginLoading ? (
+                    <Button
+                      disabled
+                      className="w-full font-normal bg-white text-black border-zinc-400 border rounded-[4px] py-4.5"
+                    >
+                      <Loader2 className="animate-spin !h-5 !w-5" />
+                      Signing in with Google...
+                    </Button>
+                  ) : (
+                    <GoogleLogin
+                      onSuccess={async (credentialResponse) => {
+                        if (!credentialResponse.credential) {
+                          toast.error("Google sign in failed. Please try again.");
+                          return;
+                        }
+                        // Handle the Google sign in with the credential
+                        handleGoogleLogin(credentialResponse.credential);
+                      }}
+                      onError={() => {
+                        toast.error("Google sign in failed. Please try again.");
+                      }}
+                      logo_alignment="center"
+                      useOneTap={true}
+                      auto_select={true}
+                    />
+                  )}
+                  {(googleLoginLoading || emailLoginLoading) && (
+                    <div
+                    className="absolute inset-0 z-10 bg-white opacity-50 cursor-not-allowed"
+                    />
+                  )}
                 </div>
-                <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+                <div className="after:border-ring relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                   <span className="bg-card text-muted-foreground relative z-10 px-2">
                     Or continue with
                   </span>
@@ -140,12 +196,23 @@ export function LoginForm({
                     )}
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Sign In
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={emailLoginLoading || googleLoginLoading}
+                >
+                  {emailLoginLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign in"
+                  )}
                 </Button>
                 <div className="text-center text-sm">
                   Don&apos;t have an account?{" "}
-                  <a href="#" className="underline underline-offset-4">
+                  <a href="/signup" className="underline underline-offset-4">
                     Sign up
                   </a>
                 </div>
@@ -158,7 +225,8 @@ export function LoginForm({
               sizes="(min-width: 768px) 50vw, 100vw"
               src="/placeholder.png"
               alt="Image"
-              className="absolute inset-0 h-full w-full object-left"
+              priority={true}
+              className="absolute inset-0 h-full w-full object-cover object-right"
             />
           </div>
         </CardContent>
