@@ -6,16 +6,22 @@ import { Input } from "@repo/ui/components/input";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { signInSchema } from "@/schemas/signInSchema";
+import { signUpSchema } from "@/schemas/signUpSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@repo/ui/components/form";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@repo/ui/components/input-otp";
 import axios from "@/utils/axiosInstance";
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
@@ -27,6 +33,7 @@ import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 export function SignupForm({
   className,
@@ -37,11 +44,12 @@ export function SignupForm({
   const [emailLoginLoading, setEmailLoginLoading] = useState(false);
   const [googleLoginLoading, setGoogleLoginLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof signInSchema>>({
-    resolver: zodResolver(signInSchema),
+  const form = useForm<z.infer<typeof signUpSchema>>({
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -72,7 +80,8 @@ export function SignupForm({
     }
   };
 
-  const onSubmit = async (data: z.infer<typeof signInSchema>) => {
+  const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
+    console.log(data);
     setEmailLoginLoading(true);
     try {
       const response = await axios.post("/auth/signin", data);
@@ -131,7 +140,9 @@ export function SignupForm({
                     <GoogleLogin
                       onSuccess={async (credentialResponse) => {
                         if (!credentialResponse.credential) {
-                          toast.error("Google signup failed. Please try again.");
+                          toast.error(
+                            "Google signup failed. Please try again."
+                          );
                           return;
                         }
                         // Handle the Google signup with the credential
@@ -147,9 +158,7 @@ export function SignupForm({
                     />
                   )}
                   {(googleLoginLoading || emailLoginLoading) && (
-                    <div
-                    className="absolute inset-0 z-10 bg-white opacity-50 cursor-not-allowed"
-                    />
+                    <div className="absolute inset-0 z-10 bg-white opacity-50 cursor-not-allowed" />
                   )}
                 </div>
                 <div className="after:border-ring relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
@@ -158,6 +167,45 @@ export function SignupForm({
                   </span>
                 </div>
                 <div className="grid gap-3">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="first-name">First Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="first-name"
+                            type="text"
+                            placeholder="Rupam"
+                            autoComplete="given-name"
+                            required
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="last-name">Last Name (optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="last-name"
+                            type="text"
+                            placeholder="Mondal"
+                            autoComplete="family-name"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="email"
@@ -183,18 +231,65 @@ export function SignupForm({
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                          <FormLabel htmlFor="password">Password</FormLabel>
+                        <FormLabel htmlFor="password">Password</FormLabel>
                         <FormControl>
                           <Input
                             id="password"
                             placeholder="••••••••"
                             type="password"
-                            autoComplete="current-password"
+                            autoComplete="new-password"
                             required
                             {...field}
                           />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="confirm-password">
+                          Confirm Password
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            id="confirm-password"
+                            placeholder="••••••••"
+                            type="password"
+                            autoComplete="new-password"
+                            required
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="otp"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>One-Time Password</FormLabel>
+                        <FormControl>
+                          <InputOTP pattern={REGEXP_ONLY_DIGITS} maxLength={6} {...field}>
+                            <InputOTPGroup className="gap-2 ">
+                              <InputOTPSlot index={0} />
+                              <InputOTPSlot index={1} />
+                              <InputOTPSlot index={2} />
+                              <InputOTPSlot index={3} />
+                              <InputOTPSlot index={4} />
+                              <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </FormControl>
+                        <FormMessage />
+                        <FormDescription>
+                          Please enter the one-time password sent to your phone.
+                        </FormDescription>
                       </FormItem>
                     )}
                   />
