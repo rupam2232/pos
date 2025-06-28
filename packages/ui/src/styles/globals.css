@@ -125,3 +125,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+.animate-spin-reverse {
+    @apply animate-spin;
+    animation-direction: reverse;
+}

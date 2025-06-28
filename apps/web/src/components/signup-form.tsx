@@ -32,7 +32,7 @@ import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 export function SignupForm({
@@ -41,8 +41,24 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const [emailLoginLoading, setEmailLoginLoading] = useState(false);
-  const [googleLoginLoading, setGoogleLoginLoading] = useState(false);
+  const [emailSignupLoading, setEmailSignupLoading] = useState<boolean>(false);
+  const [googleSignupLoading, setGoogleSignupLoading] = useState<boolean>(false);
+  const [signupStep, setSignupStep] = useState<1 | 2>(1); // 1 for email, 2 for OTP
+  const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
+  const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
+  const [resendTimer, setResendTimer] = useState<number | null>(null);
+
+  const startResendTimer = () => {
+    let delay = 60; // seconds
+    const timeout = setInterval(() => {
+      setResendTimer(delay);
+      delay -= 1;
+      if (delay <= 0) {
+        setResendTimer(null);
+        clearInterval(timeout);
+      }
+    }, 1000);
+  };
 
   const form = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
@@ -50,56 +66,121 @@ export function SignupForm({
       email: "",
       password: "",
       confirmPassword: "",
+      otp: "",
+      fullName: "",
     },
   });
 
   const handleGoogleLogin = async (idToken: string) => {
     if (!idToken) {
-      toast.error("Google login failed. Please try again.");
+      toast.error("Google signup failed. Please try again.");
       return;
     }
-    setGoogleLoginLoading(true);
+    setGoogleSignupLoading(true);
     try {
       const response = await axios.post("/auth/google", { idToken });
       dispatch(signIn(response.data.data));
-      toast.success(response.data.message || "Sign in successful!");
-      router.replace("/dashboard");
+      toast.success(response.data.message || "Sign up successful!");
+      router.replace("/dashboard?from=signup");
     } catch (error) {
       dispatch(signOut());
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message ||
-          "Google login failed. Please try again."
+          "Google sign up failed. Please try again."
       );
       console.error(
         axiosError.response?.data.message ||
-          "An error occurred during Google login"
+          "An error occurred during Google sign up"
       );
     } finally {
-      setGoogleLoginLoading(false);
+      setGoogleSignupLoading(false);
+    }
+  };
+
+  const sendOtp = async () => {
+    if (isSendingOtp) {
+      toast.info("OTP is already being sent. Please wait.");
+      return;
+    }
+    if( resendTimer !== null || typeof(resendTimer) === "number" && resendTimer > 0) {
+      toast.info(`Please wait ${resendTimer} seconds before resending OTP.`);
+      return;
+    }
+    const email = form.getValues("email");
+    const name = form.getValues("fullName");
+    if (!email) {
+      form.setError("email", {
+        type: "manual",
+        message: "Please enter your email to receive the OTP.",
+      });
+      toast.error("Please enter your email to receive the OTP.");
+      return;
+    }
+    if (!name) {
+      form.setError("fullName", {
+        type: "manual",
+        message: "Please enter your full name to receive the OTP.",
+      });
+      toast.error("Please enter your full name to receive the OTP.");
+      return;
+    }
+    try {
+      setIsSendingOtp(true);
+      const response = await axios.post("/otp/send", {
+        email,
+        name,
+        context: "signup",
+      });
+      if(response.data.data === false){
+        toast.error("Failed to send OTP. Please try again");
+        return;
+      }
+      form.setValue("otp", ""); // Clear the OTP field before sending a new OTP
+      toast.success(response.data.message || "OTP sent successfully!");
+      startResendTimer();
+      setIsOtpSent(true);
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "Failed to send OTP. Please try again."
+      );
+      console.error(
+        axiosError.response?.data.message ||
+          "An error occurred while sending OTP"
+      );
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
   const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
-    console.log(data);
-    setEmailLoginLoading(true);
+    if (!data.otp || data.otp.length !== 6) {
+      form.setError("otp", {
+        type: "manual",
+        message: "Please enter a valid 6-digit OTP.",
+      });
+      return;
+    }
+    setEmailSignupLoading(true);
     try {
-      const response = await axios.post("/auth/signin", data);
+      const response = await axios.post("/auth/signup", data);
       dispatch(signIn(response.data.data));
-      toast.success(response.data.message || "Sign in successful!");
-      router.replace("/dashboard");
+      toast.success(response.data.message || "Sign up successful!");
+      router.replace("/dashboard?from=signup");
     } catch (error) {
       dispatch(signOut());
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message ||
-          "Login failed. Please check your credentials."
+          "Sign up failed. Please check your credentials."
       );
       console.error(
-        axiosError.response?.data.message || "An error occurred during login"
+        axiosError.response?.data.message || "An error occurred during Sign up"
       );
     } finally {
-      setEmailLoginLoading(false);
+      setEmailSignupLoading(false);
     }
   };
 
@@ -128,7 +209,7 @@ export function SignupForm({
                 </div>
 
                 <div className="relative">
-                  {googleLoginLoading ? (
+                  {googleSignupLoading ? (
                     <Button
                       disabled
                       className="w-full font-normal bg-white text-black border-zinc-400 border rounded-[4px] py-4.5"
@@ -157,7 +238,7 @@ export function SignupForm({
                       auto_select={true}
                     />
                   )}
-                  {(googleLoginLoading || emailLoginLoading) && (
+                  {(googleSignupLoading || emailSignupLoading) && (
                     <div className="absolute inset-0 z-10 bg-white opacity-50 cursor-not-allowed" />
                   )}
                 </div>
@@ -169,36 +250,19 @@ export function SignupForm({
                 <div className="grid gap-3">
                   <FormField
                     control={form.control}
-                    name="firstName"
+                    name="fullName"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="first-name">First Name</FormLabel>
+                      <FormItem
+                        className={cn("mt-4", signupStep === 1 ? "" : "hidden")}
+                      >
+                        <FormLabel htmlFor="full-name">Full Name</FormLabel>
                         <FormControl>
                           <Input
-                            id="first-name"
+                            id="full-name"
                             type="text"
-                            placeholder="Rupam"
-                            autoComplete="given-name"
+                            placeholder="E.g., Rupam Mondal"
+                            autoComplete="name"
                             required
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="last-name">Last Name (optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            id="last-name"
-                            type="text"
-                            placeholder="Mondal"
-                            autoComplete="family-name"
                             {...field}
                           />
                         </FormControl>
@@ -210,7 +274,9 @@ export function SignupForm({
                     control={form.control}
                     name="email"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem
+                        className={cn("mt-4", signupStep === 1 ? "" : "hidden")}
+                      >
                         <FormLabel htmlFor="email">Email</FormLabel>
                         <FormControl>
                           <Input
@@ -230,7 +296,9 @@ export function SignupForm({
                     control={form.control}
                     name="password"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem
+                        className={cn("mt-4", signupStep === 1 ? "" : "hidden")}
+                      >
                         <FormLabel htmlFor="password">Password</FormLabel>
                         <FormControl>
                           <Input
@@ -250,7 +318,9 @@ export function SignupForm({
                     control={form.control}
                     name="confirmPassword"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem
+                        className={cn("mt-4", signupStep === 1 ? "" : "hidden")}
+                      >
                         <FormLabel htmlFor="confirm-password">
                           Confirm Password
                         </FormLabel>
@@ -272,34 +342,73 @@ export function SignupForm({
                     control={form.control}
                     name="otp"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem
+                        className={cn("mt-4", signupStep === 2 ? "" : "hidden")}
+                      >
                         <FormLabel>One-Time Password</FormLabel>
                         <FormControl>
-                          <InputOTP pattern={REGEXP_ONLY_DIGITS} maxLength={6} {...field}>
-                            <InputOTPGroup className="gap-2 ">
-                              <InputOTPSlot index={0} />
-                              <InputOTPSlot index={1} />
-                              <InputOTPSlot index={2} />
-                              <InputOTPSlot index={3} />
-                              <InputOTPSlot index={4} />
-                              <InputOTPSlot index={5} />
+                          <InputOTP
+                            className="justify-center"
+                            pattern={REGEXP_ONLY_DIGITS}
+                            maxLength={6}
+                            {...field}
+                          >
+                            <InputOTPGroup className="gap-4">
+                              <InputOTPSlot index={0} className="w-10 h-10" />
+                              <InputOTPSlot index={1} className="w-10 h-10" />
+                              <InputOTPSlot index={2} className="w-10 h-10" />
+                              <InputOTPSlot index={3} className="w-10 h-10" />
+                              <InputOTPSlot index={4} className="w-10 h-10" />
+                              <InputOTPSlot index={5} className="w-10 h-10" />
                             </InputOTPGroup>
                           </InputOTP>
                         </FormControl>
                         <FormMessage />
+                        <Button
+                          type="button"
+                          onClick={() => sendOtp()}
+                          className="w-min ml-auto bg-transparent hover:bg-primary/10 text-primary"
+                        >
+                          <RotateCcw
+                            className={cn(
+                              isSendingOtp ? "animate-spin-reverse" : ""
+                            )}
+                          />{" "}
+                          { resendTimer ? `${resendTimer}s` : isSendingOtp
+                            ? "Sending OTP"
+                            : isOtpSent
+                              ? "Resend OTP"
+                              : "Send OTP"}
+                        </Button>
                         <FormDescription>
-                          Please enter the one-time password sent to your phone.
+                          Please enter the one-time password sent to your email.
+                          If not found in your inbox, check your spam folder.
                         </FormDescription>
                       </FormItem>
                     )}
                   />
                 </div>
                 <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={emailLoginLoading || googleLoginLoading}
+                  type="button"
+                  className={`w-full ${signupStep === 2 ? "hidden" : ""}`}
+                  onClick={() => {
+                    if (signupStep === 1) {
+                      // Validate the first step
+                      form.handleSubmit(() => {
+                        setSignupStep(2);
+                      })();
+                    }
+                  }}
                 >
-                  {emailLoginLoading ? (
+                  {signupStep === 1 ? "Continue to OTP" : "Submit OTP"}
+                </Button>
+
+                <Button
+                  type="submit"
+                  className={`w-full ${signupStep === 1 ? "hidden" : ""}`}
+                  disabled={emailSignupLoading || googleSignupLoading}
+                >
+                  {emailSignupLoading ? (
                     <>
                       <Loader2 className="animate-spin" />
                       Signing up...

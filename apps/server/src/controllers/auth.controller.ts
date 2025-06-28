@@ -31,13 +31,13 @@ export const signup = async (
   session.startTransaction();
   try {
     // Validate input
-    if (!req?.body?.email || !req?.body?.password) {
+    if (!req?.body?.email || !req?.body?.password || !req?.body?.fullName) {
       throw new ApiError(
         400,
-        "Please provide a email and a password to continue"
+        "Please provide email, password, and full name to continue"
       );
     }
-    const { email, password } = req.body;
+    const { email, password, fullName } = req.body;
 
     // Check for empty values
     if ([email, password].some((value) => value?.trim() === "")) {
@@ -51,8 +51,22 @@ export const signup = async (
       throw new ApiError(400, "User already exists");
     }
 
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new ApiError(400, "Invalid email format");
+    }
+
+    // Validate password strength 
+    if (!/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&.,:;'"<>?() \[\] {}|\\/~`_^+-]{8,}$/.test(password)) {
+      throw new ApiError(400, "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, and one number");
+    }
+
+    // Split full name into first and last names
+    const [firstName, ...lastNameParts] = fullName.split(" ");
+    const lastName = lastNameParts.join(" ");
+    
     // Create user document
-    const user = await User.create([{ email, password }], { session });
+    const user = await User.create([{ email, password, firstName, lastName }], { session });
 
     // Generate JWT tokens for authentication
     const refreshToken = generateRefreshToken(user[0]._id as string);

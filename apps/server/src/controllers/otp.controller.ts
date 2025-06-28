@@ -8,6 +8,7 @@ import {
   passwordResetRequestTemplate,
   verificationEmailTemplate,
 } from "../utils/emailTemplates.js";
+import { User } from "../models/user.model.js";
 
 export const sendOtp = asyncHandler(async (req, res) => {
   if (!req.body || !req.body.email || !req.body.context) {
@@ -37,6 +38,10 @@ export const sendOtp = asyncHandler(async (req, res) => {
   }
 
   if (context === "signup") {
+    const user = await User.findOne({ email });
+    if (user) {
+      throw new ApiError(400, "User already exists with this email");
+    }
     const emailResponse = await sendEmail(
       email,
       context,
@@ -44,7 +49,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
     );
 
     if (!emailResponse || emailResponse.success === false) {
-      throw new ApiError(500, emailResponse.message || "Otp not sent");
+      throw new ApiError(500, "Failed to send Otp");
     }
 
     res
@@ -53,7 +58,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
         new ApiResponse(
           200,
           true,
-          emailResponse.message || "Otp sent successfully"
+          "Otp sent successfully"
         )
       );
   } else if (context === "change-password") {
@@ -64,7 +69,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
     );
 
     if (!emailResponse || emailResponse.success === false) {
-      throw new ApiError(500, emailResponse.message || "Otp not sent");
+      throw new ApiError(500, "Failed to send Otp");
     }
 
     res
@@ -73,7 +78,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
         new ApiResponse(
           200,
           true,
-          emailResponse.message || "Otp sent successfully"
+          "Otp sent successfully"
         )
       );
   } else {
