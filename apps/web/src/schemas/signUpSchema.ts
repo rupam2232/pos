@@ -14,14 +14,14 @@ export const signUpSchema = z
       .string()
       .min(8, "Password must be at least 8 characters long"),
     otp: z.string().optional(),
-    fullName: z.string().min(1, "First name is required"),
+    fullName: z.string().min(1, "Full name is required"),
   })
   .superRefine((data, ctx) => {
     if (data.password !== data.confirmPassword) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["confirmPassword"],
-        message: "Passwords do not match",
+        message: "Confirm password must match the password",
       });
     }
   });

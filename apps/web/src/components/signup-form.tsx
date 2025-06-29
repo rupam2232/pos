@@ -32,7 +32,7 @@ import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loader2, RotateCcw } from "lucide-react";
+import { ArrowLeft, Loader2, RotateCcw } from "lucide-react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 export function SignupForm({
@@ -42,7 +42,8 @@ export function SignupForm({
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const [emailSignupLoading, setEmailSignupLoading] = useState<boolean>(false);
-  const [googleSignupLoading, setGoogleSignupLoading] = useState<boolean>(false);
+  const [googleSignupLoading, setGoogleSignupLoading] =
+    useState<boolean>(false);
   const [signupStep, setSignupStep] = useState<1 | 2>(1); // 1 for email, 2 for OTP
   const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
   const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
@@ -81,7 +82,11 @@ export function SignupForm({
       const response = await axios.post("/auth/google", { idToken });
       dispatch(signIn(response.data.data));
       toast.success(response.data.message || "Sign up successful!");
-      router.replace("/dashboard?from=signup");
+      if(response.data?.message && response.data.message.toLowerCase().includes("sign up")){
+        router.replace("/dashboard?from=signup");
+      } else {
+        router.replace("/dashboard");
+      }
     } catch (error) {
       dispatch(signOut());
       const axiosError = error as AxiosError<ApiResponse>;
@@ -103,7 +108,10 @@ export function SignupForm({
       toast.info("OTP is already being sent. Please wait.");
       return;
     }
-    if( resendTimer !== null || typeof(resendTimer) === "number" && resendTimer > 0) {
+    if (
+      resendTimer !== null ||
+      (typeof resendTimer === "number" && resendTimer > 0)
+    ) {
       toast.info(`Please wait ${resendTimer} seconds before resending OTP.`);
       return;
     }
@@ -132,7 +140,7 @@ export function SignupForm({
         name,
         context: "signup",
       });
-      if(response.data.data === false){
+      if (response.data.data === false) {
         toast.error("Failed to send OTP. Please try again");
         return;
       }
@@ -159,7 +167,7 @@ export function SignupForm({
     if (!data.otp || data.otp.length !== 6) {
       form.setError("otp", {
         type: "manual",
-        message: "Please enter a valid 6-digit OTP.",
+        message: "Please enter a valid 6-digit OTP",
       });
       return;
     }
@@ -174,7 +182,7 @@ export function SignupForm({
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message ||
-          "Sign up failed. Please check your credentials."
+          "Sign up failed. Please check your credentials"
       );
       console.error(
         axiosError.response?.data.message || "An error occurred during Sign up"
@@ -338,16 +346,31 @@ export function SignupForm({
                       </FormItem>
                     )}
                   />
+                  <Button
+                    onClick={() => setSignupStep(1)}
+                    className={cn(
+                      "w-min mr-auto bg-transparent hover:bg-primary/10 text-primary",
+                      signupStep === 2 ? "" : "hidden"
+                    )}
+                    type="button"
+                  >
+                    <ArrowLeft />
+                    Back
+                  </Button>
                   <FormField
                     control={form.control}
                     name="otp"
                     render={({ field }) => (
                       <FormItem
-                        className={cn("mt-4", signupStep === 2 ? "" : "hidden")}
+                        className={cn("", signupStep === 2 ? "" : "hidden")}
                       >
-                        <FormLabel>One-Time Password</FormLabel>
+                        <FormLabel htmlFor="otp">
+                          Enter OTP sent to {form.getValues("email")}
+                        </FormLabel>
                         <FormControl>
                           <InputOTP
+                            disabled={!isOtpSent || isSendingOtp}
+                            id="otp"
                             className="justify-center"
                             pattern={REGEXP_ONLY_DIGITS}
                             maxLength={6}
@@ -367,21 +390,26 @@ export function SignupForm({
                         <Button
                           type="button"
                           onClick={() => sendOtp()}
-                          className="w-min ml-auto bg-transparent hover:bg-primary/10 text-primary"
+                          disabled={
+                            isSendingOtp || resendTimer !== null
+                          }
+                          className={`w-min ml-auto bg-transparent hover:bg-primary/10 text-primary`}
                         >
                           <RotateCcw
                             className={cn(
                               isSendingOtp ? "animate-spin-reverse" : ""
                             )}
                           />{" "}
-                          { resendTimer ? `${resendTimer}s` : isSendingOtp
-                            ? "Sending OTP"
-                            : isOtpSent
-                              ? "Resend OTP"
-                              : "Send OTP"}
+                          {resendTimer
+                            ? `${resendTimer}s`
+                            : isSendingOtp
+                              ? "Sending OTP"
+                              : isOtpSent
+                                ? "Resend OTP"
+                                : "Send OTP"}
                         </Button>
                         <FormDescription>
-                          Please enter the one-time password sent to your email.
+                          Please enter the 6-digit OTP sent to your email.
                           If not found in your inbox, check your spam folder.
                         </FormDescription>
                       </FormItem>
@@ -395,12 +423,13 @@ export function SignupForm({
                     if (signupStep === 1) {
                       // Validate the first step
                       form.handleSubmit(() => {
+                        sendOtp();
                         setSignupStep(2);
                       })();
                     }
                   }}
                 >
-                  {signupStep === 1 ? "Continue to OTP" : "Submit OTP"}
+                  Continue to OTP
                 </Button>
 
                 <Button
