@@ -22,6 +22,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@repo/ui/components/input-otp";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
 import axios from "@/utils/axiosInstance";
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
@@ -82,7 +83,10 @@ export function SignupForm({
       const response = await axios.post("/auth/google", { idToken });
       dispatch(signIn(response.data.data));
       toast.success(response.data.message || "Sign up successful!");
-      if(response.data?.message && response.data.message.toLowerCase().includes("sign up")){
+      if (
+        response.data?.message &&
+        response.data.message.toLowerCase().includes("sign up")
+      ) {
         router.replace("/dashboard?from=signup");
       } else {
         router.replace("/dashboard");
@@ -207,260 +211,277 @@ export function SignupForm({
             />
           </div>
           <Form {...form}>
-            <form className="p-6 md:p-8" onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-col items-center text-center">
-                  <h1 className="text-2xl font-bold">{`Welcome to ${process.env.NEXT_PUBLIC_APP_NAME}`}</h1>
-                  <p className="text-muted-foreground text-balance">
-                    {`Create an account to get started with ${process.env.NEXT_PUBLIC_APP_NAME}`}
-                  </p>
-                </div>
+            <form
+              className="md:h-[85vh] overflow-y-auto overflow-x-hidden"
+              onSubmit={form.handleSubmit(onSubmit)}
+            >
+              <ScrollArea className="h-full">
+                <div className="flex flex-col gap-6 p-6 md:p-8">
+                  <div className="flex flex-col items-center text-center">
+                    <h1 className="text-2xl font-bold">{`Welcome to ${process.env.NEXT_PUBLIC_APP_NAME}`}</h1>
+                    <p className="text-muted-foreground text-balance">
+                      {`Create an account to get started with ${process.env.NEXT_PUBLIC_APP_NAME}`}
+                    </p>
+                  </div>
 
-                <div className="relative">
-                  {googleSignupLoading ? (
-                    <Button
-                      disabled
-                      className="w-full font-normal bg-white text-black border-zinc-400 border rounded-[4px] py-4.5"
-                    >
-                      <Loader2 className="animate-spin !h-5 !w-5" />
-                      Signing up with Google...
-                    </Button>
-                  ) : (
-                    <GoogleLogin
-                      onSuccess={async (credentialResponse) => {
-                        if (!credentialResponse.credential) {
+                  <div className="relative">
+                    {googleSignupLoading ? (
+                      <Button
+                        disabled
+                        className="w-full font-normal bg-white text-black border-zinc-400 border rounded-[4px] py-4.5"
+                      >
+                        <Loader2 className="animate-spin !h-5 !w-5" />
+                        Signing up with Google...
+                      </Button>
+                    ) : (
+                      <GoogleLogin
+                        onSuccess={async (credentialResponse) => {
+                          if (!credentialResponse.credential) {
+                            toast.error(
+                              "Google signup failed. Please try again."
+                            );
+                            return;
+                          }
+                          // Handle the Google signup with the credential
+                          handleGoogleLogin(credentialResponse.credential);
+                        }}
+                        onError={() => {
                           toast.error(
                             "Google signup failed. Please try again."
                           );
-                          return;
-                        }
-                        // Handle the Google signup with the credential
-                        handleGoogleLogin(credentialResponse.credential);
-                      }}
-                      onError={() => {
-                        toast.error("Google signup failed. Please try again.");
-                      }}
-                      logo_alignment="center"
-                      text="signup_with"
-                      useOneTap={true}
-                      auto_select={true}
-                    />
-                  )}
-                  {(googleSignupLoading || emailSignupLoading) && (
-                    <div className="absolute inset-0 z-10 bg-white opacity-50 cursor-not-allowed" />
-                  )}
-                </div>
-                <div className="after:border-ring relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-                  <span className="bg-card text-muted-foreground relative z-10 px-2">
-                    Or continue with
-                  </span>
-                </div>
-                <div className="grid gap-3">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem
-                        className={cn("mt-4", signupStep === 1 ? "" : "hidden")}
-                      >
-                        <FormLabel htmlFor="full-name">Full Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            id="full-name"
-                            type="text"
-                            placeholder="E.g., Rupam Mondal"
-                            autoComplete="name"
-                            required
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                        }}
+                        logo_alignment="center"
+                        text="signup_with"
+                        useOneTap={true}
+                        auto_select={true}
+                      />
                     )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem
-                        className={cn("mt-4", signupStep === 1 ? "" : "hidden")}
-                      >
-                        <FormLabel htmlFor="email">Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            id="email"
-                            type="email"
-                            placeholder="abc@example.com"
-                            autoComplete="username"
-                            required
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    {(googleSignupLoading || emailSignupLoading) && (
+                      <div className="absolute inset-0 z-10 bg-white opacity-50 cursor-not-allowed" />
                     )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem
-                        className={cn("mt-4", signupStep === 1 ? "" : "hidden")}
-                      >
-                        <FormLabel htmlFor="password">Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            id="password"
-                            placeholder="••••••••"
-                            type="password"
-                            autoComplete="new-password"
-                            required
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem
-                        className={cn("mt-4", signupStep === 1 ? "" : "hidden")}
-                      >
-                        <FormLabel htmlFor="confirm-password">
-                          Confirm Password
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            id="confirm-password"
-                            placeholder="••••••••"
-                            type="password"
-                            autoComplete="new-password"
-                            required
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    onClick={() => setSignupStep(1)}
-                    className={cn(
-                      "w-min mr-auto bg-transparent hover:bg-primary/10 text-primary",
-                      signupStep === 2 ? "" : "hidden"
-                    )}
-                    type="button"
-                  >
-                    <ArrowLeft />
-                    Back
-                  </Button>
-                  <FormField
-                    control={form.control}
-                    name="otp"
-                    render={({ field }) => (
-                      <FormItem
-                        className={cn("", signupStep === 2 ? "" : "hidden")}
-                      >
-                        <FormLabel htmlFor="otp">
-                          Enter OTP sent to {form.getValues("email")}
-                        </FormLabel>
-                        <FormControl>
-                          <InputOTP
-                            disabled={!isOtpSent || isSendingOtp}
-                            id="otp"
-                            className="justify-center"
-                            pattern={REGEXP_ONLY_DIGITS}
-                            maxLength={6}
-                            {...field}
-                          >
-                            <InputOTPGroup className="gap-4">
-                              <InputOTPSlot index={0} className="w-10 h-10" />
-                              <InputOTPSlot index={1} className="w-10 h-10" />
-                              <InputOTPSlot index={2} className="w-10 h-10" />
-                              <InputOTPSlot index={3} className="w-10 h-10" />
-                              <InputOTPSlot index={4} className="w-10 h-10" />
-                              <InputOTPSlot index={5} className="w-10 h-10" />
-                            </InputOTPGroup>
-                          </InputOTP>
-                        </FormControl>
-                        <FormMessage />
-                        <Button
-                          type="button"
-                          onClick={() => sendOtp()}
-                          disabled={
-                            isSendingOtp || resendTimer !== null
-                          }
-                          className={`w-min ml-auto bg-transparent hover:bg-primary/10 text-primary`}
+                  </div>
+                  <div className="after:border-ring relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+                    <span className="bg-card text-muted-foreground relative z-10 px-2">
+                      Or continue with
+                    </span>
+                  </div>
+                  <div className="grid gap-3">
+                    <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem
+                          className={cn(
+                            "mt-4",
+                            signupStep === 1 ? "" : "hidden"
+                          )}
                         >
-                          <RotateCcw
-                            className={cn(
-                              isSendingOtp ? "animate-spin-reverse" : ""
-                            )}
-                          />{" "}
-                          {resendTimer
-                            ? `${resendTimer}s`
-                            : isSendingOtp
-                              ? "Sending OTP"
-                              : isOtpSent
-                                ? "Resend OTP"
-                                : "Send OTP"}
-                        </Button>
-                        <FormDescription>
-                          Please enter the 6-digit OTP sent to your email.
-                          If not found in your inbox, check your spam folder.
-                        </FormDescription>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  className={`w-full ${signupStep === 2 ? "hidden" : ""}`}
-                  onClick={() => {
-                    if (signupStep === 1) {
-                      // Validate the first step
-                      form.handleSubmit(() => {
-                        sendOtp();
-                        setSignupStep(2);
-                      })();
-                    }
-                  }}
-                >
-                  Continue to OTP
-                </Button>
+                          <FormLabel htmlFor="full-name">Full Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              id="full-name"
+                              type="text"
+                              placeholder="E.g., Rupam Mondal"
+                              autoComplete="name"
+                              required
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem
+                          className={cn(
+                            "mt-4",
+                            signupStep === 1 ? "" : "hidden"
+                          )}
+                        >
+                          <FormLabel htmlFor="email">Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              id="email"
+                              type="email"
+                              placeholder="abc@example.com"
+                              autoComplete="username"
+                              required
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem
+                          className={cn(
+                            "mt-4",
+                            signupStep === 1 ? "" : "hidden"
+                          )}
+                        >
+                          <FormLabel htmlFor="password">Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              id="password"
+                              placeholder="••••••••"
+                              type="password"
+                              autoComplete="new-password"
+                              required
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem
+                          className={cn(
+                            "mt-4",
+                            signupStep === 1 ? "" : "hidden"
+                          )}
+                        >
+                          <FormLabel htmlFor="confirm-password">
+                            Confirm Password
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              id="confirm-password"
+                              placeholder="••••••••"
+                              type="password"
+                              autoComplete="new-password"
+                              required
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      onClick={() => setSignupStep(1)}
+                      className={cn(
+                        "w-min mr-auto bg-transparent hover:bg-primary/10 text-primary",
+                        signupStep === 2 ? "" : "hidden"
+                      )}
+                      type="button"
+                    >
+                      <ArrowLeft />
+                      Back
+                    </Button>
+                    <FormField
+                      control={form.control}
+                      name="otp"
+                      render={({ field }) => (
+                        <FormItem
+                          className={cn("", signupStep === 2 ? "" : "hidden")}
+                        >
+                          <FormLabel htmlFor="otp">
+                            Enter OTP sent to {form.getValues("email")}
+                          </FormLabel>
+                          <FormControl>
+                            <InputOTP
+                              disabled={!isOtpSent || isSendingOtp}
+                              id="otp"
+                              pattern={REGEXP_ONLY_DIGITS}
+                              maxLength={6}
+                              {...field}
+                            >
+                              <InputOTPGroup className="gap-3">
+                                <InputOTPSlot index={0} className="w-10 h-10" />
+                                <InputOTPSlot index={1} className="w-10 h-10" />
+                                <InputOTPSlot index={2} className="w-10 h-10" />
+                                <InputOTPSlot index={3} className="w-10 h-10" />
+                                <InputOTPSlot index={4} className="w-10 h-10" />
+                                <InputOTPSlot index={5} className="w-10 h-10" />
+                              </InputOTPGroup>
+                            </InputOTP>
+                          </FormControl>
+                          <FormMessage />
+                          <Button
+                            type="button"
+                            onClick={() => sendOtp()}
+                            disabled={isSendingOtp || resendTimer !== null}
+                            className={`w-min ml-auto bg-transparent hover:bg-primary/10 text-primary`}
+                          >
+                            <RotateCcw
+                              className={cn(
+                                isSendingOtp ? "animate-spin-reverse" : ""
+                              )}
+                            />{" "}
+                            {resendTimer
+                              ? `${resendTimer}s`
+                              : isSendingOtp
+                                ? "Sending OTP"
+                                : isOtpSent
+                                  ? "Resend OTP"
+                                  : "Send OTP"}
+                          </Button>
+                          <FormDescription>
+                            Please enter the 6-digit OTP sent to your email. If
+                            not found in your inbox, check your spam folder.
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    className={`w-full ${signupStep === 2 ? "hidden" : ""}`}
+                    onClick={() => {
+                      if (signupStep === 1) {
+                        // Validate the first step
+                        form.handleSubmit(() => {
+                          sendOtp();
+                          setSignupStep(2);
+                        })();
+                      }
+                    }}
+                  >
+                    Continue to OTP
+                  </Button>
 
-                <Button
-                  type="submit"
-                  className={`w-full ${signupStep === 1 ? "hidden" : ""}`}
-                  disabled={emailSignupLoading || googleSignupLoading}
-                >
-                  {emailSignupLoading ? (
-                    <>
-                      <Loader2 className="animate-spin" />
-                      Signing up...
-                    </>
-                  ) : (
-                    "Sign up"
-                  )}
-                </Button>
-                <div className="text-center text-sm">
-                  Already have an account?{" "}
-                  <a href="/signin" className="underline underline-offset-4">
-                    Sign in
-                  </a>
+                  <Button
+                    type="submit"
+                    className={`w-full ${signupStep === 1 ? "hidden" : ""}`}
+                    disabled={emailSignupLoading || googleSignupLoading}
+                  >
+                    {emailSignupLoading ? (
+                      <>
+                        <Loader2 className="animate-spin" />
+                        Signing up...
+                      </>
+                    ) : (
+                      "Sign up"
+                    )}
+                  </Button>
+                  <div className="text-center text-sm">
+                    Already have an account?{" "}
+                    <a href="/signin" className="underline underline-offset-4">
+                      Sign in
+                    </a>
+                  </div>
+                  <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs *:[a]:underline *:[a]:underline-offset-4">
+                    By clicking continue, you agree to our{" "}
+                    <a href="#">Terms of Service</a> and{" "}
+                    <a href="#">Privacy Policy</a>.
+                  </div>
                 </div>
-              </div>
+              </ScrollArea>
             </form>
           </Form>
         </CardContent>
       </Card>
-      <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </div>
     </div>
   );
 }
