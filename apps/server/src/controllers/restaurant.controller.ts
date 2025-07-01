@@ -67,6 +67,33 @@ export const createRestaurant = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, restaurant, "Restaurant created successfully"));
 });
 
+export const getAllRestaurantofOwner = asyncHandler(async (req, res) => {
+  if (req.user!.role !== "owner") {
+    throw new ApiError(403, "Only owners can view their restaurants");
+  }
+
+  const restaurants = await Restaurant.find({ ownerId: req.user!._id }).select(
+    "restaurantName slug description address logoUrl isCurrentlyOpen");
+  res
+    .status(200)
+    .json(new ApiResponse(200, restaurants, "Restaurants fetched successfully"));
+});
+
+export const getRestaurantofStaff = asyncHandler(async (req, res) => {
+  if (req.user!.role !== "staff") {
+    throw new ApiError(403, "Only staff can view their restaurant");
+  }
+  const restaurant = await Restaurant.findOne({
+    staffIds: {$in: [req.user!._id]},
+  }).select("restaurantName slug description address logoUrl isCurrentlyOpen");
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found for this staff member");
+  }
+  res
+    .status(200)
+    .json(new ApiResponse(200, restaurant, "Restaurant fetched successfully"));
+});
+
 export const getRestaurantBySlug = asyncHandler(async (req, res) => {
   if (!req.params?.slug) {
     throw new ApiError(400, "Restaurant slug is required.");

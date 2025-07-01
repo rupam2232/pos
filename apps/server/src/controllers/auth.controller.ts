@@ -361,6 +361,12 @@ export const google = async (
     const user = await User.findOne({ email }).session(session);
 
     if (user) {
+      if(!user.firstName || user.firstName === "" || !user.lastName || user.lastName === "") {
+        // If user exists but fullName is empty, update it with Google data
+        user.firstName = given_name || name?.split(" ")[0] || "";
+        user.lastName = family_name || name?.split(" ")[1] || "";
+        await user.save({ session });
+      }
       // Existing user: generate tokens and manage device session
       const refreshToken = generateRefreshToken(user._id as string);
       const accessToken = generateAccessToken({

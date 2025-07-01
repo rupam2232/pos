@@ -1,8 +1,18 @@
-import { Button } from "@repo/ui/components/button"
+"use client"
 import { Separator } from "@repo/ui/components/separator"
 import { SidebarTrigger } from "@repo/ui/components/sidebar"
+import { useEffect, useState } from "react"
 
 export function SiteHeader() {
+  const [currentTime, setCurrentTime] = useState<null | Date>(null)
+  const updateTime = () => {
+    const now = new Date()
+    setCurrentTime(now)
+  }
+  useEffect(() => {
+    // Update time every second
+    setInterval(updateTime, 1000)
+  }, [])
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
@@ -13,16 +23,16 @@ export function SiteHeader() {
         />
         <h1 className="text-base font-medium">Documents</h1>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
-            <a
-              href="https://github.com/shadcn-ui/ui/tree/main/apps/v4/app/(examples)/dashboard"
-              rel="noopener noreferrer"
-              target="_blank"
-              className="dark:text-foreground"
-            >
-              GitHub
-            </a>
-          </Button>
+          {currentTime ? (
+            <span className="text-sm text-gray-500">
+              {`${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}:${currentTime.getSeconds().toString().padStart(2, '0')}`}
+              {`, `}
+              {`${currentTime.toLocaleDateString('default', { weekday: 'long' })}, `}
+              {`${currentTime.getDate()} ${currentTime.toLocaleString('default', { month: 'long' })} ${currentTime.getFullYear()}`} 
+            </span>
+          ) : (
+            <span className="text-sm text-gray-500">Loading time...</span>
+          )}
         </div>
       </div>
     </header>

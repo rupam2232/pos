@@ -4,7 +4,9 @@ import {
   checkUniqueRestaurantSlug,
   createRestaurant,
   createRestaurantCategories,
+  getAllRestaurantofOwner,
   getRestaurantBySlug,
+  getRestaurantofStaff,
   removeRestaurantCategories,
   setRestaurantTax,
   toggleRestaurantOpenStatus,
@@ -47,6 +49,9 @@ router.post(
   isSubscriptionActive,
   createRestaurant
 );
+
+router.get("/owner", verifyAuth, getAllRestaurantofOwner);
+router.get("/staff", verifyAuth, getRestaurantofStaff);
 
 router
   .route("/:slug")

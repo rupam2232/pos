@@ -56,7 +56,14 @@ export function SigninForm({
       const response = await axios.post("/auth/google", { idToken });
       dispatch(signIn(response.data.data));
       toast.success(response.data.message || "Sign in successful!");
-      router.replace("/dashboard");
+      if (
+        response.data?.message &&
+        response.data.message.toLowerCase().includes("sign up")
+      ) {
+        router.replace("/dashboard?from=signup");
+      } else {
+        router.replace("/dashboard");
+      }
     } catch (error) {
       dispatch(signOut());
       const axiosError = error as AxiosError<ApiResponse>;

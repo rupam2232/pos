@@ -9,8 +9,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card"
+import { useEffect } from "react"
+import axios from "@/utils/axiosInstance"
 
 export function SectionCards() {
+  
+  const fetchOrderData = async () => {
+    try {
+      const response = await axios.get("/order/first1");
+      console.log("Order data fetched successfully:", response.data);
+    } catch (error) {
+      console.error("Error fetching order data:", error);
+    }
+  }
+
+  useEffect(() => {
+    fetchOrderData();
+  }, [])
+  
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       <Card className="@container/card">
