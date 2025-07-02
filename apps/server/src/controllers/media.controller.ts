@@ -74,9 +74,7 @@ export const restaurantLogoDelete = asyncHandler(async (req, res) => {
   if (!req.body || !req.body.mediaUrl) {
     throw new ApiError(400, "Media URL is required");
   }
-  if (!req.user!.restaurantIds || req.user!.restaurantIds.length === 0) {
-    throw new ApiError(403, "User does not own any restaurants");
-  }
+
   const { mediaUrl } = req.body;
 
   if (req.user!.role !== "owner") {
@@ -94,6 +92,9 @@ export const restaurantLogoDelete = asyncHandler(async (req, res) => {
   if (req.body.restaurantId) {
     if (!isValidObjectId(req.body.restaurantId)) {
       throw new ApiError(400, "Invalid restaurant ID");
+    }
+    if (!req.user!.restaurantIds || req.user!.restaurantIds.length === 0) {
+      throw new ApiError(403, "User does not own any restaurants");
     }
     // If restaurantId is provided, check if the user owns that restaurant
     restaurant = await Restaurant.findById(req.body.restaurantId);

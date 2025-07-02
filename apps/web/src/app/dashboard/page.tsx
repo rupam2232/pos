@@ -49,8 +49,12 @@ import Image from "next/image";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
-import { ImagePlusIcon, X } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
+import { ImagePlusIcon, Trash2, X } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
 
 export default function Page() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -59,6 +63,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageErrorMessage, setImageErrorMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -130,6 +135,63 @@ export default function Page() {
     },
   });
 
+  const handleImageRemove = async () => {
+    setImageErrorMessage("");
+    if (imageUrl) {
+      try {
+        const response = await axios.delete("/media/restaurant-logo", {
+          data: {
+            mediaUrl: imageUrl || form.getValues("logoUrl"),
+          },
+        });
+        if (response.data.success) {
+          setImageUrl("");
+          form.setValue("logoUrl", "");
+          toast.success("Logo removed successfully");
+          setImageFile(null);
+        } else {
+          toast.error(response.data.message || "Failed to remove logo");
+        }
+      } catch (error) {
+        console.error("Error removing image:", error);
+        const axiosError = error as AxiosError<ApiResponse>;
+        toast.error(
+          axiosError.response?.data.message || "Failed to remove logo"
+        );
+        if (axiosError.response?.status === 401) {
+          dispatch(signOut());
+          router.push("/signin");
+        }
+      }
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      const response = await axios.post(
+        "/media/restaurant-logo",
+        { restaurantLogo: file },
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      setImageUrl(response.data.data);
+      form.setValue("logoUrl", response.data.data);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message || "Failed to upload image"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    }
+  };
+
   const onImageDrop = (
     acceptedFiles: File[],
     rejectedFiles: FileRejection[]
@@ -151,6 +213,7 @@ export default function Page() {
         setImageErrorMessage("Logo file size exceeds 3MB.");
         return;
       }
+      handleImageUpload(file);
       setImageFile(file);
       setImageErrorMessage("");
     }
@@ -244,29 +307,38 @@ export default function Page() {
                                 <Form {...form}>
                                   <form onSubmit={form.handleSubmit(onSubmit)}>
                                     <div className="grid gap-4">
-                                      {imageFile && (
+                                      {(imageFile ||
+                                        form.getValues("logoUrl")) && (
                                         <div className="group relative mx-auto rounded-full cursor-pointer">
                                           <Tooltip>
-                                            <TooltipTrigger className="cursor-pointer">
-                                              <>
-                                              <Avatar className="w-30 h-30 rounded-full">
-                                            <AvatarImage
-                                              src={URL.createObjectURL(
-                                                imageFile
-                                              )}
-                                              alt="Restaurant Logo"
-                                              className="object-cover"
-                                              loading="lazy"
-                                              draggable={false}
-                                            />
-                                          </Avatar>
-                                          <Button
-                                            type="button"
-                                            className="bg-black/50 text-primary/50 group-hover:text-primary hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
-                                          >
-                                            <X className="size-7" />
-                                          </Button>
-                                          </>
+                                            <TooltipTrigger className="cursor-pointer" asChild>
+                                              <div>
+                                                <Avatar className="w-30 h-30 rounded-full">
+                                                  <AvatarImage
+                                                    src={
+                                                      form.getValues("logoUrl")
+                                                        ? form.getValues(
+                                                            "logoUrl"
+                                                          )
+                                                        : URL.createObjectURL(
+                                                            imageFile!
+                                                          )
+                                                    }
+                                                    alt="Restaurant Logo"
+                                                    className="object-cover"
+                                                    loading="lazy"
+                                                    draggable={false}
+                                                  />
+                                                </Avatar>
+                                                <Button
+                                                  type="button"
+                                                  className="bg-black/50 text-primary/50 group-hover:text-primary hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
+                                                  onClick={handleImageRemove}
+                                                  aria-label="Remove Logo"
+                                                >
+                                                  <Trash2 className="size-6 text-red-600" />
+                                                </Button>
+                                              </div>
                                             </TooltipTrigger>
                                             <TooltipContent>
                                               <p className="text-sm font-semibold">
