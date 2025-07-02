@@ -12,7 +12,7 @@ import axios from "@/utils/axiosInstance";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Card,
   CardAction,
@@ -24,6 +24,7 @@ import {
 import { Button } from "@repo/ui/components/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -31,7 +32,7 @@ import {
   DialogTrigger,
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { createRestaurantSchema } from "@/schemas/createRestaurantSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,26 +50,45 @@ import Image from "next/image";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
-import { ImagePlusIcon, Trash2, X } from "lucide-react";
+import { ImagePlusIcon, Loader2, Trash2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
+import { useDebounceCallback } from "usehooks-ts";
+
+export type Restaurant = {
+  _id: string;
+  restaurantName: string;
+  slug: string;
+  description?: string;
+  address?: string;
+  logoUrl?: string;
+  isCurrentlyOpen?: boolean;
+};
 
 export default function Page() {
   const user = useSelector((state: RootState) => state.auth.user);
-  const [ownersRestaurant, setOwnersRestaurant] = useState([]);
-  const [staffsrestaurant, setStaffsRestaurant] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [ownersRestaurant, setOwnersRestaurant] = useState<Restaurant[]>([]);
+  const [staffsrestaurant, setStaffsRestaurant] = useState<Restaurant | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageErrorMessage, setImageErrorMessage] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageErrorMessage, setImageErrorMessage] = useState<string>("");
+  const [formLoading, setformLoading] = useState<boolean>(false);
+  const [slug, setSlug] = useState<string>("");
+  const [isSlugUnqiue, setIsSlugUnique] = useState<boolean | null>(null);
+  const [isCheckingSlug, setIsCheckingSlug] = useState<boolean>(false);
   const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const debounced = useDebounceCallback(setSlug, 300);
+  const closeDialog = useRef<HTMLButtonElement>(null);
 
   const fetchOwnersRestaurants = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await axios.get("/restaurant/owner");
       if (response.data.success) {
@@ -89,10 +109,13 @@ export default function Page() {
         dispatch(signOut());
         router.push("/signin");
       }
+    } finally {
+      setIsLoading(false);
     }
   }, [dispatch, router]);
 
   const fetchStaffsRestaurant = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await axios.get("/restaurant/staff");
       if (response.data.success) {
@@ -113,6 +136,8 @@ export default function Page() {
         dispatch(signOut());
         router.push("/signin");
       }
+    } finally {
+      setIsLoading(false);
     }
   }, [dispatch, router]);
 
@@ -135,21 +160,58 @@ export default function Page() {
     },
   });
 
+  const logoUrl = useWatch({
+    control: form.control,
+    name: "logoUrl",
+  });
+
+  const checkUsernameUnique = useCallback(async () => {
+    if (isCheckingSlug) return; // Prevent multiple requests
+    if (slug.length > 0) {
+      form.trigger("slug"); // Ensure slug is validated before checking uniqueness
+      if (form.formState.isSubmitting) return; // Prevent checking during form submission
+      if (form.getFieldState("slug").invalid) return; // Prevent checking if slug is invalid
+      setIsCheckingSlug(true);
+      setIsSlugUnique(null);
+      try {
+        const response = await axios.get(`/restaurant/${slug}/is-unique-slug`);
+        // setIsSlugUnique(response.data.data);
+        if (!response.data.data) {
+          form.setError("slug", {
+            type: "manual",
+            message: "Slug is already taken",
+          });
+        } else {
+          setIsSlugUnique(true);
+        }
+      } catch (error) {
+        const axiosError = error as AxiosError<ApiResponse>;
+        console.error("Error checking slug uniqueness:", axiosError);
+      } finally {
+        setIsCheckingSlug(false);
+      }
+    }
+  }, [slug, isCheckingSlug, form]);
+
+  useEffect(() => {
+    checkUsernameUnique();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+
   const handleImageRemove = async () => {
     setImageErrorMessage("");
-    if (imageUrl) {
+    if (logoUrl) {
+      // If logoUrl is set, remove the image from the server
+      const mediaUrl = logoUrl;
+      form.setValue("logoUrl", "");
+      setImageFile(null);
       try {
         const response = await axios.delete("/media/restaurant-logo", {
           data: {
-            mediaUrl: imageUrl || form.getValues("logoUrl"),
+            mediaUrl,
           },
         });
-        if (response.data.success) {
-          setImageUrl("");
-          form.setValue("logoUrl", "");
-          toast.success("Logo removed successfully");
-          setImageFile(null);
-        } else {
+        if (!response.data.success) {
           toast.error(response.data.message || "Failed to remove logo");
         }
       } catch (error) {
@@ -177,7 +239,6 @@ export default function Page() {
           },
         }
       );
-      setImageUrl(response.data.data);
       form.setValue("logoUrl", response.data.data);
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -232,9 +293,30 @@ export default function Page() {
     });
 
   const onSubmit = async (data: z.infer<typeof createRestaurantSchema>) => {
-    setIsLoading(true);
+    if (isLoading || formLoading) return; // Prevent multiple submissions
+    if (!user || user?.role !== "owner") {
+      toast.error("You do not have permission to create a restaurant");
+      return;
+    }
     try {
+      setformLoading(true);
+      if (closeDialog.current) {
+        closeDialog.current.click();
+        return;
+      }
       const response = await axios.post("/restaurant/create", data);
+      if (
+        !response.data.success ||
+        !response.data.data ||
+        !Array.isArray(response.data.data) ||
+        response.data.data.length === 0
+      ) {
+        toast.error(response.data.message || "Failed to create restaurant");
+        return;
+      }
+      setOwnersRestaurant((prev) => [...prev, response.data.data]);
+      form.reset();
+      setImageFile(null);
       toast.success(response.data.message || "Restaurant created successfully");
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
@@ -246,11 +328,15 @@ export default function Page() {
         axiosError.response?.data.message ||
           "An error occurred during restaurant creation"
       );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
     } finally {
-      setIsLoading(false);
+      setformLoading(false);
     }
   };
-
+  // console.log(closeDialog);
   return (
     <SidebarProvider
       style={
@@ -298,7 +384,7 @@ export default function Page() {
                         </div>
                         <Dialog>
                           <DialogTrigger>Create a New Restaurant</DialogTrigger>
-                          <DialogContent className="">
+                          <DialogContent className="sm:max-w-md">
                             <ScrollArea className="overflow-y-auto max-h-[90vh]">
                               <DialogHeader className="p-6">
                                 <DialogTitle className="mb-4">
@@ -307,19 +393,19 @@ export default function Page() {
                                 <Form {...form}>
                                   <form onSubmit={form.handleSubmit(onSubmit)}>
                                     <div className="grid gap-4">
-                                      {(imageFile ||
-                                        form.getValues("logoUrl")) && (
+                                      {(imageFile || logoUrl) && (
                                         <div className="group relative mx-auto rounded-full cursor-pointer">
                                           <Tooltip>
-                                            <TooltipTrigger className="cursor-pointer" asChild>
+                                            <TooltipTrigger
+                                              className="cursor-pointer"
+                                              asChild
+                                            >
                                               <div>
                                                 <Avatar className="w-30 h-30 rounded-full">
                                                   <AvatarImage
                                                     src={
-                                                      form.getValues("logoUrl")
-                                                        ? form.getValues(
-                                                            "logoUrl"
-                                                          )
+                                                      logoUrl
+                                                        ? logoUrl
                                                         : URL.createObjectURL(
                                                             imageFile!
                                                           )
@@ -413,9 +499,27 @@ export default function Page() {
                                                 autoComplete="slug"
                                                 required
                                                 {...field}
+                                                onChange={(e) => {
+                                                  field.onChange(e);
+                                                  debounced(e.target.value);
+                                                }}
                                               />
                                             </FormControl>
-                                            <FormMessage />
+                                            {form.getValues("slug") ? (
+                                              isCheckingSlug ? (
+                                                <p className="text-sm text-muted-foreground">
+                                                  Checking slug uniqueness...
+                                                </p>
+                                              ) : isSlugUnqiue === true ? (
+                                                <p className="text-sm text-green-500">
+                                                  Slug is available
+                                                </p>
+                                              ) : (
+                                                <FormMessage />
+                                              )
+                                            ) : (
+                                              <FormMessage />
+                                            )}
                                           </FormItem>
                                         )}
                                       />
@@ -464,9 +568,16 @@ export default function Page() {
                                       <Button
                                         type="submit"
                                         className="w-full"
-                                        disabled={isLoading}
+                                        disabled={isLoading || formLoading}
                                       >
-                                        Create Restaurant
+                                        {formLoading ? (
+                                          <>
+                                            <Loader2 className="animate-spin" />
+                                            Creating...
+                                          </>
+                                        ) : (
+                                          "Create Restaurant"
+                                        )}
                                       </Button>
                                     </div>
                                   </form>
@@ -474,6 +585,9 @@ export default function Page() {
                               </DialogHeader>
                             </ScrollArea>
                           </DialogContent>
+                          <DialogClose
+                            ref={closeDialog}
+                          ></DialogClose>
                         </Dialog>
                       </CardFooter>
                     </Card>
@@ -483,7 +597,7 @@ export default function Page() {
                     <CardHeader>
                       <CardDescription>Staff&apos;s Restaurant</CardDescription>
                       <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                        {staffsrestaurant.length}
+                        1
                       </CardTitle>
                     </CardHeader>
                     <CardFooter className="flex-col items-start gap-1.5 text-sm">

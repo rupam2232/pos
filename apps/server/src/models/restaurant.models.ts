@@ -41,9 +41,9 @@ const restaurantSchema: Schema<Restaurant> = new Schema(
       unique: true,
       validate: {
         validator: function (str: string) {
-          return str.length >= 3 && str.length <= 8;
+          return str.length >= 3 && str.length <= 20;
         },
-        message: "Short name (slug) must be 3-8 characters",
+        message: "Short name (slug) must be 3-20 characters",
       },
     },
     logoUrl: {

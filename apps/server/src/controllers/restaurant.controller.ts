@@ -2,7 +2,10 @@ import path from "path";
 import fs from "fs";
 import cloudinary from "../utils/cloudinary.js";
 import { Restaurant } from "../models/restaurant.models.js";
-import { canCreateRestaurant, canToggleOpeningStatus } from "../service/restaurant.service.js";
+import {
+  canCreateRestaurant,
+  canToggleOpeningStatus,
+} from "../service/restaurant.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -20,11 +23,11 @@ export const createRestaurant = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only owners can create restaurants.");
   }
 
-  if (slug.length < 2 || slug.length > 9) {
-    throw new ApiError(400, "Slug must be between 3 to 8 characters long");
+  if (slug.length < 3 || slug.length > 20) {
+    throw new ApiError(400, "Slug must be between 3 to 20 characters long");
   }
 
-  if (!/^[a-z0-9-]+$/.test(slug)) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     throw new ApiError(
       400,
       "Slug can only contain lowercase letters, numbers, and hyphens"
@@ -73,10 +76,13 @@ export const getAllRestaurantofOwner = asyncHandler(async (req, res) => {
   }
 
   const restaurants = await Restaurant.find({ ownerId: req.user!._id }).select(
-    "restaurantName slug description address logoUrl isCurrentlyOpen");
+    "_id restaurantName slug description address logoUrl isCurrentlyOpen"
+  );
   res
     .status(200)
-    .json(new ApiResponse(200, restaurants, "Restaurants fetched successfully"));
+    .json(
+      new ApiResponse(200, restaurants, "Restaurants fetched successfully")
+    );
 });
 
 export const getRestaurantofStaff = asyncHandler(async (req, res) => {
@@ -84,8 +90,10 @@ export const getRestaurantofStaff = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only staff can view their restaurant");
   }
   const restaurant = await Restaurant.findOne({
-    staffIds: {$in: [req.user!._id]},
-  }).select("restaurantName slug description address logoUrl isCurrentlyOpen");
+    staffIds: { $in: [req.user!._id] },
+  }).select(
+    "_id restaurantName slug description address logoUrl isCurrentlyOpen"
+  );
   if (!restaurant) {
     throw new ApiError(404, "Restaurant not found for this staff member");
   }
@@ -114,14 +122,14 @@ export const getRestaurantBySlug = asyncHandler(async (req, res) => {
 
 export const updateRestaurantDetails = asyncHandler(async (req, res) => {
   if (!req.params?.slug) {
-    throw new ApiError(400, "Restaurant slug is required.");
+    throw new ApiError(400, "Restaurant slug is required");
   }
   const { slug } = req.params;
   if (!req.body?.restaurantName || !req.body?.newSlug) {
-    throw new ApiError(400, "Restaurant name and address are required.");
+    throw new ApiError(400, "Restaurant name and new slug are required");
   }
   if (req.user!.role !== "owner") {
-    throw new ApiError(403, "Only owners can update restaurant details.");
+    throw new ApiError(403, "Only owners can update restaurant details");
   }
 
   const {
@@ -133,13 +141,24 @@ export const updateRestaurantDetails = asyncHandler(async (req, res) => {
     closingTime,
   } = req.body;
 
+  if (newSlug.length < 3 || newSlug.length > 20) {
+    throw new ApiError(400, "Slug must be between 3 to 20 characters long");
+  }
+
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(newSlug)) {
+    throw new ApiError(
+      400,
+      "Slug can only contain lowercase letters, numbers, and hyphens"
+    );
+  }
+
   if (
     (closingTime && closingTime.match(/^\d{2}:\d{2}$/) === null) ||
     (openingTime && openingTime?.match(/^\d{2}:\d{2}$/) === null)
   ) {
     throw new ApiError(
       400,
-      "openingTime and closingTime must be in HH:MM format (24-hour clock)."
+      "openingTime and closingTime must be in HH:MM format (24-hour clock)"
     );
   }
 
@@ -147,7 +166,7 @@ export const updateRestaurantDetails = asyncHandler(async (req, res) => {
     if (!openingTime || !closingTime) {
       throw new ApiError(
         400,
-        "Both opening and closing times must be provided or neither."
+        "Both opening and closing times must be provided or neither"
       );
     }
   }
@@ -168,7 +187,7 @@ export const updateRestaurantDetails = asyncHandler(async (req, res) => {
   );
 
   if (!restaurant) {
-    throw new ApiError(404, "Restaurant not found or you are not the owner.");
+    throw new ApiError(404, "Restaurant not found or you are not the owner");
   }
   res
     .status(200)
@@ -190,7 +209,7 @@ export const toggleRestaurantOpenStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Restaurant not found or you are not the owner.");
   }
 
-  await canToggleOpeningStatus(restaurant)
+  await canToggleOpeningStatus(restaurant);
 
   restaurant.isCurrentlyOpen = !restaurant.isCurrentlyOpen;
   await restaurant.save();
@@ -324,11 +343,11 @@ export const checkUniqueRestaurantSlug = asyncHandler(async (req, res) => {
   }
   const { slug } = req.params;
 
-  if (slug.length < 2 || slug.length > 9) {
-    throw new ApiError(400, "Slug must be between 3 to 8 characters long");
+  if (slug.length < 3 || slug.length > 20) {
+    throw new ApiError(400, "Slug must be between 3 to 20 characters long");
   }
 
-  if (!/^[a-z0-9-]+$/.test(slug)) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     throw new ApiError(
       400,
       "Slug can only contain lowercase letters, numbers, and hyphens"
@@ -339,7 +358,7 @@ export const checkUniqueRestaurantSlug = asyncHandler(async (req, res) => {
   if (restaurant) {
     res
       .status(200)
-      .json(new ApiResponse(200, false, `${slug} slug is not available`));
+      .json(new ApiResponse(200, false, `${slug} slug is already taken`));
   } else {
     res
       .status(200)
