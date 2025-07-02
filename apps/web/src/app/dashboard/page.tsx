@@ -6,13 +6,13 @@ import { SectionCards } from "@/components/section-cards";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@repo/ui/components/sidebar";
 import data from "./data.json";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store/store";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "@/store/store";
 import axios from "@/utils/axiosInstance";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Card,
   CardAction,
@@ -46,6 +46,11 @@ import {
 import { FileRejection, useDropzone } from "react-dropzone";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import Image from "next/image";
+import { signOut } from "@/store/authSlice";
+import { useRouter } from "next/navigation";
+import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
+import { ImagePlusIcon, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/tooltip";
 
 export default function Page() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -54,9 +59,11 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageErrorMessage, setImageErrorMessage] = useState("");
-  const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+  const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
-  const fetchOwnersRestaurants = async () => {
+  const fetchOwnersRestaurants = useCallback(async () => {
     try {
       const response = await axios.get("/restaurant/owner");
       if (response.data.success) {
@@ -67,16 +74,20 @@ export default function Page() {
         );
       }
     } catch (error) {
+      console.error("Error fetching owner's restaurants:", error);
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message ||
           "Failed to fetch owner's restaurants"
       );
-      console.error("Error fetching owner's restaurants:", error);
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
     }
-  };
+  }, [dispatch, router]);
 
-  const fetchStaffsRestaurant = async () => {
+  const fetchStaffsRestaurant = useCallback(async () => {
     try {
       const response = await axios.get("/restaurant/staff");
       if (response.data.success) {
@@ -87,14 +98,18 @@ export default function Page() {
         );
       }
     } catch (error) {
+      console.error("Error fetching staff's restaurants:", error);
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message ||
           "Failed to fetch staff's restaurants"
       );
-      console.error("Error fetching staff's restaurants:", error);
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
     }
-  };
+  }, [dispatch, router]);
 
   useEffect(() => {
     if (user?.role === "owner") {
@@ -102,7 +117,7 @@ export default function Page() {
     } else if (user?.role === "staff") {
       fetchStaffsRestaurant();
     }
-  }, [user]);
+  }, [user, fetchOwnersRestaurants, fetchStaffsRestaurant]);
 
   const form = useForm<z.infer<typeof createRestaurantSchema>>({
     resolver: zodResolver(createRestaurantSchema),
@@ -119,12 +134,7 @@ export default function Page() {
     acceptedFiles: File[],
     rejectedFiles: FileRejection[]
   ) => {
-    const allowedImageTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/jpg",
-      "image/gif",
-    ];
+    const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"];
 
     if (
       rejectedFiles.length > 0 ||
@@ -132,13 +142,13 @@ export default function Page() {
         (!acceptedFiles[0]?.type ||
           !allowedImageTypes.includes(acceptedFiles[0].type)))
     ) {
-      setImageErrorMessage("Only .jpeg, .jpg, .png, .gif files are allowed.");
+      setImageErrorMessage("Only .jpeg, .jpg, .png files are allowed.");
       return;
     }
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0] as File;
       if (file.size > MAX_IMAGE_SIZE) {
-        setImageErrorMessage("Logo file size exceeds 2MB.");
+        setImageErrorMessage("Logo file size exceeds 3MB.");
         return;
       }
       setImageFile(file);
@@ -220,7 +230,7 @@ export default function Page() {
                   ) : (
                     <Card className="@container/card">
                       <CardFooter className="flex-col gap-4 text-sm flex justify-center">
-                        <div className="line-clamp-1 flex gap-2 font-medium">
+                        <div className="line-clamp-1 flex gap-2 font-medium text-center text-balance">
                           You have not created any restaurants yet.
                         </div>
                         <Dialog>
@@ -235,22 +245,40 @@ export default function Page() {
                                   <form onSubmit={form.handleSubmit(onSubmit)}>
                                     <div className="grid gap-4">
                                       {imageFile && (
-                                        <div className="mb-4">
-                                          <Image
-                                            src={URL.createObjectURL(imageFile)}
-                                            alt="Restaurant Logo"
-                                            width={200}
-                                            height={200}
-                                            unoptimized
-                                            loading="lazy"
-                                            draggable={false}
-                                            className="w-38 h-38 object-cover rounded-full mx-auto"
-                                          />
+                                        <div className="group relative mx-auto rounded-full cursor-pointer">
+                                          <Tooltip>
+                                            <TooltipTrigger className="cursor-pointer">
+                                              <>
+                                              <Avatar className="w-30 h-30 rounded-full">
+                                            <AvatarImage
+                                              src={URL.createObjectURL(
+                                                imageFile
+                                              )}
+                                              alt="Restaurant Logo"
+                                              className="object-cover"
+                                              loading="lazy"
+                                              draggable={false}
+                                            />
+                                          </Avatar>
+                                          <Button
+                                            type="button"
+                                            className="bg-black/50 text-primary/50 group-hover:text-primary hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
+                                          >
+                                            <X className="size-7" />
+                                          </Button>
+                                          </>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              <p className="text-sm font-semibold">
+                                                Click to remove the logo
+                                              </p>
+                                            </TooltipContent>
+                                          </Tooltip>
                                         </div>
                                       )}
                                       <div
                                         {...getRootProps()}
-                                        className={`rounded-md p-6 ${imageFile && "hidden"} text-center cursor-pointer hover:bg-secondary/70 bg-secondary ${
+                                        className={`group rounded-full w-30 h-30 mx-auto ${imageFile && "hidden"} text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
                                           isDragActive
                                             ? `${!isDragReject ? "border-green-500" : "border-red-500"} border-2`
                                             : isDragReject
@@ -262,21 +290,13 @@ export default function Page() {
                                           {...getInputProps()}
                                           name="video"
                                         />
-                                        <p className="mb-2 text-center">
-                                          {isDragReject
-                                            ? "Unsupported file type"
-                                            : "Drag and drop an image file here to upload or click to select a file"}
-                                        </p>
-                                        <p className="text-sm text-primary/50">
-                                          Supported formats: .jpeg, .jpg, .png,
-                                          .gif
-                                        </p>
-                                        <Button type="button" className="mt-4">
+                                        <Button
+                                          type="button"
+                                          className="bg-transparent hover:bg-transparent text-primary/50 group-hover:text-primary"
+                                        >
+                                          <ImagePlusIcon />
                                           Select Logo
                                         </Button>
-                                        {/* <Button type="button" className="mt-4">
-                                          <ImagePlusIcon />Select Logo
-                                        </Button> */}
                                       </div>
                                       {imageErrorMessage && (
                                         <p className="text-red-500 mb-2">
