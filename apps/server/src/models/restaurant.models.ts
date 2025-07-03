@@ -101,6 +101,12 @@ const restaurantSchema: Schema<Restaurant> = new Schema(
 );
 
 /**
+ * Compound index to ensure all restaurant names are unique per owner's id.
+ * Allows the restaurant name to be used by different owners, but only once per owner id.
+ */
+restaurantSchema.index({ ownerId: 1, restaurantName: 1 }, { unique: true });
+
+/**
  * Mongoose model for the Restaurant schema.
  */
 export const Restaurant = model<Restaurant>("Restaurant", restaurantSchema);

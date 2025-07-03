@@ -36,6 +36,15 @@ export const createRestaurant = asyncHandler(async (req, res) => {
 
   await canCreateRestaurant(req.user!, req.subscription!);
 
+  // Check if the restaurant already exists
+  const existingRestaurant = await Restaurant.findOne({
+    $or: [{ slug: {$regex: slug, $options: "i"} }, { restaurantName: {$regex: restaurantName, $options: "i"}, ownerId }],
+  });
+
+  if (existingRestaurant) {
+    throw new ApiError(400, `Restaurant with slug "${slug}" or name "${restaurantName}" already exists`);
+  }
+
   const restaurant = await Restaurant.create({
     restaurantName,
     slug,
