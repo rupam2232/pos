@@ -361,10 +361,11 @@ export const google = async (
     const user = await User.findOne({ email }).session(session);
 
     if (user) {
-      if(!user.firstName || user.firstName === "" || !user.lastName || user.lastName === "") {
+      if(!user.firstName || user.firstName === "" || !user.lastName || user.lastName === "" || !user.avatar) {
         // If user exists but fullName is empty, update it with Google data
         user.firstName = given_name || name?.split(" ")[0] || "";
         user.lastName = family_name || name?.split(" ")[1] || "";
+        user.avatar = picture || undefined;
         await user.save({ session });
       }
       // Existing user: generate tokens and manage device session
@@ -480,7 +481,7 @@ export const google = async (
             lastName: family_name || name?.split(" ")[1] || "",
             oauthProvider: "google",
             oauthId: googleId,
-            avatar: picture || "",
+            avatar: picture || undefined,
           },
         ],
         { session }

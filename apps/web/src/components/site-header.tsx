@@ -2,6 +2,7 @@
 import { Separator } from "@repo/ui/components/separator"
 import { SidebarTrigger } from "@repo/ui/components/sidebar"
 import { useEffect, useState } from "react"
+import ToggleTheme from "./toggle-Theme"
 
 export function SiteHeader() {
   const [currentTime, setCurrentTime] = useState<null | Date>(null)
@@ -23,6 +24,7 @@ export function SiteHeader() {
         />
         <h1 className="text-base font-medium">Documents</h1>
         <div className="ml-auto flex items-center gap-2">
+          <ToggleTheme />
           {currentTime ? (
             <span className="text-sm text-gray-500">
               {`${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}:${currentTime.getSeconds().toString().padStart(2, '0')}`}
