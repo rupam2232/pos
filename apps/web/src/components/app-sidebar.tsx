@@ -34,17 +34,13 @@ import {
 } from "@repo/ui/components/sidebar";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
@@ -155,7 +151,7 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useSelector((state: RootState) => state.auth.user);
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -174,9 +170,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <ScrollArea className="h-full">
         <NavMain items={data.navMain} />
         <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
+        </ScrollArea>
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

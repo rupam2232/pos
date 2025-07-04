@@ -107,7 +107,7 @@ export default function Page() {
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 lg:py-6">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-2 px-4 lg:px-6">
               <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -189,7 +189,7 @@ export default function Page() {
                             )
                           }
                         >
-                          View Restaurant
+                          Manage Restaurant
                         </Button>
                       </CardAction>
                     </Card>
@@ -254,7 +254,7 @@ export default function Page() {
                         )
                       }
                     >
-                      View Restaurant
+                      Manage Restaurant
                     </Button>
                   </CardAction>
                 </Card>
