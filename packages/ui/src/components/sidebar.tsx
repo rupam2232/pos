@@ -26,7 +26,6 @@ import {
 } from "@repo/ui/components/tooltip"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
@@ -54,7 +53,7 @@ function useSidebar() {
 }
 
 function SidebarProvider({
-  defaultOpen = true,
+  defaultOpen = false,
   open: openProp,
   onOpenChange: setOpenProp,
   className,
@@ -66,23 +65,37 @@ function SidebarProvider({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  const isMobile = useIsMobile()
-  const [openMobile, setOpenMobile] = React.useState(false)
+const isMobile = useIsMobile()
+const [openMobile, setOpenMobile] = React.useState(false)
 
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
-  document.cookie.split("; ").forEach((cookie) => {
-    const [name, value] = cookie.split("=")
-    if (name === SIDEBAR_COOKIE_NAME) {
-      const parsedValue = value === "true"
-      if (openProp === undefined && setOpenProp === undefined) {
-        defaultOpen = parsedValue
+const [_open, _setOpen] = React.useState(defaultOpen)
+const open = openProp ?? _open
+
+// load the sidebar state from localStorage if it exists
+React.useEffect(() => {
+  if (typeof window !== "undefined") {
+    const storedState = localStorage.getItem(SIDEBAR_COOKIE_NAME);
+    if (storedState !== null) {
+      try {
+        if (setOpenProp) {
+        setOpenProp(JSON.parse(storedState))
+      } else {
+        _setOpen(JSON.parse(storedState));
+      }
+      } catch (error) {
+        console.error("Failed to parse sidebar state from localStorage:", error);
+      }
+    } else {
+      // If no state is stored, use the defaultOpen value.
+      if (setOpenProp) {
+        setOpenProp(defaultOpen)
+      } else {
+        _setOpen(defaultOpen)
       }
     }
-  })
+  }
+}, [defaultOpen, setOpenProp]);
 
-  const [_open, _setOpen] = React.useState(defaultOpen)
-  const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value
@@ -91,9 +104,11 @@ function SidebarProvider({
       } else {
         _setOpen(openState)
       }
-
-      // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      // Store the open state in localStorage.
+      localStorage.setItem(
+        SIDEBAR_COOKIE_NAME,
+        JSON.stringify(openState)
+      )
     },
     [setOpenProp, open]
   )
