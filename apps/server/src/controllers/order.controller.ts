@@ -524,7 +524,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
   }
 
   if (!orders || orders.length === 0) {
-    res.status(404).json(
+    res.status(200).json(
       new ApiResponse(
         200,
         {
@@ -534,7 +534,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
           totalPages: 0,
           totalOrders: orderCount,
         },
-        "No orders found for this restaurant"
+        "No orders found"
       )
     );
   } else {

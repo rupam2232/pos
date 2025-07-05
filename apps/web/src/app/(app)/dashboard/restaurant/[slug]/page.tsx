@@ -32,11 +32,11 @@ const Page = () => {
   const fetchIncompleteOrderQuantity = useCallback(async () => {
     try {
       const response = await axios.get(`/order/${slug}?limit=1&page=1`);
-      if (!response.data.data.totalOrders) {
+      if (typeof(response.data.data.totalOrders) === "number") {
+        setIncompleteOrders(response.data.data.totalOrders);
+      } else {
         setIncompleteOrders(0);
         toast.error("No incomplete orders found");
-      } else {
-        setIncompleteOrders(response.data.data.totalOrders);
       }
     } catch (error) {
       console.error(
@@ -65,7 +65,8 @@ const Page = () => {
       <div className="@container/main flex flex-1 flex-col gap-2">
         <div className="flex flex-col gap-4 p-4 md:gap-6 lg:p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <Card className="">
+
+            <Card className="bg-emerald-800 text-white">
               <CardContent className="grid grid-rows-2 gap-4">
                 <p className="text-sm mb-1 col-start-1">New Orders</p>
                 <div className="row-span-2 col-span-1 flex items-center justify-end w-full">
@@ -80,7 +81,7 @@ const Page = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-blue-800 text-white">
               <CardContent className="grid grid-rows-2 gap-4">
                 <p className="text-sm mb-1 col-start-1">Total Orders</p>
                 <div className="row-span-2 col-span-1 flex items-center justify-end w-full">
@@ -91,11 +92,11 @@ const Page = () => {
                 <div className="flex items-center justify-between col-span-1">
                   <span className="text-2xl font-bold">86</span>
                 </div>
-                <p className="text-xs col-span-2 text-green-600">+2.5% than usual</p>
+                <p className="text-xs col-span-2 text-green-400">+2.5% than usual</p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-orange-800 text-white">
               <CardContent className="grid grid-rows-2 gap-4">
                 <p className="text-sm mb-1 col-start-1">Waiting List</p>
                 <div className="row-span-2 col-span-1 flex items-center justify-end w-full">
@@ -106,7 +107,7 @@ const Page = () => {
                 <div className="flex items-center justify-between col-span-1">
                   <span className="text-2xl font-bold">9</span>
                 </div>
-                <p className="text-xs col-span-2 text-green-600">+3.2% than usual</p>
+                <p className="text-xs col-span-2 text-green-400">+3.2% than usual</p>
               </CardContent>
             </Card>
           </div>

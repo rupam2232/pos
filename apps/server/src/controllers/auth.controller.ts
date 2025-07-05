@@ -362,10 +362,16 @@ export const google = async (
 
     if (user) {
       if(!user.firstName || user.firstName === "" || !user.lastName || user.lastName === "" || !user.avatar) {
-        // If user exists but fullName is empty, update it with Google data
-        user.firstName = given_name || name?.split(" ")[0] || "";
-        user.lastName = family_name || name?.split(" ")[1] || "";
-        user.avatar = picture || undefined;
+        // Update user details if they are missing
+        if(!user.firstName || user.firstName === "") {
+          user.firstName = given_name || name?.split(" ")[0] || "";
+        }
+        if(!user.lastName || user.lastName === "") {
+          user.lastName = family_name || name?.split(" ")[1] || "";
+        }
+        if(!user.avatar || user.avatar === "") {
+          user.avatar = picture || undefined;
+        }
         await user.save({ session });
       }
       // Existing user: generate tokens and manage device session
