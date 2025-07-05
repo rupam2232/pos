@@ -387,7 +387,8 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
     page = 1,
     limit = 10,
     sortBy = "createdAt",
-    sortType = "desc",
+    sortType = "asc",
+    status
   } = req.query;
 
   const pageNumber = parseInt(page.toString());
@@ -429,6 +430,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
 
   const orderCount = await Order.countDocuments({
     restaurantId: restaurant._id,
+    ...(status ? { status } : {}), // Filter by status if provided
   });
 
   let orders = [];
@@ -437,6 +439,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
       {
         $match: {
           restaurantId: restaurant._id,
+          ...(status ? { status } : {}), // Filter by status if provided
         },
       },
       {

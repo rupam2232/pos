@@ -24,14 +24,14 @@ import { CheckCircle, Timer, Wallet, BellRing } from "lucide-react";
 const Page = () => {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
-  const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
+  // const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [incompleteOrders, setIncompleteOrders] = useState<number>(0);
   const dispatch = useDispatch();
   const router = useRouter();
 
   const fetchIncompleteOrderQuantity = useCallback(async () => {
     try {
-      const response = await axios.get(`/order/${slug}?limit=1&page=1`);
+      const response = await axios.get(`/order/${slug}?limit=1&page=1&status=pending`);
       if (typeof(response.data.data.totalOrders) === "number") {
         setIncompleteOrders(response.data.data.totalOrders);
       } else {

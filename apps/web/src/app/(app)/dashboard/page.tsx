@@ -185,7 +185,7 @@ export default function Page() {
                           className="text-sm"
                           onClick={() =>
                             router.push(
-                              `/dashboard/restaurant/${restaurant.slug}`
+                              `/restaurant/${restaurant.slug}/dashboard`
                             )
                           }
                         >
@@ -250,7 +250,7 @@ export default function Page() {
                       className="text-sm"
                       onClick={() =>
                         router.push(
-                          `/dashboard/restaurant/${staffsrestaurant.slug}`
+                          `/restaurant/${staffsrestaurant.slug}/dashboard`
                         )
                       }
                     >
