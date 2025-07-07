@@ -10,12 +10,7 @@ import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import {
   Card,
-//   CardAction,
   CardContent,
-//   CardDescription,
-//   CardFooter,
-//   CardHeader,
-//   CardTitle,
 } from "@repo/ui/components/card";
 import { Input } from "@repo/ui/components/input";
 import { Button } from "@repo/ui/components/button";
@@ -81,6 +76,21 @@ const Page = () => {
               </CardContent>
             </Card>
 
+            <Card className="bg-orange-800 text-white">
+              <CardContent className="grid grid-rows-2 gap-4">
+                <p className="text-sm mb-1 col-start-1">In Progress</p>
+                <div className="row-span-2 col-span-1 flex items-center justify-end w-full">
+                  <span className="p-3 bg-orange-200 rounded-md">
+                    <Timer className="size-5 text-orange-800" />
+                  </span>
+                </div>
+                <div className="flex items-center justify-between col-span-1">
+                  <span className="text-2xl font-bold">9</span>
+                </div>
+                <p className="text-xs col-span-2 text-green-400">+3.2% than usual</p>
+              </CardContent>
+            </Card>
+
             <Card className="bg-blue-800 text-white">
               <CardContent className="grid grid-rows-2 gap-4">
                 <p className="text-sm mb-1 col-start-1">Total Orders</p>
@@ -93,21 +103,6 @@ const Page = () => {
                   <span className="text-2xl font-bold">86</span>
                 </div>
                 <p className="text-xs col-span-2 text-green-400">+2.5% than usual</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-orange-800 text-white">
-              <CardContent className="grid grid-rows-2 gap-4">
-                <p className="text-sm mb-1 col-start-1">Waiting List</p>
-                <div className="row-span-2 col-span-1 flex items-center justify-end w-full">
-                  <span className="p-3 bg-orange-200 rounded-md">
-                    <Timer className="size-5 text-orange-800" />
-                  </span>
-                </div>
-                <div className="flex items-center justify-between col-span-1">
-                  <span className="text-2xl font-bold">9</span>
-                </div>
-                <p className="text-xs col-span-2 text-green-400">+3.2% than usual</p>
               </CardContent>
             </Card>
           </div>

@@ -269,8 +269,27 @@ const CreateRestaurantDialog = ({
     }
   };
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (logoUrl) {
+        handleImageRemove();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logoUrl]);
+
   return (
-    <Dialog>
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open && logoUrl) {
+          handleImageRemove();
+        }
+      }}
+    >
       <DialogTrigger>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <ScrollArea className="overflow-y-auto max-h-[90vh]">
