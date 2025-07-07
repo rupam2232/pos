@@ -25,18 +25,43 @@ import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
+import type { Orders } from "@repo/ui/types/Order";
+import { Badge } from "@repo/ui/components/badge";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
+
+type OrderDetails = {
+  orders: Orders[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalOrders: number;
+} | null;
 
 const Page = () => {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [tabName, setTabName] = useState<string>("all");
-  const [allOrders, setAllOrders] = useState([]);
-  const [newOrders, setNewOrders] = useState([]);
-  const [inProgressOrders, setInProgressOrders] = useState([]);
-  const [readyOrders, setReadyOrders] = useState([]);
-  const [unpaidOrders, setUnpaidOrders] = useState([]);
-  const [completedOrders, setCompletedOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState<OrderDetails>(null);
+  const [newOrders, setNewOrders] = useState<OrderDetails>(null);
+  const [inProgressOrders, setInProgressOrders] = useState<OrderDetails>(null);
+  const [readyOrders, setReadyOrders] = useState<OrderDetails>(null);
+  const [unpaidOrders, setUnpaidOrders] = useState<OrderDetails>(null);
+  const [completedOrders, setCompletedOrders] = useState<OrderDetails>(null);
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -45,10 +70,11 @@ const Page = () => {
     try {
       const response = await axios.get(`/order/${slug}`);
       if (
-        response.data.data.orders &&
+        response.data &&
+        response.data.data &&
         Array.isArray(response.data.data.orders)
       ) {
-        setAllOrders(response.data.data.orders);
+        setAllOrders(response.data.data);
       }
     } catch (error) {
       console.error(
@@ -146,54 +172,117 @@ const Page = () => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="all">
-            <Card>
-                <CardHeader>
-                <CardTitle>All Orders</CardTitle>
-                <CardDescription>
-                    This tab displays all orders for the restaurant: {slug}
-                </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-6">
-                {isLoading ? (
-                    <p>Loading...</p>
-                ) : (
-                    !Array.isArray(allOrders) || allOrders.length === 0 ? (
-                    <p>No orders found.</p>
-                    ) : (
-                    allOrders.map((order) => (
-                    <div key={order.id} className="border p-4 rounded-md">
-                        <h3 className="font-semibold">Order ID: {order.id}</h3>
-                        <p>Status: {order.status}</p>
-                        {/* Add more order details as needed */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
+            {isLoading ? (
+              <p>Loading...</p>
+            ) : !Array.isArray(allOrders?.orders) ||
+              allOrders.orders.length === 0 ? (
+              <p>No orders found.</p>
+            ) : (
+              allOrders.orders.map((order) => (
+                <Card key={order._id}>
+                  <CardContent className="space-y-2">
+                    {/* Header */}
+                      <div>
+                        <div className="flex items-center justify-between text-sm font-medium">
+                          <span>Table: {order.table.tableName}</span>
+                          <Badge variant="default" className="ml-1">
+                            {order.status.charAt(0).toUpperCase() +
+                              order.status.slice(1)}
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground text-xs mt-0.5">
+                          Order #{order._id}
+                        </p>
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground flex items-center justify-between">
+                        <p>
+                          {new Date(order.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              weekday: "short",
+                              year: "numeric",
+                              month: "long",
+                              day: "2-digit",
+                            }
+                          )}
+                        </p>
+                        <p>
+                          {new Date(order.createdAt)
+                            .toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })
+                            .toUpperCase()}
+                        </p>
+                      </div>
+
+                    {/* Order items */}
+                    <div className="border-t pt-2 text-sm space-y-1">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-left">Items</TableHead>
+                            <TableHead className="text-center">Qty</TableHead>
+                            <TableHead className="text-right">Price</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {order.orderedFoodItems.map((item, index) => (
+                            <TableRow key={item.foodItemId + index}>
+                              <TableCell className="font-medium flex items-center gap-2 text-left">
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <span
+                                      className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-2 h-2 outline outline-primary border-2 border-background block rounded-full cursor-help`}
+                                    ></span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {item.foodType === "veg"
+                                      ? "Veg"
+                                      : item.foodType === "non-veg"
+                                        ? "Non Veg"
+                                        : "Vegan"}
+                                  </TooltipContent>
+                                </Tooltip>
+                                <span>
+                                  {item.isVariantOrder
+                                    ? item.variantName
+                                    : item.foodName}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {item.quantity}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ₹{item.price.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                        <TableFooter>
+                          <TableRow>
+                            <TableCell className="text-left">Total</TableCell>
+                            <TableCell className="text-center">{order.orderedFoodItems.reduce((prv, item)=> prv + item.quantity, 0)}</TableCell>
+                            <TableCell className="text-right">
+                              ₹{order.finalAmount.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        </TableFooter>
+                      </Table>
                     </div>
-                    ))
-                ))}
-                </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="inProgress">
-          <Card>
-            <CardHeader>
-              <CardTitle>Password</CardTitle>
-              <CardDescription>
-                Change your password here. After saving, you&apos;ll be logged
-                out.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-6">
-              <div className="grid gap-3">
-                <Label htmlFor="tabs-demo-current">Current password</Label>
-                <Input id="tabs-demo-current" type="password" />
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="tabs-demo-new">New password</Label>
-                <Input id="tabs-demo-new" type="password" />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button>Save password</Button>
-            </CardFooter>
-          </Card>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-3 justify-between">
+                      <Button variant="outline">See Details</Button>
+                      <Button>Pay Bills</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

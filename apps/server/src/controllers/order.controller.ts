@@ -511,6 +511,8 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
               variantName: "$foodItems.variantName",
               foodName: "$foodItemDetails.foodName",
               foodType: "$foodItemDetails.foodType",
+              quantity: "$foodItems.quantity",
+              price: "$foodItems.price",
               // check if the food item is a varinat
               isVariantOrder: {
                 $cond: [

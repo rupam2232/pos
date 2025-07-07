@@ -1,22 +1,22 @@
-"use client"
-import { Separator } from "@repo/ui/components/separator"
-import { SidebarTrigger } from "@repo/ui/components/sidebar"
-import { useEffect, useState } from "react"
-import ToggleTheme from "./toggle-Theme"
-import { usePathname } from "next/navigation"
+"use client";
+import { Separator } from "@repo/ui/components/separator";
+import { SidebarTrigger } from "@repo/ui/components/sidebar";
+import { useEffect, useState } from "react";
+import ToggleTheme from "./toggle-Theme";
+import { usePathname } from "next/navigation";
 
 export function SiteHeader() {
-  const [currentTime, setCurrentTime] = useState<null | Date>(null)
+  const [currentTime, setCurrentTime] = useState<null | Date>(null);
   const pathname = usePathname();
 
   const updateTime = () => {
-    const now = new Date()
-    setCurrentTime(now)
-  }
-  
+    const now = new Date();
+    setCurrentTime(now);
+  };
+
   useEffect(() => {
-    setInterval(updateTime, 1000)
-  }, [])
+    setInterval(updateTime, 1000);
+  }, []);
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -29,9 +29,9 @@ export function SiteHeader() {
         <h1 className="text-base font-medium flex items-center">
           <span>{`${pathname.slice(1).split("/")[1]}`}</span>
           <Separator
-          orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-5 rotate-12 bg-zinc-400"
-        />
+            orientation="vertical"
+            className="mx-2 data-[orientation=vertical]:h-5 rotate-12 bg-zinc-400"
+          />
           <span>
             {(() => {
               const segment = pathname?.slice(1).split("/")[2];
@@ -45,10 +45,21 @@ export function SiteHeader() {
           <ToggleTheme />
           {currentTime ? (
             <span className="text-sm text-gray-500">
-              {`${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}:${currentTime.getSeconds().toString().padStart(2, '0')}`}
+              {`${currentTime
+                .toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: true,
+                })
+                .toUpperCase()}`}
               {`, `}
-              {`${currentTime.toLocaleDateString('default', { weekday: 'long' })}, `}
-              {`${currentTime.getDate()} ${currentTime.toLocaleString('default', { month: 'long' })} ${currentTime.getFullYear()}`} 
+              {`${currentTime.toLocaleDateString("en-US", {
+                weekday: "short",
+                year: "numeric",
+                month: "long",
+                day: "2-digit",
+              })}`}
             </span>
           ) : (
             <span className="text-sm text-gray-500">Loading time...</span>
@@ -56,5 +67,5 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
-  )
+  );
 }
