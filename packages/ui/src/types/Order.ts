@@ -1,4 +1,4 @@
-export type Orders = {
+export type Order = {
   _id: string;
   restaurantId: string;
   status:
@@ -28,32 +28,10 @@ export type Orders = {
   createdAt: string;
 };
 
-// "_id": "685049b3f877688ef3a5675a",
-//                 "restaurantId": "68449fc5eda89068cd01468f",
-//                 "table": {
-//                     "_id": "6848755b9cfefd2e781368de",
-//                     "tableName": "third table",
-//                     "qrSlug": "468f-92ZX"
-//                 },
-//                 "status": "preparing",
-//                 "finalAmount": 125,
-//                 "isPaid": false,
-//                 "externalPlatform": null,
-//                 "createdAt": "2025-06-16T16:43:31.946Z",
-//                 "orderedFoodItems": [
-//                     {
-//                         "foodItemId": "685048cd7f116d5a1a8669b7",
-//                         "variantName": "Half Chicken Biriyani",
-//                         "foodName": "Chicken Biriyani",
-//                         "foodType": "non-veg",
-//                         "isVariantOrder": true
-//                     },
-//                     {
-//                         "foodItemId": "685048cd7f116d5a1a8669b7",
-//                         "variantName": "Egg Biriyani",
-//                         "foodName": "Chicken Biriyani",
-//                         "foodType": "non-veg",
-//                         "isVariantOrder": true
-//                     }
-//                 ]
-//             },
+export type OrderDetails = {
+  orders: Order[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalOrders: number;
+} | null;
