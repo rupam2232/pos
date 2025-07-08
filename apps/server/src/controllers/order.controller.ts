@@ -102,7 +102,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
             isFoodItemValid.variants.filter(
               (variant) => variant.variantName === foodItem.variantName
             )[0].price
-          : isFoodItemValid.price,
+          : isFoodItemValid.discountedPrice || isFoodItemValid.price,
       });
     }
 

@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import {
   Sheet,
   SheetClose,
@@ -12,7 +12,10 @@ import {
 import { Label } from "@repo/ui/components/label";
 import { Input } from "@repo/ui/components/input";
 import { Button } from "@repo/ui/components/button";
-import type { Order, OrderDetails as OrderDetailsType } from "@repo/ui/types/Order";
+import type {
+  Order,
+  OrderDetails as OrderDetailsType,
+} from "@repo/ui/types/Order";
 
 const OrderDetails = ({
   children,
@@ -23,6 +26,7 @@ const OrderDetails = ({
   order: Order;
   setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
 }) => {
+  const [orderDetails, setOrderDetails] = useState<OrderDetailsType | null>(null);
   return (
     <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
