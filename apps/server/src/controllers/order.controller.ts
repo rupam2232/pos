@@ -98,6 +98,11 @@ export const createOrder = asyncHandler(async (req, res, next) => {
         price: foodItem.variantName
           ? isFoodItemValid.variants.filter(
               (variant) => variant.variantName === foodItem.variantName
+            )[0].price
+          : isFoodItemValid.price,
+        finalPrice: foodItem.variantName
+          ? isFoodItemValid.variants.filter(
+              (variant) => variant.variantName === foodItem.variantName
             )[0].discountedPrice ||
             isFoodItemValid.variants.filter(
               (variant) => variant.variantName === foodItem.variantName
@@ -137,32 +142,53 @@ export const createOrder = asyncHandler(async (req, res, next) => {
 
     // Calculate total amount from food items
     const subtotal = foodItems.reduce(
-      (acc, item) => acc + item.price * item.quantity,
+      (acc, item) => acc + item.finalPrice * item.quantity,
       0
     ); // Calculate total amount from food items
-    const order = await Order.create([{
-      restaurantId: restaurant._id,
-      tableId: table._id,
-      foodItems,
-      status: "pending", // Default status for new orders
-      isPaid: false, // Default to false
-      notes: notes,
-    }], { session });
+    const taxAmount = restaurant.isTaxIncludedInPrice
+      ? 0
+      : (subtotal * restaurant.taxRate) / 100;
+    const totalAmount = restaurant.isTaxIncludedInPrice
+      ? subtotal
+      : subtotal + taxAmount; // Calculate total amount including tax if not included in price
+    const discountAmount = foodItems.reduce(
+      (acc, item) => acc + (item.price - item.finalPrice) * item.quantity,
+      0
+    );
 
-    const payment = new Payment({
-      orderId: order[0]._id,
-      method: paymentMethod,
-      status: "pending", // Initial status for new payments
-      subtotal,
-      totalAmount: restaurant.isTaxIncludedInPrice
-        ? subtotal
-        : subtotal + (subtotal * restaurant.taxRate) / 100, // Calculate total amount including tax if not included in price
-      discountAmount: 0, // Assuming no discount for now, can be updated later
-      taxAmount: restaurant.isTaxIncludedInPrice
-        ? 0
-        : (subtotal * restaurant.taxRate) / 100,
-      tipAmount: 0, // Assuming no tip for now, can be updated later
-    });
+    const order = await Order.create(
+      [
+        {
+          restaurantId: restaurant._id,
+          tableId: table._id,
+          foodItems,
+          subtotal,
+          totalAmount,
+          taxAmount,
+          discountAmount,
+          status: "pending", // Default status for new orders
+          isPaid: false, // Default to false
+          notes: notes,
+        },
+      ],
+      { session }
+    );
+
+    const payment = await Payment.create(
+      [
+        {
+          orderId: order[0]._id,
+          method: paymentMethod,
+          status: "pending", // Initial status for new payments
+          subtotal,
+          totalAmount,
+          discountAmount,
+          taxAmount,
+          tipAmount: 0, // Assuming no tip for now, can be updated later
+        },
+      ],
+      { session }
+    );
 
     // Update the table to mark it as occupied and link the current order
     table.isOccupied = true;
@@ -173,7 +199,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
     if (paymentMethod === "online") {
       // Razorpay integration to create a payment order
       const paymentResponse = await razorpay.orders.create({
-        amount: payment.totalAmount * 100, // Amount in paise
+        amount: payment[0].totalAmount * 100, // Amount in paise
         currency: currency,
         receipt: `Receipt #${order[0]._id!.toString()}`,
         notes: {
@@ -184,11 +210,10 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       if (!paymentResponse || !paymentResponse.id) {
         throw new ApiError(500, "Failed to create payment order");
       }
-      payment.paymentGateway = "Razorpay"; // Set the payment gateway
-      payment.gatewayOrderId = paymentResponse.id; // Store the Razorpay order ID
-      const paymentData = await payment.save({ session });
+      payment[0].paymentGateway = "Razorpay"; // Set the payment gateway
+      payment[0].gatewayOrderId = paymentResponse.id; // Store the Razorpay order ID
+      const paymentData = await payment[0].save({ session });
       // Update the order with the payment ID
-      // order.paymentAttempts = [payment._id]; // Add the payment ID to the order's payment attempts
       order[0].paymentAttempts = order[0].paymentAttempts || []; // Ensure paymentAttempts is an array
       order[0].paymentAttempts.push(paymentData._id as Types.ObjectId); // Add the payment ID to the order's payment attempts
       await order[0].save({ session });
@@ -205,7 +230,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
         );
     } else {
       // If payment method is cash, create the payment record without payment gateway
-      const paymentData = await payment.save({ session });
+      const paymentData = await payment[0].save({ session });
       order[0].paymentAttempts = order[0].paymentAttempts || []; // Ensure paymentAttempts is an array
       order[0].paymentAttempts.push(paymentData._id as Types.ObjectId); // Add the payment ID to the order's payment attempts
       await order[0].save({ session });
@@ -286,9 +311,19 @@ export const getOrderById = asyncHandler(async (req, res) => {
       },
     },
     {
+      $lookup: {
+        from: "payments",
+        localField: "_id",
+        foreignField: "orderId",
+        as: "paymentAttempts",
+      },
+    },
+    {
       $unwind: "$table",
     },
-    { $unwind: "$foodItems" },
+    {
+      $unwind: "$foodItems",
+    },
     // Lookup food item details
     {
       $lookup: {
@@ -307,6 +342,10 @@ export const getOrderById = asyncHandler(async (req, res) => {
         restaurant: { $first: "$restaurant" },
         table: { $first: "$table" },
         status: { $first: "$status" },
+        subtotal: { $first: "$subtotal" },
+        totalAmount: { $first: "$totalAmount" },
+        discountAmount: { $first: "$discountAmount" },
+        taxAmount: { $first: "$taxAmount" },
         isPaid: { $first: "$isPaid" },
         notes: { $first: "$notes" },
         externalOrderId: { $first: "$externalOrderId" },
@@ -316,13 +355,15 @@ export const getOrderById = asyncHandler(async (req, res) => {
         customerPhone: { $first: "$customerPhone" },
         deliveryAddress: { $first: "$deliveryAddress" },
         createdAt: { $first: "$createdAt" },
+        paymentAttempts: { $first: "$paymentAttempts" },
         orderedFoodItems: {
           $push: {
             foodItemId: "$foodItems.foodItemId",
-            variantName: "$foodItems.variantName",
             quantity: "$foodItems.quantity",
             price: "$foodItems.price",
+            finalPrice: "$foodItems.finalPrice",
             foodName: "$foodItemDetails.foodName",
+            foodType: "$foodItemDetails.foodType",
             firstImageUrl: {
               $cond: {
                 if: { $gt: [{ $size: "$foodItemDetails.imageUrls" }, 0] },
@@ -330,7 +371,6 @@ export const getOrderById = asyncHandler(async (req, res) => {
                 else: null,
               },
             }, // Get the first image URL if available
-            foodType: "$foodItemDetails.foodType",
             // check if the food item is a varinat
             isVariantOrder: {
               $cond: [
@@ -388,7 +428,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
     limit = 10,
     sortBy = "createdAt",
     sortType = "asc",
-    status
+    status,
   } = req.query;
 
   const pageNumber = parseInt(page.toString());
@@ -501,7 +541,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
           restaurantId: { $first: "$restaurantId" },
           table: { $first: "$table" },
           status: { $first: "$status" },
-          finalAmount: { $first: "$finalAmount" },
+          totalAmount: { $first: "$totalAmount" },
           isPaid: { $first: "$isPaid" },
           externalPlatform: { $first: "$externalPlatform" },
           createdAt: { $first: "$createdAt" },
@@ -512,7 +552,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
               foodName: "$foodItemDetails.foodName",
               foodType: "$foodItemDetails.foodType",
               quantity: "$foodItems.quantity",
-              price: "$foodItems.price",
+              finalPrice: "$foodItems.finalPrice",
               // check if the food item is a varinat
               isVariantOrder: {
                 $cond: [
@@ -816,31 +856,31 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 });
 
 export const updateOrder = asyncHandler(async (req, res, next) => {
-    const session = await startSession();
+  const session = await startSession();
   session.startTransaction();
-try {
+  try {
     if (!req.params.orderId || !req.params.restaurantSlug) {
       throw new ApiError(400, "Order ID and restaurant slug are required");
     }
-  
+
     if (!req.body || !req.body.foodItems) {
       throw new ApiError(400, "Food items are required");
     }
-  
+
     const { foodItems, notes } = req.body;
-  
+
     if (!foodItems || !Array.isArray(foodItems) || foodItems.length === 0) {
       throw new ApiError(400, "Food items are required");
     }
-  
+
     const restaurant = await Restaurant.findOne({
       slug: req.params.restaurantSlug,
     }).session(session);
-  
+
     if (!restaurant) {
       throw new ApiError(404, "Restaurant not found");
     }
-  
+
     if (req.user?.role === "owner") {
       if (restaurant.ownerId.toString() !== req.user!._id!.toString()) {
         throw new ApiError(
@@ -867,16 +907,16 @@ try {
         "You are not authorized to update orders for this restaurant"
       );
     }
-  
+
     const order = await Order.findOne({
       _id: req.params.orderId,
       restaurantId: restaurant._id,
     }).session(session);
-  
+
     if (!order) {
       throw new ApiError(404, "Order not found");
     }
-  
+
     // Check if the order is already completed or cancelled
     if (["ready", "served", "completed", "cancelled"].includes(order.status)) {
       throw new ApiError(
@@ -884,7 +924,7 @@ try {
         "Cannot update order that is already completed or cancelled"
       );
     }
-  
+
     // Validate food items
     let updatedFoodItems = [];
     for (const foodItem of foodItems) {
@@ -906,7 +946,7 @@ try {
           `Food item with id ${foodItem._id} is not available`
         );
       }
-  
+
       if (foodItem.variantName) {
         if (isFoodItemValid.hasVariants === false) {
           throw new ApiError(
@@ -950,15 +990,15 @@ try {
     }
     // Update the order with new food items and notes
     order.foodItems = updatedFoodItems as typeof order.foodItems;
-  
+
     order.notes = notes || order.notes; // Update notes if provided, otherwise keep existing notes
     await order.save({ session });
-  
+
     const subtotal = updatedFoodItems.reduce(
       (acc, item) => acc + item.price * item.quantity,
       0
     ); // Calculate total amount from food items
-  
+
     await Payment.updateMany(
       {
         orderId: order._id,
@@ -980,13 +1020,13 @@ try {
 
     await session.commitTransaction();
     session.endSession();
-  
+
     res
       .status(200)
       .json(new ApiResponse(200, order, "Order updated successfully"));
-} catch (error) {
+  } catch (error) {
     await session.abortTransaction();
     session.endSession();
     next(error); // asyncHandler will catch and forward this error
-}
+  }
 });

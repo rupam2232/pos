@@ -311,7 +311,7 @@ const Page = () => {
                                 {item.quantity}
                               </TableCell>
                               <TableCell className="text-right">
-                                ₹{item.price.toFixed(2)}
+                                ₹{item.finalPrice.toFixed(2)}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -326,7 +326,7 @@ const Page = () => {
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              ₹{order.finalAmount.toFixed(2)}
+                              ₹{order.totalAmount.toFixed(2)}
                             </TableCell>
                           </TableRow>
                         </TableFooter>

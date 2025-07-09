@@ -9,7 +9,8 @@ export interface FoodItem extends Document {
   foodItemId: Types.ObjectId; // Reference to the FoodItem
   variantName?: string; // Name of the variant (if any)
   quantity: number; // Quantity ordered
-  price: number; // Price for this item/variant
+  price: number; // Base price of the food item (before any discounts)
+  finalPrice: number; // Final price after any discounts or adjustments
 }
 
 /**
@@ -30,6 +31,17 @@ const foodItemSchema: Schema<FoodItem> = new Schema({
     type: Number,
     required: [true, "Price is required"],
   },
+  finalPrice: {
+    type: Number,
+    required: [true, "Final price is required"],
+    immutable: true,
+    validate: {
+      validator: function (value: number) {
+        return value >= 0; // Final price should not be negative
+      },
+      message: "Final price must be a non-negative number",
+    },
+  },
 });
 
 /**
@@ -47,6 +59,10 @@ export interface Order extends Document {
     | "served"
     | "completed"
     | "cancelled"; // Order status (pending, preparing, etc.)
+  subtotal: number; // Amount for only food items (before tax, discount, tip)
+  totalAmount: number; // Final amount to be paid (after discount, tax, tip, if any)
+  discountAmount?: number; // Amount deducted due to discount (if any)
+  taxAmount?: number; // Optional total tax applied (if any)
   paymentAttempts?: Types.ObjectId[]; // Optional array of payment attempt IDs
   isPaid: boolean; // Whether the order is paid
   notes?: string; // Optional notes for the order
@@ -102,6 +118,30 @@ const orderSchema: Schema<Order> = new Schema(
         "cancelled",
       ],
       default: "pending",
+      immutable(doc) {
+        return doc.status === "completed" || doc.status === "cancelled";
+      },
+    },
+    subtotal: {
+      type: Number,
+      required: [true, "Sub total is required"],
+      immutable: true,
+    },
+    totalAmount: {
+      type: Number,
+      required: [true, "Total amount is required"],
+      immutable: true,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      immutable(doc) {
+        return doc.status === "completed" || doc.status === "cancelled";
+      },
+    },
+    taxAmount: {
+      type: Number,
+      default: 0,
       immutable(doc) {
         return doc.status === "completed" || doc.status === "cancelled";
       },
