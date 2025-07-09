@@ -9,10 +9,7 @@ import {
   TabsTrigger,
 } from "@repo/ui/components/tabs";
 import { Button } from "@repo/ui/components/button";
-import {
-  Card,
-  CardContent,
-} from "@repo/ui/components/card";
+import { Card, CardContent } from "@repo/ui/components/card";
 import { Label } from "@repo/ui/components/label";
 import axios from "@/utils/axiosInstance";
 import { useDispatch } from "react-redux";
@@ -36,7 +33,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
-import { BellRing, BookCheck, CheckCheck, Soup, Timer } from "lucide-react";
+import {
+  BellRing,
+  BookCheck,
+  CheckCheck,
+  DivideCircleIcon,
+  Soup,
+  Timer,
+} from "lucide-react";
 import { IconReceiptOff } from "@tabler/icons-react";
 import OrderDetails from "@/components/order-details";
 
@@ -47,10 +51,12 @@ const Page = () => {
   const [tabName, setTabName] = useState<string>("all");
   const [allOrders, setAllOrders] = useState<OrderDetailsType>(null);
   const [newOrders, setNewOrders] = useState<OrderDetailsType>(null);
-  const [inProgressOrders, setInProgressOrders] = useState<OrderDetailsType>(null);
+  const [inProgressOrders, setInProgressOrders] =
+    useState<OrderDetailsType>(null);
   const [readyOrders, setReadyOrders] = useState<OrderDetailsType>(null);
   const [unpaidOrders, setUnpaidOrders] = useState<OrderDetailsType>(null);
-  const [completedOrders, setCompletedOrders] = useState<OrderDetailsType>(null);
+  const [completedOrders, setCompletedOrders] =
+    useState<OrderDetailsType>(null);
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -289,9 +295,13 @@ const Page = () => {
                               <TableCell className="font-medium flex items-center gap-2 text-left">
                                 <Tooltip>
                                   <TooltipTrigger>
-                                    <span
-                                      className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-2 h-2 outline outline-primary border-2 border-background block rounded-full cursor-help`}
-                                    ></span>
+                                    <div
+                                      className={`border border-primary p-0.5 cursor-help`}
+                                    >
+                                      <span
+                                        className={`${item.foodType !== "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                                      ></span>
+                                    </div>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     {item.foodType === "veg"
@@ -334,7 +344,11 @@ const Page = () => {
                     </div>
 
                     <div className="flex gap-2 pt-3 justify-between">
-                      <OrderDetails order={order} setOrders={setAllOrders}>
+                      <OrderDetails
+                        order={order}
+                        setOrders={setAllOrders}
+                        restaurantSlug={slug}
+                      >
                         <Button variant="outline">See Details</Button>
                       </OrderDetails>
                       <Button>Pay Bills</Button>

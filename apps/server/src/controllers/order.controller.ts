@@ -483,11 +483,6 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
         },
       },
       {
-        $sort: {
-          [sortBy.toString()]: sortType === "asc" ? 1 : -1, // Sort by the specified field and order
-        },
-      },
-      {
         $skip: (pageNumber - 1) * limitNumber, // Skip to the correct page
       },
       {
@@ -563,6 +558,12 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
               },
             },
           },
+        },
+      },
+      {
+        $sort: {
+          [sortBy.toString()]: sortType === "asc" ? 1 : -1, // Sort by the specified field and order
+          _id: 1, // Secondary sort by _id to maintain consistent order
         },
       },
     ]);
