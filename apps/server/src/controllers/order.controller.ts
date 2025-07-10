@@ -470,6 +470,15 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
 
   const orderCount = await Order.countDocuments({
     restaurantId: restaurant._id,
+    ...req.body,
+    ...(req.query.search
+      ? {
+          $or: [
+            { "foodItems.foodName": { $regex: req.query.search, $options: "i" } },
+            { "table.tableName": { $regex: req.query.search, $options: "i" } },
+          ],
+        }
+      : {}),
     ...(status ? { status } : {}), // Filter by status if provided
   });
 

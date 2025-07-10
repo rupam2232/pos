@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -10,7 +9,6 @@ import {
   DialogTrigger,
 } from "@repo/ui/components/dialog";
 import { Label } from "@repo/ui/components/label";
-import { Input } from "@repo/ui/components/input";
 import { Button } from "@repo/ui/components/button";
 import type {
   Order,
@@ -151,13 +149,9 @@ const OrderDetails = ({
         {children}
       </DialogTrigger>
       <DialogContent className="">
-        <ScrollArea className="h-full">
+        <ScrollArea className="overflow-y-auto max-h-[90vh]">
           <DialogHeader className="p-4">
-            <DialogTitle>
-              Order Details
-              {/* <p>Table: {order.table.tableName}</p>
-              <p>Order: {order._id}</p> */}
-            </DialogTitle>
+            <DialogTitle>Order Details</DialogTitle>
             <DialogDescription>
               View and manage the details of this order, including food items,
               status, and payment information.
@@ -245,7 +239,8 @@ const OrderDetails = ({
                     <TableRow>
                       <TableHead className="text-left">Items</TableHead>
                       <TableHead className="text-center">Qty</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead className="text-center">Rate</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -273,24 +268,24 @@ const OrderDetails = ({
                                   : "Vegan"}
                             </TooltipContent>
                           </Tooltip>
-                          
-                            <Avatar>
-                              <AvatarImage
-                                src={
-                                  item.firstImageUrl
-                                    ? item.firstImageUrl
-                                    : "/images/placeholder.png"
-                                }
-                                alt={item.foodName}
-                                className="w-8 h-8 object-cover rounded-md"
-                              />
-                              <AvatarFallback className="rounded-md">
-                                {item.isVariantOrder
-                                  ? item.variantDetails?.variantName[0]?.toUpperCase()
-                                  : item.foodName[0]?.toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                          
+
+                          <Avatar>
+                            <AvatarImage
+                              src={
+                                item.firstImageUrl
+                                  ? item.firstImageUrl
+                                  : "/images/placeholder.png"
+                              }
+                              alt={item.foodName}
+                              className="w-8 h-8 object-cover rounded-md"
+                            />
+                            <AvatarFallback className="rounded-md">
+                              {item.isVariantOrder
+                                ? item.variantDetails?.variantName[0]?.toUpperCase()
+                                : item.foodName[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+
                           <span>
                             {item.isVariantOrder
                               ? item.variantDetails?.variantName
@@ -300,15 +295,19 @@ const OrderDetails = ({
                         <TableCell className="text-center">
                           {item.quantity}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center relative">
+                          {(item.price !== item.finalPrice) && <span className="absolute bottom-0 right-0 text-xs line-through">{item.price.toFixed(2)}</span>}
                           ₹{item.finalPrice.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{(item.finalPrice * item.quantity).toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                   <TableFooter>
                     <TableRow>
-                      <TableCell className="text-left">Total</TableCell>
+                      <TableCell className="text-right">Total Qty :</TableCell>
                       <TableCell className="text-center">
                         {orderDetails.orderedFoodItems.reduce(
                           (prv, item) => prv + item.quantity,
@@ -316,7 +315,39 @@ const OrderDetails = ({
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₹{orderDetails.totalAmount.toFixed(2)}
+                          Sub Total :
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₹{orderDetails.subtotal.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="bg-muted">
+                      <TableCell colSpan={3} className="text-right">
+                          Total Discount :
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₹{orderDetails.discountAmount?.toFixed(2) || "0.00"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-right">
+                        Total Tax :
+                        {orderDetails.restaurant?.isTaxIncludedInPrice && (
+                          <p className="text-xs text-muted-foreground font-normal">
+                            (Included in price)
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₹{orderDetails.taxAmount?.toFixed(2) || "0.00"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="bg-muted">
+                      <TableCell colSpan={3} className="text-right">
+                        Total Amount :
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₹{orderDetails.totalAmount?.toFixed(2) || "0.00"}
                       </TableCell>
                     </TableRow>
                   </TableFooter>
@@ -325,9 +356,82 @@ const OrderDetails = ({
 
               <div>
                 <h3 className="text-sm font-medium mb-2">Order Note</h3>
-                <p className="text-sm bg-muted px-3 py-1 rounded-md">
-                  {orderDetails.notes}
+                <p
+                  className={`bg-muted px-3 py-1 rounded-md ${!orderDetails.notes ? "text-xs text-muted-foreground" : "text-sm"}`}
+                >
+                  {orderDetails.notes ?? "No special instructions provided."}
                 </p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Customer Info */}
+                {orderDetails.customerName && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-1">Customer Info</h3>
+                    <div className="bg-muted rounded-md p-3 space-y-1 text-sm">
+                      <p>
+                        <span className="text-muted-foreground">Name: </span>
+                        {orderDetails.customerName || "Not provided"}
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">Phone: </span>
+                        {orderDetails.customerPhone || "Not provided"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Address */}
+                {orderDetails.deliveryAddress && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-1">
+                      Delivery Address
+                    </h3>
+                    <div className="bg-muted rounded-md p-3 text-sm">
+                      {orderDetails.deliveryAddress || "No delivery address"}
+                    </div>
+                  </div>
+                )}
+
+                {/* Platform Info */}
+                {orderDetails.externalPlatform && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-1">Platform Info</h3>
+                    <div className="bg-muted rounded-md p-3 text-sm space-y-1">
+                      <p>
+                        <span className="text-muted-foreground">
+                          Platform:{" "}
+                        </span>
+                        {orderDetails.externalPlatform || "N/A"}
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">
+                          External Order ID:{" "}
+                        </span>
+                        {orderDetails.externalOrderId || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Attempts */}
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Payment Attempts</h3>
+                  <div className="bg-muted rounded-md p-3 text-sm">
+                    {orderDetails.paymentAttempts.length > 0 ? (
+                      <ul className="list-disc list-inside">
+                        {orderDetails.paymentAttempts.map((attempt, index) => (
+                          <li key={index}>
+                            {JSON.stringify(attempt)}{" "}
+                            {/* You can format if structure is known */}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No payment attempts recorded.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
