@@ -37,7 +37,6 @@ import {
   BellRing,
   BookCheck,
   CheckCheck,
-  DivideCircleIcon,
   Soup,
   Timer,
 } from "lucide-react";
