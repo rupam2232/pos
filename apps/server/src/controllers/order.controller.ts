@@ -166,6 +166,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
           totalAmount,
           taxAmount,
           discountAmount,
+          method: paymentMethod,
           status: "pending", // Default status for new orders
           isPaid: false, // Default to false
           notes: notes,
@@ -347,6 +348,7 @@ export const getOrderById = asyncHandler(async (req, res) => {
         discountAmount: { $first: "$discountAmount" },
         taxAmount: { $first: "$taxAmount" },
         isPaid: { $first: "$isPaid" },
+        paymentMethod: { $first: "$paymentMethod" },
         notes: { $first: "$notes" },
         externalOrderId: { $first: "$externalOrderId" },
         externalPlatform: { $first: "$externalPlatform" },
@@ -427,7 +429,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
     page = 1,
     limit = 10,
     sortBy = "createdAt",
-    sortType = "asc",
+    sortType = "desc",
     status,
   } = req.query;
 
@@ -474,7 +476,9 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
     ...(req.query.search
       ? {
           $or: [
-            { "foodItems.foodName": { $regex: req.query.search, $options: "i" } },
+            {
+              "foodItems.foodName": { $regex: req.query.search, $options: "i" },
+            },
             { "table.tableName": { $regex: req.query.search, $options: "i" } },
           ],
         }
@@ -570,7 +574,25 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
         },
       },
       {
+        $addFields: {
+          statusOrder: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$status", "pending"] }, then: 1 },
+                { case: { $eq: ["$status", "preparing"] }, then: 2 },
+                { case: { $eq: ["$status", "ready"] }, then: 3 },
+                { case: { $eq: ["$status", "served"] }, then: 4 },
+                { case: { $eq: ["$status", "completed"] }, then: 5 },
+                { case: { $eq: ["$status", "cancelled"] }, then: 6 },
+              ],
+              default: 99,
+            },
+          },
+        },
+      },
+      {
         $sort: {
+          statusOrder: 1, // Sort by status to group similar statuses together
           [sortBy.toString()]: sortType === "asc" ? 1 : -1, // Sort by the specified field and order
           _id: 1, // Secondary sort by _id to maintain consistent order
         },
@@ -840,6 +862,25 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new ApiError(
       400,
       "Cannot update status of completed or cancelled orders"
+    );
+  }
+
+  if (status === "cancelled" && order.isPaid) {
+    // If the order is cancelled and already paid, we should handle the refund logic here
+  }
+  // If the order is being marked as completed, ensure it was not already served
+  if (status === "completed" && order.status !== "served") {
+    throw new ApiError(
+      400,
+      "Order must be served before it can be marked as completed"
+    );
+  }
+
+  if (status === "completed" && !order.isPaid) {
+    // If the order is being marked as completed, ensure it is paid
+    throw new ApiError(
+      400,
+      "Order must be paid before it can be marked as completed"
     );
   }
 

@@ -22,9 +22,22 @@ import { IconReceiptOff } from "@tabler/icons-react";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
 import OrderDetails from "@/components/order-details";
-import { Label } from "@repo/ui/components/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import axios from "@/utils/axiosInstance";
+import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import { signOut } from "@/store/authSlice";
+import { useRouter } from "next/navigation";
+import { AxiosError } from "axios";
+import { ApiResponse } from "@repo/ui/types/ApiResponse";
+import { useState } from "react";
 
-const orderCard = ({
+const OrderCard = ({
   order,
   restaurantSlug,
   setOrders,
@@ -33,69 +46,178 @@ const orderCard = ({
   restaurantSlug: string;
   setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
 }) => {
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const [status, setStatus] = useState(order.status);
+
   const orderStatusIcons = [
     {
       status: "pending",
       icon: <BellRing />,
       message: "New Order",
       color: "bg-yellow-500 text-white",
+      actionLabel: "Mark as Pending",
     },
     {
       status: "preparing",
       icon: <Timer />,
       message: "Cooking now",
       color: "bg-orange-500 text-white",
+      actionLabel: "Mark as Preparing",
     },
     {
       status: "ready",
       icon: <CheckCheck />,
       message: "Ready to serve",
       color: "bg-green-500 text-white",
+      actionLabel: "Mark as Ready",
     },
     {
       status: "served",
       icon: <Soup />,
       message: "Food on the table",
       color: "bg-blue-500 text-white",
+      actionLabel: "Mark as Served",
     },
     {
       status: "completed",
       icon: <BookCheck />,
-      message: "Payement done. Order completed",
+      message: "Payment done. Order completed",
       color: "bg-purple-500 text-white",
+      actionLabel: "Mark as Completed",
     },
     {
       status: "cancelled",
       icon: <IconReceiptOff />,
       message: "Order cancelled",
       color: "bg-red-500 text-white",
+      actionLabel: "Cancel Order",
     },
   ];
+
+  const currentStatusIndex = orderStatusIcons.findIndex(
+    (item) => item.status === status
+  );
+
+  // Only show statuses after current one (excluding itself)
+  const availableNextStatuses = orderStatusIcons.slice(currentStatusIndex + 1);
+
+  const handleUpdateStatus = async (status: string) => {
+    console.log("Updating order status to:", status);
+    if (!availableNextStatuses.some((item) => item.status === status)) {
+      toast.error("Invalid status update");
+      return;
+    }
+    if (status === order.status) {
+      toast.info("Order status is already " + status);
+      return;
+    }
+    const prevStatus = order.status;
+    setStatus(status as Order["status"]);
+    try {
+      const response = await axios.patch(
+        `/order/${restaurantSlug}/${order._id}/status`,
+        { status }
+      );
+
+      if (!response.data || !response.data.data || !response.data.data.status) {
+        console.error("Invalid response data:", response.data);
+        toast.error("Failed to update order status. Please try again later");
+        return;
+      }
+      setStatus(response.data.data.status);
+      toast.success("Order status updated successfully");
+    } catch (error) {
+      setStatus(prevStatus);
+      console.error(
+        "Failed to fetch un paid orders. Please try again later:",
+        error
+      );
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "Failed to fetch un paid orders. Please try again later"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    } finally {
+      // setIsLoading(false);
+    }
+  };
   return (
     <Card>
       <CardContent className="space-y-2">
         <div className="flex items-center justify-between text-sm font-medium">
           <span>Table: {order.table.tableName}</span>
+
           <div className="relative">
-            <Badge
-              variant="default"
-              className={`${
-                orderStatusIcons.find((icon) => icon.status === order.status)
-                  ?.color || ""
-              }`}
-            >
-              {orderStatusIcons.find((icon) => icon.status === order.status)
-                ?.icon || "❓"}
-              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-            </Badge>
-            <div className="absolute -bottom-5 right-0 text-[10px] flex items-center gap-1 text-muted-foreground">
+            {availableNextStatuses.length > 0 &&
+            availableNextStatuses.length === 1 &&
+            availableNextStatuses[0]?.status !== "cancelled" ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="default"
+                        className={`cursor-pointer ${
+                          orderStatusIcons.find(
+                            (icon) => icon.status === status
+                          )?.color || ""
+                        }`}
+                      >
+                        {orderStatusIcons.find((icon) => icon.status === status)
+                          ?.icon || "❓"}
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Click to Change Order Status
+                    </TooltipContent>
+                  </Tooltip>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {availableNextStatuses.map((status) => {
+                    return (
+                      <DropdownMenuItem
+                        key={status.status}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          handleUpdateStatus(status.status);
+                        }}
+                      >
+                        {status.icon}{" "}
+                        {status.actionLabel ||
+                          status.status.charAt(0).toUpperCase() +
+                            status.status.slice(1)}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Badge
+                variant="default"
+                className={`cursor-pointer ${
+                  orderStatusIcons.find((icon) => icon.status === status)
+                    ?.color || ""
+                }`}
+              >
+                {orderStatusIcons.find((icon) => icon.status === status)
+                  ?.icon || "❓"}
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Badge>
+            )}
+            <div className="absolute -bottom-5 right-0 text-[10px] flex items-center gap-1 text-muted-foreground w-max">
               <span
                 className={`${
-                  orderStatusIcons.find((icon) => icon.status === order.status)
+                  orderStatusIcons.find((icon) => icon.status === status)
                     ?.color || ""
                 } w-1 h-1 rounded-full block`}
               ></span>
-              {orderStatusIcons.find((icon) => icon.status === order.status)
+              {orderStatusIcons.find((icon) => icon.status === status)
                 ?.message || ""}
             </div>
           </div>
@@ -105,7 +227,7 @@ const orderCard = ({
         </p>
 
         <div className="flex items-center justify-between">
-          <Label className="text-xs">Payment Status</Label>
+          <p className="text-xs font-medium">Payment Status</p>
           <Badge
             variant={order.isPaid ? "success" : "destructive"}
             className="text-xs"
@@ -201,6 +323,9 @@ const orderCard = ({
             order={order}
             setOrders={setOrders}
             restaurantSlug={restaurantSlug}
+            orderStatusIcons={orderStatusIcons}
+            status={status}
+            handleUpdateStatus={handleUpdateStatus}
           >
             <Button variant="outline">See Details</Button>
           </OrderDetails>
@@ -211,4 +336,4 @@ const orderCard = ({
   );
 };
 
-export default orderCard;
+export default OrderCard;

@@ -71,6 +71,7 @@ export interface FullOrderDetailsType {
   totalAmount: number;
   discountAmount?: number;
   taxAmount?: number;
+  paymentMethod: "cash" | "online";
   isPaid: boolean;
   notes?: string;
   externalOrderId?: string;

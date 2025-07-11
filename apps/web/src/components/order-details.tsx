@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, JSX } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,6 @@ import {
   DialogClose,
   DialogTrigger,
 } from "@repo/ui/components/dialog";
-import { Label } from "@repo/ui/components/label";
 import { Button } from "@repo/ui/components/button";
 import type {
   Order,
@@ -25,8 +24,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Badge } from "@repo/ui/components/badge";
-import { BellRing, BookCheck, CheckCheck, Soup, Timer } from "lucide-react";
-import { IconReceiptOff } from "@tabler/icons-react";
 import {
   Table,
   TableBody,
@@ -43,17 +40,35 @@ import {
 } from "@repo/ui/components/tooltip";
 import { Avatar, AvatarFallback } from "@repo/ui/components/avatar";
 import { AvatarImage } from "@radix-ui/react-avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
 
 const OrderDetails = ({
   children,
   order,
   setOrders,
   restaurantSlug,
+  orderStatusIcons,
+  status,
+  handleUpdateStatus,
 }: {
   children: React.ReactNode;
   order: Order;
   setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
   restaurantSlug: string;
+  orderStatusIcons: {
+    status: string;
+    icon: JSX.Element;
+    message: string;
+    color: string;
+    actionLabel?: string;
+  }[];
+  status: Order["status"];
+  handleUpdateStatus: (status: string) => void;
 }) => {
   const [orderDetails, setOrderDetails] = useState<FullOrderDetailsType | null>(
     null
@@ -101,45 +116,12 @@ const OrderDetails = ({
     }
   };
 
-  const orderStatusIcons = [
-    {
-      status: "pending",
-      icon: <BellRing />,
-      message: "New Order",
-      color: "bg-yellow-500 text-white",
-    },
-    {
-      status: "preparing",
-      icon: <Timer />,
-      message: "Cooking now",
-      color: "bg-orange-500 text-white",
-    },
-    {
-      status: "ready",
-      icon: <CheckCheck />,
-      message: "Ready to serve",
-      color: "bg-green-500 text-white",
-    },
-    {
-      status: "served",
-      icon: <Soup />,
-      message: "Food on the table",
-      color: "bg-blue-500 text-white",
-    },
-    {
-      status: "completed",
-      icon: <BookCheck />,
-      message: "Payement done. Order completed",
-      color: "bg-purple-500 text-white",
-    },
-    {
-      status: "cancelled",
-      icon: <IconReceiptOff />,
-      message: "Order cancelled",
-      color: "bg-red-500 text-white",
-    },
-  ];
+  const currentStatusIndex = orderStatusIcons.findIndex(
+    (item) => item.status === status
+  );
 
+  // Only show statuses after current one (excluding itself)
+  const availableNextStatuses = orderStatusIcons.slice(currentStatusIndex + 1);
   return (
     <Dialog>
       <DialogTrigger
@@ -169,31 +151,73 @@ const OrderDetails = ({
               <div className="flex items-center justify-between text-sm font-medium">
                 <span>Table: {orderDetails.table.tableName}</span>
                 <div className="relative">
-                  <Badge
-                    variant="default"
-                    className={`${
-                      orderStatusIcons.find(
-                        (icon) => icon.status === orderDetails.status
-                      )?.color || ""
-                    }`}
-                  >
-                    {orderStatusIcons.find(
-                      (icon) => icon.status === orderDetails.status
-                    )?.icon || "❓"}
-                    {orderDetails.status.charAt(0).toUpperCase() +
-                      orderDetails.status.slice(1)}
-                  </Badge>
-                  <div className="absolute -bottom-5 right-0 text-[10px] flex items-center gap-1 text-muted-foreground">
+                  {availableNextStatuses.length > 0 &&
+                  availableNextStatuses.length === 1 &&
+                  availableNextStatuses[0]?.status !== "cancelled" ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="default"
+                              className={`cursor-pointer ${
+                                orderStatusIcons.find(
+                                  (icon) => icon.status === status
+                                )?.color || ""
+                              }`}
+                            >
+                              {orderStatusIcons.find(
+                                (icon) => icon.status === status
+                              )?.icon || "❓"}
+                              {status.charAt(0).toUpperCase() + status.slice(1)}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Click to Change Order Status
+                          </TooltipContent>
+                        </Tooltip>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {availableNextStatuses.map((status) => {
+                          return (
+                            <DropdownMenuItem
+                              key={status.status}
+                              className="cursor-pointer"
+                              onClick={() => {
+                                handleUpdateStatus(status.status);
+                              }}
+                            >
+                              {status.icon}{" "}
+                              {status.actionLabel ||
+                                status.status.charAt(0).toUpperCase() +
+                                  status.status.slice(1)}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Badge
+                      variant="default"
+                      className={`cursor-pointer ${
+                        orderStatusIcons.find((icon) => icon.status === status)
+                          ?.color || ""
+                      }`}
+                    >
+                      {orderStatusIcons.find((icon) => icon.status === status)
+                        ?.icon || "❓"}
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Badge>
+                  )}
+                  <div className="absolute -bottom-5 right-0 text-[10px] flex items-center gap-1 text-muted-foreground w-max">
                     <span
                       className={`${
-                        orderStatusIcons.find(
-                          (icon) => icon.status === orderDetails.status
-                        )?.color || ""
+                        orderStatusIcons.find((icon) => icon.status === status)
+                          ?.color || ""
                       } w-1 h-1 rounded-full block`}
                     ></span>
-                    {orderStatusIcons.find(
-                      (icon) => icon.status === orderDetails.status
-                    )?.message || ""}
+                    {orderStatusIcons.find((icon) => icon.status === status)
+                      ?.message || ""}
                   </div>
                 </div>
               </div>
@@ -202,7 +226,14 @@ const OrderDetails = ({
               </p>
 
               <div className="flex items-center justify-between">
-                <Label className="text-xs">Payment Status</Label>
+                <p className="text-xs font-medium">Payment Method</p>
+                <Badge variant={"default"} className="text-xs">
+                  {orderDetails.paymentMethod === "online" ? "Online" : "Cash"}
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium">Payment Status</p>
                 <Badge
                   variant={orderDetails.isPaid ? "success" : "destructive"}
                   className="text-xs"
@@ -362,7 +393,7 @@ const OrderDetails = ({
                 <p
                   className={`bg-muted px-3 py-1 rounded-md ${!orderDetails.notes ? "text-xs text-muted-foreground" : "text-sm"}`}
                 >
-                  {orderDetails.notes ?? "No special instructions provided."}
+                  {orderDetails.notes ?? "No special instructions provided"}
                 </p>
               </div>
 
@@ -433,7 +464,7 @@ const OrderDetails = ({
                         ))}
                       </ul>
                     ) : (
-                      <p>No payment attempts recorded.</p>
+                      <p>No payment attempts recorded</p>
                     )}
                   </div>
                 </div>
@@ -441,11 +472,11 @@ const OrderDetails = ({
             </div>
           ) : (
             <div className="text-red-500 text-center">
-              No order details found. Please try again later.
+              No order details found. Please try again later
             </div>
           )}
           <DialogFooter className="p-4 flex justify-between! items-center w-full flex-row">
-            <DialogClose>
+            <DialogClose asChild>
               <Button variant="outline">Close</Button>
             </DialogClose>
             <Button type="submit">Save changes</Button>
