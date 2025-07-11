@@ -134,9 +134,9 @@ const orderCard = ({
           </p>
         </div>
 
-        <div className="border-t pt-2 text-sm space-y-1">
+        <div className="pt-2 text-sm space-y-1">
           <Table>
-            <TableHeader>
+            <TableHeader className="border-t">
               <TableRow>
                 <TableHead className="text-left">Items</TableHead>
                 <TableHead className="text-center">Qty</TableHead>
@@ -149,7 +149,7 @@ const orderCard = ({
                   key={item.foodItemId + index}
                   className="text-primary/80"
                 >
-                  <TableCell className="font-medium flex items-center gap-2 text-left">
+                  <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
                     <Tooltip>
                       <TooltipTrigger>
                         <div

@@ -20,7 +20,7 @@ import OrderCard from "@/components/order-card";
 const Page = () => {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [tabName, setTabName] = useState<string>("all");
   const [allOrders, setAllOrders] = useState<OrderDetailsType>(null);
   const [newOrders, setNewOrders] = useState<OrderDetailsType>(null);
@@ -182,7 +182,7 @@ const Page = () => {
       setIsLoading(false);
     }
   }, [slug, router, dispatch]);
-  
+
   const fetchCompletedOrders = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -241,7 +241,16 @@ const Page = () => {
       default:
         break;
     }
-  }, [tabName, slug, fetchAllOrders, fetchNewOrders, fetchInProgressOrders, fetchReadyOrders, fetchUnpaidOrders, fetchCompletedOrders]);
+  }, [
+    tabName,
+    slug,
+    fetchAllOrders,
+    fetchNewOrders,
+    fetchInProgressOrders,
+    fetchReadyOrders,
+    fetchUnpaidOrders,
+    fetchCompletedOrders,
+  ]);
 
   return (
     <div className="flex flex-1 flex-col p-4 md:gap-6 lg:p-6">
@@ -293,7 +302,19 @@ const Page = () => {
         <TabsContent value="all">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
             {isLoading ? (
-              <p>Loading...</p>
+              Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`animate-pulse ${index > 0 ? `delay-${(index + 1) * 100}` : ""} h-80 border border-accent shadow-md rounded-md flex flex-col justify-between p-4`}
+                >
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="animate-pulse bg-accent h-6 w-full rounded-md"></div>
+                    <div className="animate-pulse bg-accent h-4 w-4/5 rounded-md"></div>
+                  </div>
+                  <div className="animate-pulse bg-accent h-15 w-full rounded-md"></div>
+                  <div className="animate-pulse bg-accent h-8 w-1/3 rounded-md"></div>
+                </div>
+              ))
             ) : !Array.isArray(allOrders?.orders) ||
               allOrders.orders.length === 0 ? (
               <p>No orders found.</p>
@@ -312,7 +333,19 @@ const Page = () => {
         <TabsContent value="new">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
             {isLoading ? (
-              <p>Loading...</p>
+              Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`animate-pulse ${index > 0 ? `delay-${(index + 1) * 100}` : ""} h-80 border border-accent shadow-md rounded-md flex flex-col justify-between p-4`}
+                >
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="animate-pulse bg-accent h-6 w-full rounded-md"></div>
+                    <div className="animate-pulse bg-accent h-4 w-4/5 rounded-md"></div>
+                  </div>
+                  <div className="animate-pulse bg-accent h-15 w-full rounded-md"></div>
+                  <div className="animate-pulse bg-accent h-8 w-1/3 rounded-md"></div>
+                </div>
+              ))
             ) : !Array.isArray(newOrders?.orders) ||
               newOrders.orders.length === 0 ? (
               <p>No orders found.</p>
@@ -331,7 +364,19 @@ const Page = () => {
         <TabsContent value="inProgress">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
             {isLoading ? (
-              <p>Loading...</p>
+              Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`animate-pulse ${index > 0 ? `delay-${(index + 1) * 100}` : ""} h-80 border border-accent shadow-md rounded-md flex flex-col justify-between p-4`}
+                >
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="animate-pulse bg-accent h-6 w-full rounded-md"></div>
+                    <div className="animate-pulse bg-accent h-4 w-4/5 rounded-md"></div>
+                  </div>
+                  <div className="animate-pulse bg-accent h-15 w-full rounded-md"></div>
+                  <div className="animate-pulse bg-accent h-8 w-1/3 rounded-md"></div>
+                </div>
+              ))
             ) : !Array.isArray(inProgressOrders?.orders) ||
               inProgressOrders.orders.length === 0 ? (
               <p>No orders found.</p>
@@ -350,7 +395,19 @@ const Page = () => {
         <TabsContent value="ready">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
             {isLoading ? (
-              <p>Loading...</p>
+              Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`animate-pulse ${index > 0 ? `delay-${(index + 1) * 100}` : ""} h-80 border border-accent shadow-md rounded-md flex flex-col justify-between p-4`}
+                >
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="animate-pulse bg-accent h-6 w-full rounded-md"></div>
+                    <div className="animate-pulse bg-accent h-4 w-4/5 rounded-md"></div>
+                  </div>
+                  <div className="animate-pulse bg-accent h-15 w-full rounded-md"></div>
+                  <div className="animate-pulse bg-accent h-8 w-1/3 rounded-md"></div>
+                </div>
+              ))
             ) : !Array.isArray(readyOrders?.orders) ||
               readyOrders.orders.length === 0 ? (
               <p>No orders found.</p>
@@ -369,7 +426,19 @@ const Page = () => {
         <TabsContent value="unPaid">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
             {isLoading ? (
-              <p>Loading...</p>
+              Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`animate-pulse ${index > 0 ? `delay-${(index + 1) * 100}` : ""} h-80 border border-accent shadow-md rounded-md flex flex-col justify-between p-4`}
+                >
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="animate-pulse bg-accent h-6 w-full rounded-md"></div>
+                    <div className="animate-pulse bg-accent h-4 w-4/5 rounded-md"></div>
+                  </div>
+                  <div className="animate-pulse bg-accent h-15 w-full rounded-md"></div>
+                  <div className="animate-pulse bg-accent h-8 w-1/3 rounded-md"></div>
+                </div>
+              ))
             ) : !Array.isArray(unpaidOrders?.orders) ||
               unpaidOrders.orders.length === 0 ? (
               <p>No orders found.</p>
@@ -388,7 +457,19 @@ const Page = () => {
         <TabsContent value="completed">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
             {isLoading ? (
-              <p>Loading...</p>
+              Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`animate-pulse ${index > 0 ? `delay-${(index + 1) * 100}` : ""} h-80 border border-accent shadow-md rounded-md flex flex-col justify-between p-4`}
+                >
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="animate-pulse bg-accent h-6 w-full rounded-md"></div>
+                    <div className="animate-pulse bg-accent h-4 w-4/5 rounded-md"></div>
+                  </div>
+                  <div className="animate-pulse bg-accent h-15 w-full rounded-md"></div>
+                  <div className="animate-pulse bg-accent h-8 w-1/3 rounded-md"></div>
+                </div>
+              ))
             ) : !Array.isArray(completedOrders?.orders) ||
               completedOrders.orders.length === 0 ? (
               <p>No orders found.</p>

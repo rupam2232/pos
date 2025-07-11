@@ -6,6 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogClose,
   DialogTrigger,
 } from "@repo/ui/components/dialog";
 import { Label } from "@repo/ui/components/label";
@@ -233,9 +234,9 @@ const OrderDetails = ({
                 </p>
               </div>
 
-              <div className="border-t pt-2 text-sm space-y-1">
+              <div className="pt-1 text-sm space-y-1">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="border-t">
                     <TableRow>
                       <TableHead className="text-left">Items</TableHead>
                       <TableHead className="text-center">Qty</TableHead>
@@ -296,7 +297,11 @@ const OrderDetails = ({
                           {item.quantity}
                         </TableCell>
                         <TableCell className="text-center relative">
-                          {(item.price !== item.finalPrice) && <span className="absolute bottom-0 right-0 text-xs line-through">{item.price.toFixed(2)}</span>}
+                          {item.price !== item.finalPrice && (
+                            <span className="absolute bottom-0 right-0 text-xs line-through">
+                              {item.price.toFixed(2)}
+                            </span>
+                          )}
                           ₹{item.finalPrice.toFixed(2)}
                         </TableCell>
                         <TableCell className="text-right">
@@ -314,16 +319,14 @@ const OrderDetails = ({
                           0
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                          Sub Total :
-                      </TableCell>
+                      <TableCell className="text-right">Sub Total :</TableCell>
                       <TableCell className="text-right">
                         ₹{orderDetails.subtotal.toFixed(2)}
                       </TableCell>
                     </TableRow>
                     <TableRow className="bg-muted">
                       <TableCell colSpan={3} className="text-right">
-                          Total Discount :
+                        Total Discount :
                       </TableCell>
                       <TableCell className="text-right">
                         ₹{orderDetails.discountAmount?.toFixed(2) || "0.00"}
@@ -417,7 +420,9 @@ const OrderDetails = ({
                 {/* Payment Attempts */}
                 <div>
                   <h3 className="text-sm font-medium mb-1">Payment Attempts</h3>
-                  <div className="bg-muted rounded-md p-3 text-sm">
+                  <div
+                    className={`bg-muted px-3 py-1 rounded-md ${orderDetails.paymentAttempts.length === 0 ? "text-xs text-muted-foreground" : "text-sm"}`}
+                  >
                     {orderDetails.paymentAttempts.length > 0 ? (
                       <ul className="list-disc list-inside">
                         {orderDetails.paymentAttempts.map((attempt, index) => (
@@ -440,8 +445,10 @@ const OrderDetails = ({
             </div>
           )}
           <DialogFooter className="p-4 flex justify-between! items-center w-full flex-row">
+            <DialogClose>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
             <Button type="submit">Save changes</Button>
-            <Button variant="outline">Close</Button>
           </DialogFooter>
         </ScrollArea>
       </DialogContent>
