@@ -472,18 +472,14 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
 
   const orderCount = await Order.countDocuments({
     restaurantId: restaurant._id,
-    ...req.body,
-    ...(req.query.search
-      ? {
-          $or: [
-            {
-              "foodItems.foodName": { $regex: req.query.search, $options: "i" },
-            },
-            { "table.tableName": { $regex: req.query.search, $options: "i" } },
-          ],
-        }
-      : {}),
-    ...(status ? { status } : {}), // Filter by status if provided
+    ...(req.query.isPaid ? { isPaid: req.query.isPaid === "true" } : {}), // Filter by isPaid if provided
+    ...(status
+      ? !Array.isArray(status)
+        ? { status }
+        : status.length > 0
+          ? { status: { $in: status } }
+          : {}
+      : {}), // Filter by status if provided, handle both single and array cases
   });
 
   let orders = [];
@@ -492,7 +488,14 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
       {
         $match: {
           restaurantId: restaurant._id,
-          ...(status ? { status } : {}), // Filter by status if provided
+          ...(req.query.isPaid ? { isPaid: req.query.isPaid === "true" } : {}), // Filter by isPaid if provided
+          ...(status
+            ? !Array.isArray(status)
+              ? { status }
+              : status.length > 0
+                ? { status: { $in: status } }
+                : {}
+            : {}), // // Filter by status if provided, handle both single and array casesd
         },
       },
       {

@@ -22,7 +22,7 @@ import { useDispatch } from "react-redux";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 import { Badge } from "@repo/ui/components/badge";
 import {
   Table,
@@ -152,7 +152,6 @@ const OrderDetails = ({
                 <span>Table: {orderDetails.table.tableName}</span>
                 <div className="relative">
                   {availableNextStatuses.length > 0 &&
-                  availableNextStatuses.length === 1 &&
                   availableNextStatuses[0]?.status !== "cancelled" ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger>
@@ -242,7 +241,7 @@ const OrderDetails = ({
                 </Badge>
               </div>
 
-              <div className="text-right text-xs text-muted-foreground flex items-center justify-between">
+              <div className="text-right text-xs text-muted-foreground flex items-center justify-between pb-1">
                 <p>
                   {new Date(orderDetails.createdAt).toLocaleDateString(
                     "en-US",
@@ -265,7 +264,8 @@ const OrderDetails = ({
                 </p>
               </div>
 
-              <div className="pt-1 text-sm space-y-1">
+                <ScrollArea className="w-full">
+              <div className="text-sm space-y-1">
                 <Table>
                   <TableHeader className="border-t">
                     <TableRow>
@@ -387,6 +387,8 @@ const OrderDetails = ({
                   </TableFooter>
                 </Table>
               </div>
+                        <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
               <div>
                 <h3 className="text-sm font-medium mb-2">Order Note</h3>

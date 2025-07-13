@@ -16,6 +16,8 @@ import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import type { OrderDetails as OrderDetailsType } from "@repo/ui/types/Order";
 import OrderCard from "@/components/order-card";
+import { Input } from "@repo/ui/components/input";
+import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 
 const Page = () => {
   const params = useParams<{ slug: string }>();
@@ -156,7 +158,7 @@ const Page = () => {
   const fetchUnpaidOrders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`/order/${slug}`);
+      const response = await axios.get(`/order/${slug}?isPaid=false`);
       if (
         response.data &&
         response.data.data &&
@@ -186,7 +188,9 @@ const Page = () => {
   const fetchCompletedOrders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`/order/${slug}`);
+      const response = await axios.get(
+        `/order/${slug}?status=completed&status=cancelled`
+      );
       if (
         response.data &&
         response.data.data &&
@@ -255,50 +259,52 @@ const Page = () => {
   return (
     <div className="flex flex-1 flex-col p-4 md:gap-6 lg:p-6">
       <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger
-            value="all"
-            className="font-medium data-[state=active]:font-semibold"
-            onClick={() => setTabName("all")}
-          >
-            All
-          </TabsTrigger>
-          <TabsTrigger
-            value="new"
-            className="font-medium data-[state=active]:font-semibold"
-            onClick={() => setTabName("new")}
-          >
-            New
-          </TabsTrigger>
-          <TabsTrigger
-            value="inProgress"
-            className="font-medium data-[state=active]:font-semibold"
-            onClick={() => setTabName("inProgress")}
-          >
-            In Progress
-          </TabsTrigger>
-          <TabsTrigger
-            value="ready"
-            className="font-medium data-[state=active]:font-semibold"
-            onClick={() => setTabName("ready")}
-          >
-            Ready
-          </TabsTrigger>
-          <TabsTrigger
-            value="unPaid"
-            className="font-medium data-[state=active]:font-semibold"
-            onClick={() => setTabName("unPaid")}
-          >
-            Unpaid
-          </TabsTrigger>
-          <TabsTrigger
-            value="completed"
-            className="font-medium data-[state=active]:font-semibold"
-            onClick={() => setTabName("completed")}
-          >
-            Completed
-          </TabsTrigger>
+        <ScrollArea className="w-full">
+        <div className="flex items-center justify-between">
+          <TabsList>
+          {[
+            {
+              tab: "all",
+              label: "All",
+            },
+            {
+              tab: "new",
+              label: "New",
+            },
+            {
+              tab: "inProgress",
+              label: "In Progress",
+            },
+            {
+              tab: "ready",
+              label: "Ready",
+            },
+            {
+              tab: "unPaid",
+              label: "Unpaid",
+            },
+            {
+              tab: "completed",
+              label: "Completed",
+            },
+          ].map(({ tab, label }) => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="font-medium data-[state=active]:font-semibold"
+              onClick={() => setTabName(tab)}
+            >
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
+        <Input className="w-70"
+        placeholder="Search orders..."
+        type="search"
+        />
+        </div>
+        <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         <TabsContent value="all">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 my-4">
             {isLoading ? (

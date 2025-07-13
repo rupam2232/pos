@@ -82,7 +82,7 @@ const OrderCard = ({
     {
       status: "completed",
       icon: <BookCheck />,
-      message: "Payment done. Order completed",
+      message: "Payment done. \nOrder completed",
       color: "bg-purple-500 text-white",
       actionLabel: "Mark as Completed",
     },
@@ -146,6 +146,7 @@ const OrderCard = ({
       // setIsLoading(false);
     }
   };
+
   return (
     <Card>
       <CardContent className="space-y-2">
@@ -154,7 +155,6 @@ const OrderCard = ({
 
           <div className="relative">
             {availableNextStatuses.length > 0 &&
-            availableNextStatuses.length === 1 &&
             availableNextStatuses[0]?.status !== "cancelled" ? (
               <DropdownMenu>
                 <DropdownMenuTrigger>
@@ -210,7 +210,7 @@ const OrderCard = ({
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </Badge>
             )}
-            <div className="absolute -bottom-5 right-0 text-[10px] flex items-center gap-1 text-muted-foreground w-max">
+            <div className={`absolute ${status === "completed" ? "-bottom-7.5" : "-bottom-5"} right-0 text-[10px] flex items-center gap-1 text-muted-foreground w-max whitespace-pre-line`}>
               <span
                 className={`${
                   orderStatusIcons.find((icon) => icon.status === status)
