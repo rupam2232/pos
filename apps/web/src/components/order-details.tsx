@@ -131,8 +131,8 @@ const OrderDetails = ({
       >
         {children}
       </DialogTrigger>
-      <DialogContent className="">
-        <ScrollArea className="overflow-y-auto max-h-[90vh]">
+      <DialogContent className="max-w-screen w-full">
+        <ScrollArea className="max-h-[90vh]">
           <DialogHeader className="p-4">
             <DialogTitle>Order Details</DialogTitle>
             <DialogDescription>
@@ -264,8 +264,8 @@ const OrderDetails = ({
                 </p>
               </div>
 
-                <ScrollArea className="w-full">
               <div className="text-sm space-y-1">
+                <ScrollArea className="max-w-full overflow-x-auto">
                 <Table>
                   <TableHeader className="border-t">
                     <TableRow>
@@ -281,7 +281,7 @@ const OrderDetails = ({
                         key={item.foodItemId + index}
                         className="text-primary/80"
                       >
-                        <TableCell className="font-medium flex items-center gap-2 text-left">
+                        <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
                           <Tooltip>
                             <TooltipTrigger>
                               <div
@@ -386,9 +386,9 @@ const OrderDetails = ({
                     </TableRow>
                   </TableFooter>
                 </Table>
-              </div>
                         <ScrollBar orientation="horizontal" />
                 </ScrollArea>
+              </div>
 
               <div>
                 <h3 className="text-sm font-medium mb-2">Order Note</h3>
