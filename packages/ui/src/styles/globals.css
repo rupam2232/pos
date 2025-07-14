@@ -136,6 +136,29 @@
   }
 }
 
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+input[type="number"] {
+  /* Hides the arrows in most browsers */
+  -moz-appearance: textfield;
+  /* Firefox */
+  -webkit-appearance: none;
+  /* Chrome, Safari, Edge */
+  appearance: none;
+}
+
+/* For Chrome and Safari to completely hide the up/down controls */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
 .animate-spin-reverse {
     @apply animate-spin;
     animation-direction: reverse;

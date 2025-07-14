@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Button } from "@repo/ui/components/button";
-import { Card } from "@repo/ui/components/card";
-import { Users, X, ArrowLeft } from "lucide-react";
+import { Card, CardFooter } from "@repo/ui/components/card";
 import { cn } from "@repo/ui/lib/utils";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
@@ -14,7 +12,9 @@ import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
 import { useParams } from "next/navigation";
 import TableDetails from "@/components/table-details";
-import type { Table } from "@repo/ui/types/Table";
+import type { Table, AllTables } from "@repo/ui/types/Table";
+import CreateTableDialog from "@/components/create-table";
+import type { AppDispatch } from "@/store/store";
 
 const getTableSize = (chairs: number) => {
   if (chairs <= 1) return { width: 80, height: 60 };
@@ -55,6 +55,14 @@ const getChairPositions = (
       { x: -chairSize - 2, y: height / 2 - chairSize / 2 }, // left
       { x: width + 2, y: height / 2 - chairSize / 2 } // right
     );
+  } else if (chairs === 5) {
+    positions.push(
+      { x: width / 2 - chairSize / 2, y: -chairSize - 2 }, // top
+      { x: width / 4 - chairSize / 2, y: height + 2 }, // bottom left
+      { x: (3 * width) / 4 - chairSize / 2, y: height + 2 }, // bottom right
+      { x: -chairSize - 2, y: height / 2 - chairSize / 2 }, // left
+      { x: width + 2, y: height / 2 - chairSize / 2 } // right
+    );
   } else if (chairs === 6) {
     positions.push(
       { x: width / 4 - chairSize / 2, y: -chairSize - 2 }, // top left
@@ -64,7 +72,7 @@ const getChairPositions = (
       { x: -chairSize - 2, y: height / 2 - chairSize / 2 }, // left
       { x: width + 2, y: height / 2 - chairSize / 2 } // right
     );
-  } else if (chairs === 8) {
+  } else if (chairs >= 8) {
     positions.push(
       { x: width / 4 - chairSize / 2, y: -chairSize - 2 }, // top left
       { x: (3 * width) / 4 - chairSize / 2, y: -chairSize - 2 }, // top right
@@ -75,7 +83,7 @@ const getChairPositions = (
       { x: width + 2, y: height / 3 - chairSize / 2 }, // right top
       { x: width + 2, y: (2 * height) / 3 - chairSize / 2 } // right bottom
     );
-  } else if (chairs === 10) {
+  } else {
     positions.push(
       { x: width / 5 - chairSize / 2, y: -chairSize - 2 }, // top 1
       { x: (2 * width) / 5 - chairSize / 2, y: -chairSize - 2 }, // top 2
@@ -95,18 +103,12 @@ const getChairPositions = (
 
 export default function SelectTable() {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [guestCount] = useState(5);
+  const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const [allTables, setAllTables] = useState<{
-    tables: Table[];
-    page: number;
-    limit: number;
-    totalPages: number;
-    totalCount: number;
-  } | null>(null);
+  const [allTables, setAllTables] = useState<AllTables | null>(null);
 
   const handleTableSelect = (table: Table) => {
     setSelectedTable(table);
@@ -122,6 +124,12 @@ export default function SelectTable() {
   };
 
   const fetchAllTables = useCallback(async () => {
+    if (!slug) {
+      console.error("Restaurant slug is required to fetch tables");
+      toast.error("Restaurant slug is required to fetch tables");
+      return;
+    }
+    setIsPageLoading(true);
     try {
       const response = await axios.get(`/table/${slug}`);
       setAllTables(response.data.data);
@@ -140,6 +148,8 @@ export default function SelectTable() {
         router.push("/signin");
       }
       setAllTables(null);
+    } finally {
+      setIsPageLoading(false);
     }
   }, [slug, router, dispatch]);
 
@@ -151,13 +161,6 @@ export default function SelectTable() {
     <div>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-lg font-medium text-foreground">Select Table</h1>
-        </div>
-
         {/* Status Legend - Center */}
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
@@ -173,14 +176,25 @@ export default function SelectTable() {
             </span>
           </div>
         </div>
+        {allTables &&
+          Array.isArray(allTables.tables) &&
+          allTables.tables.length > 0 && (
+            <div>
+              <CreateTableDialog
+                isLoading={isPageLoading}
+                restaurantSlug={slug}
+                setAllTables={setAllTables}
+              />
+            </div>
+          )}
       </div>
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-y-12 p-4">
-        {allTables &&
-          Array.isArray(allTables.tables) &&
-          allTables.tables.length > 0 &&
-          allTables.tables.map((table) => {
+      {allTables &&
+      Array.isArray(allTables.tables) &&
+      allTables.tables.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-y-12 p-4">
+          {allTables.tables.map((table) => {
             const isSelected = selectedTable?._id === table._id;
             const tableSize = getTableSize(table.seatCount);
             const chairPositions = getChairPositions(
@@ -192,6 +206,7 @@ export default function SelectTable() {
               <TableDetails
                 key={table._id}
                 table={table}
+                setAllTables={setAllTables}
                 isSelected={isSelected}
                 handleDeselectTable={handleDeselectTable}
                 restaurantSlug={slug}
@@ -224,7 +239,7 @@ export default function SelectTable() {
                     {/* Table */}
                     <Card
                       className={cn(
-                        "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg",
+                        "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg truncate whitespace-pre-wrap",
                         table.isOccupied
                           ? "bg-green-600 text-white"
                           : "bg-muted text-foreground"
@@ -234,7 +249,7 @@ export default function SelectTable() {
                         height: `${tableSize.height}px`,
                       }}
                     >
-                      <span className="font-medium text-xs">
+                      <span className="font-medium text-xs text-center text-balance">
                         {table.tableName}
                       </span>
                     </Card>
@@ -243,38 +258,23 @@ export default function SelectTable() {
               </TableDetails>
             );
           })}
-      </div>
-
-      {/* Bottom Footer */}
-      {/* <div className="px-4 py-3 border-t border-border bg-background">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            {selectedTable && (
-              <Card className="flex items-center gap-2 px-3 py-2 bg-yellow-500/10 border-yellow-500/30">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-4 w-4 hover:bg-destructive/20 p-0"
-                  onClick={handleDeselectTable}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-                <Users className="w-4 h-4 text-foreground" />
-                <span className="text-sm font-medium text-foreground">
-                  {guestCount} Guest
-                </span>
-              </Card>
-            )}
-          </div>
-
-          <Button
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium px-6 py-2"
-            disabled={!selectedTable}
-          >
-            Select Table
-          </Button>
         </div>
-      </div> */}
+      ) : (
+        <Card className="@container/card">
+          <CardFooter className="flex-col gap-4 text-sm flex justify-center">
+            <div className="line-clamp-1 flex gap-2 font-medium text-center text-balance">
+              This restaurant has no tables yet.
+            </div>
+            <CreateTableDialog
+              isLoading={isPageLoading}
+              restaurantSlug={slug}
+              setAllTables={setAllTables}
+            >
+              Create a New Table
+            </CreateTableDialog>
+          </CardFooter>
+        </Card>
+      )}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { Button } from "@repo/ui/components/button";
-// import { Input } from "@repo/ui/components/input";
-// import { Label } from "@repo/ui/components/label";
+import { Input } from "@repo/ui/components/input";
 import {
   Sheet,
   SheetClose,
@@ -13,30 +12,63 @@ import {
 } from "@repo/ui/components/sheet";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "@/store/store";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
-import type { Table, TableDetails } from "@repo/ui/types/Table";
+import type { Table, TableDetails, AllTables } from "@repo/ui/types/Table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
+import { IconQrcode } from "@tabler/icons-react";
+import { Pen, ArrowLeft, Loader2 } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@repo/ui/components/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { tableSchema } from "@/schemas/tableSchema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/select";
 
 const TableDetails = ({
   children,
   table,
+  setAllTables,
   isSelected,
   handleDeselectTable,
   restaurantSlug,
 }: {
   children: React.ReactNode;
   table: Table;
+  setAllTables: React.Dispatch<React.SetStateAction<AllTables | null>>;
   isSelected: boolean;
   handleDeselectTable: () => void;
   restaurantSlug: string;
 }) => {
+  const user = useSelector((state: RootState) => state.auth.user);
   const [tableDetails, setTableDetails] = useState<TableDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
+  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
   const fetchTableDetails = useCallback(async () => {
@@ -72,11 +104,123 @@ const TableDetails = ({
     }
   }, [dispatch, restaurantSlug, router, table]);
 
+  const form = useForm<z.infer<typeof tableSchema>>({
+    resolver: zodResolver(tableSchema),
+    defaultValues: {
+      tableName: table.tableName,
+      seatCount: table.seatCount || 1, // Default to 1 if not provided
+    },
+  });
+
+  const onSubmit = async (data: z.infer<typeof tableSchema>) => {
+    if (isLoading || formLoading) return; // Prevent multiple submissions
+    if (!user || user.role !== "owner") {
+      toast.error("You do not have permission to create a restaurant");
+      return;
+    }
+    if (
+      form.getValues("tableName") === table.tableName &&
+      form.getValues("seatCount") === table.seatCount
+    ) {
+      toast.error(
+        "No changes detected. Please modify the table details before submitting"
+      );
+      return;
+    }
+    try {
+      setFormLoading(true);
+      const response = await axios.patch(
+        `/table/${restaurantSlug}/${table.qrSlug}`,
+        data
+      );
+      if (!response.data.success || !response.data.data) {
+        toast.error(response.data.message || "Failed to create restaurant");
+        return;
+      }
+      setTableDetails(response.data.data);
+      setIsEditing(false);
+      setAllTables((prev) => {
+        if (!prev) return prev; // If allTables is null, return it
+        return {
+          ...prev,
+          tables: prev.tables.map((t) =>
+            t.qrSlug === table.qrSlug ? { ...t, ...response.data.data } : t
+          ),
+        };
+      });
+      toast.success(response.data.message || "Table updated successfully!");
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "An error occurred during table update"
+      );
+      console.error(
+        axiosError.response?.data.message ||
+          "An error occurred during table update"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const toggleOccupiedStatus = async () => {
+    if (!tableDetails) return;
+    if (isLoading || formLoading) {
+      toast.error("Please wait for the current operation to complete");
+      return;
+    } // Prevent multiple submissions
+    try {
+      setFormLoading(true);
+      const response = await axios.patch(
+        `/table/${restaurantSlug}/${tableDetails.qrSlug}/toggle-occupied`
+      );
+      if (!response.data.success || !response.data.data) {
+        toast.error(response.data.message || "Failed to update table status");
+        return;
+      }
+      setTableDetails(response.data.data);
+      setAllTables((prev) => {
+        if (!prev) return prev; // If allTables is null, return it
+        return {
+          ...prev,
+          tables: prev.tables.map((t) =>
+            t.qrSlug === tableDetails.qrSlug
+              ? { ...t, ...response.data.data }
+              : t
+          ),
+        };
+      });
+      toast.success("Table status updated successfully!");
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "An error occurred during table status update"
+      );
+      console.error(
+        axiosError.response?.data.message ||
+          "An error occurred during table status update"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   return (
     <Sheet
       defaultOpen={isSelected}
       onOpenChange={(e) => {
         if (!e) {
+          setIsEditing(false);
           handleDeselectTable();
         } else {
           fetchTableDetails();
@@ -87,44 +231,220 @@ const TableDetails = ({
       <SheetContent>
         <SheetHeader>
           <SheetTitle>
-            {tableDetails
-              ? `Table: ${tableDetails.tableName}`
-              : "Table Details"}
+            {isEditing
+              ? `Editing Table: ${table.tableName}`
+              : tableDetails
+                ? `Table: ${tableDetails.tableName}`
+                : "Table Details"}
           </SheetTitle>
           <SheetDescription>
-            {tableDetails
-              ? `Details for table ${tableDetails.tableName}`
-              : "No table selected"}
+            {isEditing
+              ? "Edit the details of this table."
+              : tableDetails
+                ? `View details and manage table`
+                : "Select a table to view its details."}
           </SheetDescription>
         </SheetHeader>
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <p>Loading...</p>
           </div>
+        ) : isEditing ? (
+          <div className="px-4">
+            <Button variant="outline" onClick={() => setIsEditing(false)}>
+              <ArrowLeft />
+              Back to Details
+            </Button>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <div className="grid gap-4 mt-4">
+                  <FormField
+                    control={form.control}
+                    name="tableName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="tableName">Table Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="tableName"
+                            type="text"
+                            placeholder="E.g., Table 1"
+                            autoComplete="table-name"
+                            required
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Every table name must be unique
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="seatCount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="seatCount">Seat Count</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="seatCount"
+                            type="number"
+                            placeholder="E.g., 4"
+                            autoComplete="seat-count"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(e.target.valueAsNumber)
+                            }
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Number of seats at this table
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading || formLoading}
+                  >
+                    {formLoading ? (
+                      <>
+                        <Loader2 className="animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Table"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
         ) : tableDetails ? (
           <div className="grid flex-1 auto-rows-min gap-4 px-4 text-sm font-medium">
-            <div className="flex items-center justify-between">
-              <p>Table Name: {tableDetails.tableName}</p>
-                <Button
+            <div className="relative">
+              <p>
+                Table Name:{" "}
+                <span className="font-bold">{tableDetails.tableName}</span>
+              </p>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
                     variant="outline"
-                >
-                  Download QR Code
-                </Button>
+                    className="w-min [&_svg]:size-6! p-5 absolute top-0 right-4"
+                    onClick={() => {
+                      if (tableDetails.qrSlug) {
+                        navigator.clipboard.writeText(
+                          `${window.location.origin}/${restaurantSlug}/table/${tableDetails.qrSlug}`
+                        );
+                        toast.success("QR Code URL copied to clipboard!");
+                      } else {
+                        toast.error("No QR Code URL available for this table.");
+                      }
+                    }}
+                  >
+                    <IconQrcode />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Generate QR Code</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
-            <p>Seat Count: {tableDetails.seatCount}</p>
-            <p>QR Code Slug: {tableDetails.qrSlug}</p>
-            <p>Status: {tableDetails.isOccupied ? "Occupied" : "Available"}</p>
+            <p>
+              Seat Count:{" "}
+              <span className="font-bold">{tableDetails.seatCount}</span>
+            </p>
+            <p className="flex items-center gap-2">
+              Status:
+              <Select
+                defaultValue={
+                  tableDetails.isOccupied ? "occupied" : "available"
+                }
+                onValueChange={() => toggleOccupiedStatus()}
+              >
+                <SelectTrigger className="text-sm font-medium w-[180px] border-muted-foreground/70">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="occupied">Occupied</SelectItem>
+                </SelectContent>
+              </Select>
+            </p>
+            {tableDetails.currentOrder &&
+              tableDetails.currentOrder.foodItems &&
+              Array.isArray(tableDetails.currentOrder.foodItems) &&
+              tableDetails.currentOrder.foodItems.length > 0 && (
+                <div>
+                  <p>Order Details</p>
+                  <div className="grid gap-2">
+                    <p>
+                      Order ID:{" "}
+                      <span className="font-bold">
+                        {tableDetails.currentOrder.orderId}
+                      </span>
+                    </p>
+                    <p>
+                      Status:{" "}
+                      <span className="font-bold">
+                        {tableDetails.currentOrder.status}
+                      </span>
+                    </p>
+                    <p>
+                      Final Amount:{" "}
+                      <span className="font-bold">
+                        ${tableDetails.currentOrder.finalAmount.toFixed(2)}
+                      </span>
+                    </p>
+                    <p>Food Items:</p>
+                    <ul className="list-disc pl-5">
+                      {tableDetails.currentOrder.foodItems.map((item) => (
+                        <li key={item.foodItemId}>
+                          {item.variantName
+                            ? `${item.variantName} (x${item.quantity}) - $${item.finalPrice.toFixed(2)}`
+                            : `Item ID: ${item.foodItemId} (x${item.quantity}) - $${item.finalPrice.toFixed(2)}`}
+                        </li>
+                      ))}
+                    </ul>
+                    <p>
+                      Created At:{" "}
+                      <span className="font-bold">
+                        {new Date(
+                          tableDetails.currentOrder.createdAt
+                        ).toLocaleString()}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <p>No details available for this table.</p>
           </div>
         )}
-        <SheetFooter>
-          <Button type="submit">Save changes</Button>
+        <SheetFooter className="flex flex-row items-center justify-between">
           <SheetClose asChild>
-            <Button variant="outline">Close</Button>
+            <Button variant="outline" onClick={() => setIsEditing(false)}>
+              Close
+            </Button>
           </SheetClose>
+          {!isEditing && user?.role === "owner" && (
+            <Button
+              type="submit"
+              className="w-2/4"
+              onClick={() => setIsEditing(true)}
+            >
+              <Pen />
+              Edit
+            </Button>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>

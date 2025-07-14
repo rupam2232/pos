@@ -47,7 +47,7 @@ router
     createTable
   );
 
-router.post(
+router.patch(
   "/:restaurantSlug/:qrSlug/toggle-occupied",
   isProduction ? occupiedStatusUpdateLimit : (req, res, next) => next(),
   verifyAuth,

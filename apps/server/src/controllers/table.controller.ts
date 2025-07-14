@@ -277,9 +277,12 @@ export const getTableBySlug = asyncHandler(async (req, res) => {
         currentOrderId: 1,
         currentOrder: canViewOrder
           ? {
+              orderId: "$currentOrder._id",
               status: "$currentOrder.status",
-              finalAmount: "$currentOrder.finalAmount",
+              finalAmount: "$currentOrder.totalAmount",
               foodItems: "$currentOrder.foodItems",
+              createdAt: "$currentOrder.createdAt",
+              updatedAt: "$currentOrder.updatedAt",
             }
           : "$$REMOVE",
         restaurantDetails: {
@@ -357,8 +360,8 @@ export const getAllTablesOfRestaurant = asyncHandler(async (req, res) => {
 
   if (!tables || tables.length === 0) {
     res
-      .status(404)
-      .json(new ApiResponse(404, {
+      .status(200)
+      .json(new ApiResponse(200, {
         tables: [],
         page: pageNumber,
         limit: limitNumber,

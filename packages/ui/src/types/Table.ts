@@ -14,11 +14,32 @@ export interface TableDetails extends Table {
     address?: string;
     slug: string;
   };
-  currentOrder: {
+  currentOrder?: {
     orderId: string;
-    status: "pending" | "preparing" | "ready" | "served" | "completed" | "cancelled";
-    totalAmount: number;
-    paymentMethod?: "online" | "cash";
-    isPaid: boolean;
-  }
+    status:
+      | "pending"
+      | "preparing"
+      | "ready"
+      | "served"
+      | "completed"
+      | "cancelled";
+    finalAmount: number;
+    foodItems: {
+      foodItemId: string;
+      variantName?: string;
+      quantity: number;
+      price: number;
+      finalPrice: number;
+    }[];
+    createdAt: string;
+    updatedAt: string;
+  };
 }
+
+export type AllTables = {
+  tables: Table[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalCount: number;
+};
