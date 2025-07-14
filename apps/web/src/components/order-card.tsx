@@ -1,6 +1,6 @@
 import type {
   Order,
-  OrderDetails as OrderDetailsType,
+  // OrderDetails as OrderDetailsType,
 } from "@repo/ui/types/Order";
 import { Badge } from "@repo/ui/components/badge";
 import {
@@ -40,11 +40,11 @@ import { useState } from "react";
 const OrderCard = ({
   order,
   restaurantSlug,
-  setOrders,
+  // setOrders,
 }: {
   order: Order;
   restaurantSlug: string;
-  setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
+  // setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
 }) => {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -321,7 +321,7 @@ const OrderCard = ({
         <div className="flex gap-2 pt-3 justify-between">
           <OrderDetails
             order={order}
-            setOrders={setOrders}
+            // setOrders={setOrders}
             restaurantSlug={restaurantSlug}
             orderStatusIcons={orderStatusIcons}
             status={status}

@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { useState, useCallback, useEffect } from "react";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
@@ -14,16 +13,8 @@ import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
 import { useParams } from "next/navigation";
-
-interface Table {
-  _id: string;
-  tableName: string;
-  qrSlug: string;
-  seatCount: number;
-  isOccupied: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import TableDetails from "@/components/table-details";
+import type { Table } from "@repo/ui/types/Table";
 
 const getTableSize = (chairs: number) => {
   if (chairs <= 1) return { width: 80, height: 60 };
@@ -50,6 +41,12 @@ const getChairPositions = (
     positions.push(
       { x: width / 2 - chairSize / 2, y: -chairSize - 2 }, // top
       { x: width / 2 - chairSize / 2, y: height + 2 } // bottom
+    );
+  } else if (chairs === 3) {
+    positions.push(
+      { x: width / 2 - chairSize / 2, y: -chairSize - 2 }, // top
+      { x: width + 2, y: height / 2 - chairSize / 2 }, // right
+      { x: -chairSize - 2, y: height / 2 - chairSize / 2 } // left
     );
   } else if (chairs === 4) {
     positions.push(
@@ -121,7 +118,7 @@ export default function SelectTable() {
 
   const statusCounts = {
     available: allTables?.tables.filter((t) => !t.isOccupied).length,
-    reserved: allTables?.tables.filter((t) => t.isOccupied).length,
+    occupied: allTables?.tables.filter((t) => t.isOccupied).length,
   };
 
   const fetchAllTables = useCallback(async () => {
@@ -151,7 +148,7 @@ export default function SelectTable() {
   }, [slug, fetchAllTables]);
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background">
         <div className="flex items-center gap-3">
@@ -164,91 +161,92 @@ export default function SelectTable() {
         {/* Status Legend - Center */}
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-muted border"></div>
+            <div className="w-2 h-2 rounded-full bg-muted-foreground/40 border"></div>
             <span className="text-muted-foreground">
               Available: {statusCounts.available}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <span className="text-muted-foreground">
-              Reserved: {statusCounts.reserved}
+              Occupied: {statusCounts.occupied}
             </span>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-auto bg-background">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-y-12 p-4">
-            {/* Tables positioned absolutely */}
-            {allTables &&
-              Array.isArray(allTables.tables) &&
-              allTables.tables.length > 0 &&
-              allTables.tables.map((table) => {
-                const isSelected =
-                  selectedTable?._id === table._id;
-                const tableSize = getTableSize(table.seatCount);
-                const chairPositions = getChairPositions(
-                  table.seatCount,
-                  tableSize
-                );
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-y-12 p-4">
+        {allTables &&
+          Array.isArray(allTables.tables) &&
+          allTables.tables.length > 0 &&
+          allTables.tables.map((table) => {
+            const isSelected = selectedTable?._id === table._id;
+            const tableSize = getTableSize(table.seatCount);
+            const chairPositions = getChairPositions(
+              table.seatCount,
+              tableSize
+            );
 
-                return (
-                  <div
-                    key={table._id}
-                    className={cn(
-                      "flex items-center justify-center py-4",
-                      isSelected
-                        ? "text-white border-2 border-green-400 rounded-md"
-                        : ""
-                    )}
-                  >
-                    <div className="relative group cursor-pointer">
-                      {/* Chairs */}
-                      {chairPositions.map((chairPos, index) => (
-                        <div
-                          key={index}
-                          className={cn(
-                            "absolute w-2 h-2 rounded-sm",
-                            table.isOccupied ? "bg-red-500" : "bg-green-500"
-                          )}
-                          style={{
-                            left: chairPos.x,
-                            top: chairPos.y,
-                          }}
-                        />
-                      ))}
-
-                      {/* Table */}
-                      <Card
+            return (
+              <TableDetails
+                key={table._id}
+                table={table}
+                isSelected={isSelected}
+                handleDeselectTable={handleDeselectTable}
+                restaurantSlug={slug}
+              >
+                <div
+                  className={cn(
+                    "flex items-center justify-center py-4 border-2 border-transparent transition-all duration-200 cursor-pointer hover:border-green-500 rounded-2xl",
+                    isSelected ? "text-white border-2 border-green-400" : ""
+                  )}
+                  onClick={() => handleTableSelect(table)}
+                >
+                  <div className="relative group cursor-pointer">
+                    {/* Chairs */}
+                    {chairPositions.map((chairPos, index) => (
+                      <div
+                        key={index}
                         className={cn(
-                          "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg",
+                          "absolute w-2 h-2 rounded-sm",
                           table.isOccupied
-                            ? "bg-blue-600 text-white"
-                            : "bg-muted text-foreground"
+                            ? "bg-green-500"
+                            : "bg-muted-foreground/40"
                         )}
                         style={{
-                          width: `${tableSize.width}px`,
-                          height: `${tableSize.height}px`,
+                          left: chairPos.x,
+                          top: chairPos.y,
                         }}
-                        onClick={() => handleTableSelect(table)}
-                      >
-                        <span className="font-medium text-xs">
-                          {table.tableName}
-                        </span>
-                      </Card>
-                    </div>
+                      />
+                    ))}
+
+                    {/* Table */}
+                    <Card
+                      className={cn(
+                        "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg",
+                        table.isOccupied
+                          ? "bg-green-600 text-white"
+                          : "bg-muted text-foreground"
+                      )}
+                      style={{
+                        width: `${tableSize.width}px`,
+                        height: `${tableSize.height}px`,
+                      }}
+                    >
+                      <span className="font-medium text-xs">
+                        {table.tableName}
+                      </span>
+                    </Card>
                   </div>
-                );
-              })}
-          </div>
-        </div>
+                </div>
+              </TableDetails>
+            );
+          })}
       </div>
 
       {/* Bottom Footer */}
-      <div className="px-4 py-3 border-t border-border bg-background">
+      {/* <div className="px-4 py-3 border-t border-border bg-background">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {selectedTable && (
@@ -276,7 +274,7 @@ export default function SelectTable() {
             Select Table
           </Button>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

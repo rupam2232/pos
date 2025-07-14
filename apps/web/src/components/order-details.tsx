@@ -12,7 +12,7 @@ import {
 import { Button } from "@repo/ui/components/button";
 import type {
   Order,
-  OrderDetails as OrderDetailsType,
+  // OrderDetails as OrderDetailsType,
   FullOrderDetailsType,
 } from "@repo/ui/types/Order";
 import axios from "@/utils/axiosInstance";
@@ -50,7 +50,7 @@ import {
 const OrderDetails = ({
   children,
   order,
-  setOrders,
+  // setOrders,
   restaurantSlug,
   orderStatusIcons,
   status,
@@ -58,7 +58,7 @@ const OrderDetails = ({
 }: {
   children: React.ReactNode;
   order: Order;
-  setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
+  // setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
   restaurantSlug: string;
   orderStatusIcons: {
     status: string;

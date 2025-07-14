@@ -329,7 +329,7 @@ const Page = () => {
                 <OrderCard
                   key={order._id}
                   order={order}
-                  setOrders={setAllOrders}
+                  // setOrders={setAllOrders}
                   restaurantSlug={slug}
                 />
               ))
@@ -360,7 +360,7 @@ const Page = () => {
                 <OrderCard
                   key={order._id}
                   order={order}
-                  setOrders={setNewOrders}
+                  // setOrders={setNewOrders}
                   restaurantSlug={slug}
                 />
               ))
@@ -391,7 +391,7 @@ const Page = () => {
                 <OrderCard
                   key={order._id}
                   order={order}
-                  setOrders={setInProgressOrders}
+                  // setOrders={setInProgressOrders}
                   restaurantSlug={slug}
                 />
               ))
@@ -422,7 +422,7 @@ const Page = () => {
                 <OrderCard
                   key={order._id}
                   order={order}
-                  setOrders={setReadyOrders}
+                  // setOrders={setReadyOrders}
                   restaurantSlug={slug}
                 />
               ))
@@ -453,7 +453,7 @@ const Page = () => {
                 <OrderCard
                   key={order._id}
                   order={order}
-                  setOrders={setUnpaidOrders}
+                  // setOrders={setUnpaidOrders}
                   restaurantSlug={slug}
                 />
               ))
@@ -484,7 +484,7 @@ const Page = () => {
                 <OrderCard
                   key={order._id}
                   order={order}
-                  setOrders={setCompletedOrders}
+                  // setOrders={setCompletedOrders}
                   restaurantSlug={slug}
                 />
               ))

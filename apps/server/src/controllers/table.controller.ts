@@ -364,7 +364,7 @@ export const getAllTablesOfRestaurant = asyncHandler(async (req, res) => {
         limit: limitNumber,
         totalPages: 0,
         totalCount: 0,
-      }, "No tables found for this restaurant"));
+      }, "No tables found"));
   } else {
     const tableCount = await Table.countDocuments({
       restaurantId: restaurant._id,
@@ -384,7 +384,7 @@ export const getAllTablesOfRestaurant = asyncHandler(async (req, res) => {
             totalPages,
             totalCount: tableCount,
           },
-          "Restaurant tables fetched successfully"
+          "Tables fetched successfully"
         )
       );
   }
