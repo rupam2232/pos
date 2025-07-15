@@ -30,7 +30,7 @@ export const createTable = asyncHandler(async (req, res) => {
     );
   }
 
-  if (seatCount && Math.ceil(seatCount) < 1 || Math.ceil(seatCount) > 40) {
+  if ((seatCount && Math.ceil(seatCount) < 1) || Math.ceil(seatCount) > 40) {
     throw new ApiError(400, "Seat count must be between 1 and 40");
   }
 
@@ -106,7 +106,7 @@ export const updateTable = asyncHandler(async (req, res) => {
     );
   }
 
-  if (seatCount && Math.ceil(seatCount) < 1 || Math.ceil(seatCount) > 40) {
+  if ((seatCount && Math.ceil(seatCount) < 1) || Math.ceil(seatCount) > 40) {
     throw new ApiError(400, "Seat count must be between 1 and 40");
   }
 
@@ -349,28 +349,39 @@ export const getAllTablesOfRestaurant = asyncHandler(async (req, res) => {
       "You do not have permission to view this restaurant's tables"
     );
   }
-  // Fetch all tables for the restaurant
-  const tables = await Table.find({ restaurantId: restaurant._id })
-    .sort({
-      [sortBy.toString()]: sortType === "asc" ? 1 : -1, // Ascending or descending sort
-    })
-    .skip((pageNumber - 1) * limitNumber) // Pagination logic
-    .limit(limitNumber) // Limit the number of results
-    .select("-restaurantId -__v"); // Exclude restaurantId and __v fields
+  const tableCount = await Table.countDocuments({
+    restaurantId: restaurant._id,
+  });
 
-  if (!tables || tables.length === 0) {
-    res
-      .status(200)
-      .json(new ApiResponse(200, {
-        tables: [],
-        page: pageNumber,
-        limit: limitNumber,
-        totalPages: 0,
-        totalCount: 0,
-      }, "No tables found"));
+  if (!tableCount || tableCount === 0) {
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          tables: [],
+          page: pageNumber,
+          limit: limitNumber,
+          totalPages: 0,
+          totalCount: 0,
+          availableTables: 0,
+          occupiedTables: 0,
+        },
+        "No tables found"
+      )
+    );
   } else {
-    const tableCount = await Table.countDocuments({
+    // Fetch all tables for the restaurant
+    const tables = await Table.find({ restaurantId: restaurant._id })
+      .sort({
+        [sortBy.toString()]: sortType === "asc" ? 1 : -1, // Ascending or descending sort
+      })
+      .skip((pageNumber - 1) * limitNumber) // Pagination logic
+      .limit(limitNumber) // Limit the number of results
+      .select("-restaurantId -__v"); // Exclude restaurantId and __v fields
+
+    const availableTables = await Table.countDocuments({
       restaurantId: restaurant._id,
+      isOccupied: false,
     });
     const totalPages = Math.ceil(tableCount / limitNumber);
     res
@@ -386,6 +397,8 @@ export const getAllTablesOfRestaurant = asyncHandler(async (req, res) => {
             limit: limitNumber,
             totalPages,
             totalCount: tableCount,
+            availableTables,
+            occupiedTables: tableCount - availableTables,
           },
           "Tables fetched successfully"
         )

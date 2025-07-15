@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardFooter } from "@repo/ui/components/card";
 import { cn } from "@repo/ui/lib/utils";
 import { toast } from "sonner";
@@ -103,12 +103,16 @@ const getChairPositions = (
 
 export default function SelectTable() {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
+  const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
+  const [isPageChanging, setIsPageChanging] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(1);
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const [allTables, setAllTables] = useState<AllTables | null>(null);
+  const isFetching = useRef<boolean>(false);
+  const observer = useRef<IntersectionObserver>(null);
 
   const handleTableSelect = (table: Table) => {
     setSelectedTable(table);
@@ -118,21 +122,26 @@ export default function SelectTable() {
     setSelectedTable(null);
   };
 
-  const statusCounts = {
-    available: allTables?.tables.filter((t) => !t.isOccupied).length,
-    occupied: allTables?.tables.filter((t) => t.isOccupied).length,
-  };
-
   const fetchAllTables = useCallback(async () => {
     if (!slug) {
       console.error("Restaurant slug is required to fetch tables");
       toast.error("Restaurant slug is required to fetch tables");
       return;
     }
-    setIsPageLoading(true);
     try {
-      const response = await axios.get(`/table/${slug}`);
-      setAllTables(response.data.data);
+      if (page === 1) {
+        setIsPageLoading(true);
+        const response = await axios.get(`/table/${slug}`);
+        setAllTables(response.data.data);
+      } else {
+        isFetching.current = true;
+        setIsPageChanging(true);
+        const response = await axios.get(`/table/${slug}?page=${page}`);
+        setAllTables((prev) => ({
+          ...response.data.data,
+          tables: [...(prev?.tables || []), ...response.data.data.tables],
+        }));
+      }
     } catch (error) {
       console.error(
         "Failed to fetch all tables. Please try again later:",
@@ -149,13 +158,29 @@ export default function SelectTable() {
       }
       setAllTables(null);
     } finally {
+      setIsPageChanging(false);
+      isFetching.current = false;
       setIsPageLoading(false);
     }
-  }, [slug, router, dispatch]);
+  }, [slug, router, dispatch, page]);
 
   useEffect(() => {
     fetchAllTables();
-  }, [slug, fetchAllTables]);
+  }, [slug, fetchAllTables, page]);
+
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver((entries) => {
+      if (entries && Array.isArray(entries) && entries[0]?.isIntersecting) {
+        if (allTables && allTables?.totalPages > page) {
+          if (isFetching.current) return;
+          setPage((prevPageNumber) => prevPageNumber + 1);
+        }
+      }
+    });
+    if (node) observer.current.observe(node);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div>
@@ -166,13 +191,13 @@ export default function SelectTable() {
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-muted-foreground/40 border"></div>
             <span className="text-muted-foreground">
-              Available: {statusCounts.available}
+              Available: {allTables ? allTables.availableTables : 0}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <span className="text-muted-foreground">
-              Occupied: {statusCounts.occupied}
+              Occupied: {allTables ? allTables.occupiedTables : 0}
             </span>
           </div>
         </div>
@@ -190,73 +215,140 @@ export default function SelectTable() {
       </div>
 
       {/* Main Content Area */}
-      {allTables &&
-      Array.isArray(allTables.tables) &&
-      allTables.tables.length > 0 ? (
+      {isPageLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-y-12 gap-x-4 p-4">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <Card
+              key={index}
+              className="flex items-center justify-center h-24 bg-muted text-muted-foreground animate-pulse"
+            ></Card>
+          ))}
+        </div>
+      ) : allTables &&
+        Array.isArray(allTables.tables) &&
+        allTables.tables.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-y-12 p-4">
-          {allTables.tables.map((table) => {
+          {allTables.tables.map((table, index) => {
             const isSelected = selectedTable?._id === table._id;
             const tableSize = getTableSize(table.seatCount);
             const chairPositions = getChairPositions(
               table.seatCount,
               tableSize
             );
-
-            return (
-              <TableDetails
-                key={table._id}
-                table={table}
-                setAllTables={setAllTables}
-                isSelected={isSelected}
-                handleDeselectTable={handleDeselectTable}
-                restaurantSlug={slug}
-              >
-                <div
-                  className={cn(
-                    "flex items-center justify-center py-4 border-2 border-transparent transition-all duration-200 cursor-pointer hover:border-green-500 rounded-2xl",
-                    isSelected ? "text-white border-2 border-green-400" : ""
-                  )}
-                  onClick={() => handleTableSelect(table)}
+            if (allTables.tables.length === index + 1) {
+              return (
+                <TableDetails
+                  key={table._id}
+                  table={table}
+                  setAllTables={setAllTables}
+                  isSelected={isSelected}
+                  handleDeselectTable={handleDeselectTable}
+                  restaurantSlug={slug}
                 >
-                  <div className="relative group cursor-pointer">
-                    {/* Chairs */}
-                    {chairPositions.map((chairPos, index) => (
-                      <div
-                        key={index}
+                  <div
+                    ref={lastElementRef}
+                    className={cn(
+                      "flex items-center justify-center py-4 border-2 border-transparent transition-all duration-200 cursor-pointer hover:border-green-500 rounded-2xl",
+                      isSelected ? "text-white border-2 border-green-400" : ""
+                    )}
+                    onClick={() => handleTableSelect(table)}
+                  >
+                    <div className="relative group cursor-pointer">
+                      {/* Chairs */}
+                      {chairPositions.map((chairPos, index) => (
+                        <div
+                          key={index}
+                          className={cn(
+                            "absolute w-2 h-2 rounded-sm",
+                            table.isOccupied
+                              ? "bg-green-500"
+                              : "bg-muted-foreground/40"
+                          )}
+                          style={{
+                            left: chairPos.x,
+                            top: chairPos.y,
+                          }}
+                        />
+                      ))}
+
+                      {/* Table */}
+                      <Card
                         className={cn(
-                          "absolute w-2 h-2 rounded-sm",
+                          "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg truncate whitespace-pre-wrap",
                           table.isOccupied
-                            ? "bg-green-500"
-                            : "bg-muted-foreground/40"
+                            ? "bg-green-600 text-white"
+                            : "bg-muted text-foreground"
                         )}
                         style={{
-                          left: chairPos.x,
-                          top: chairPos.y,
+                          width: `${tableSize.width}px`,
+                          height: `${tableSize.height}px`,
                         }}
-                      />
-                    ))}
-
-                    {/* Table */}
-                    <Card
-                      className={cn(
-                        "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg truncate whitespace-pre-wrap",
-                        table.isOccupied
-                          ? "bg-green-600 text-white"
-                          : "bg-muted text-foreground"
-                      )}
-                      style={{
-                        width: `${tableSize.width}px`,
-                        height: `${tableSize.height}px`,
-                      }}
-                    >
-                      <span className="font-medium text-xs text-center text-balance">
-                        {table.tableName}
-                      </span>
-                    </Card>
+                      >
+                        <span className="font-medium text-xs text-center text-balance">
+                          {table.tableName}
+                        </span>
+                      </Card>
+                    </div>
                   </div>
-                </div>
-              </TableDetails>
-            );
+                </TableDetails>
+              );
+            } else {
+              return (
+                <TableDetails
+                  key={table._id}
+                  table={table}
+                  setAllTables={setAllTables}
+                  isSelected={isSelected}
+                  handleDeselectTable={handleDeselectTable}
+                  restaurantSlug={slug}
+                >
+                  <div
+                    className={cn(
+                      "flex items-center justify-center py-4 border-2 border-transparent transition-all duration-200 cursor-pointer hover:border-green-500 rounded-2xl",
+                      isSelected ? "text-white border-2 border-green-400" : ""
+                    )}
+                    onClick={() => handleTableSelect(table)}
+                  >
+                    <div className="relative group cursor-pointer">
+                      {/* Chairs */}
+                      {chairPositions.map((chairPos, index) => (
+                        <div
+                          key={index}
+                          className={cn(
+                            "absolute w-2 h-2 rounded-sm",
+                            table.isOccupied
+                              ? "bg-green-500"
+                              : "bg-muted-foreground/40"
+                          )}
+                          style={{
+                            left: chairPos.x,
+                            top: chairPos.y,
+                          }}
+                        />
+                      ))}
+
+                      {/* Table */}
+                      <Card
+                        className={cn(
+                          "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg truncate whitespace-pre-wrap",
+                          table.isOccupied
+                            ? "bg-green-600 text-white"
+                            : "bg-muted text-foreground"
+                        )}
+                        style={{
+                          width: `${tableSize.width}px`,
+                          height: `${tableSize.height}px`,
+                        }}
+                      >
+                        <span className="font-medium text-xs text-center text-balance">
+                          {table.tableName}
+                        </span>
+                      </Card>
+                    </div>
+                  </div>
+                </TableDetails>
+              );
+            }
           })}
         </div>
       ) : (
@@ -274,6 +366,11 @@ export default function SelectTable() {
             </CreateTableDialog>
           </CardFooter>
         </Card>
+      )}
+      {isPageChanging && (
+        <div className="flex items-center justify-center py-4">
+          <span className="text-muted-foreground">Loading more tables...</span>
+        </div>
       )}
     </div>
   );

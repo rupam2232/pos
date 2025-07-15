@@ -42,4 +42,6 @@ export type AllTables = {
   limit: number;
   totalPages: number;
   totalCount: number;
+  availableTables: number;
+  occupiedTables: number;
 };
