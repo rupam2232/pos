@@ -4,10 +4,16 @@ import { SidebarTrigger } from "@repo/ui/components/sidebar";
 import { useEffect, useState } from "react";
 import ToggleTheme from "./toggle-Theme";
 import { usePathname } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 
 export function SiteHeader() {
   const [currentTime, setCurrentTime] = useState<null | Date>(null);
   const pathname = usePathname();
+  const activeRestaurant = useSelector(
+    (state: RootState) => state.restaurantsSlice.activeRestaurant
+  );
 
   const updateTime = () => {
     const now = new Date();
@@ -26,21 +32,36 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium flex items-center">
-          <span>{`${pathname.slice(1).split("/")[1]}`}</span>
-          <Separator
-            orientation="vertical"
-            className="mx-2 data-[orientation=vertical]:h-5 rotate-12 bg-zinc-400"
-          />
-          <span>
-            {(() => {
-              const segment = pathname?.slice(1).split("/")[2];
-              return segment
-                ? segment.charAt(0).toUpperCase() + segment.slice(1)
-                : "";
-            })()}
-          </span>
-        </h1>
+        {pathname.startsWith("/restaurant/") && (
+          <h1 className="text-base font-medium flex items-center">
+            <Avatar className="w-7 h-7 mr-2">
+              <AvatarImage
+                src={activeRestaurant?.logoUrl || "/placeholder-logo.png"}
+                alt={
+                  activeRestaurant?.restaurantName
+                    ? `${activeRestaurant.restaurantName} Logo`
+                    : "Placeholder Logo"
+                }
+                className="object-cover"
+                loading="lazy"
+                draggable={false}
+              />
+            </Avatar>
+            <span>{activeRestaurant?.restaurantName}</span>
+            <Separator
+              orientation="vertical"
+              className="mx-2 data-[orientation=vertical]:h-5 rotate-12 bg-zinc-400"
+            />
+            <span>
+              {(() => {
+                const segment = pathname?.slice(1).split("/")[2];
+                return segment
+                  ? segment.charAt(0).toUpperCase() + segment.slice(1)
+                  : "";
+              })()}
+            </span>
+          </h1>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <ToggleTheme />
           {currentTime ? (

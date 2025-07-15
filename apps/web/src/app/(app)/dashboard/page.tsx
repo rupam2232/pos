@@ -19,8 +19,11 @@ import {
   CardTitle,
 } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
-import Image from "next/image";
 import { signOut } from "@/store/authSlice";
+import {
+  setAllRestaurants,
+  setActiveRestaurant,
+} from "@/store/restaurantSlice";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 import type { RestaurantMinimalInfo } from "@repo/ui/types/Restaurant";
@@ -44,6 +47,16 @@ export default function Page() {
       const response = await axios.get("/restaurant/owner");
       if (response.data.success) {
         setOwnersRestaurant(response.data.data);
+        dispatch(
+          setAllRestaurants(
+            response.data.data.map((restaurant: RestaurantMinimalInfo) => ({
+              _id: restaurant._id,
+              restaurantName: restaurant.restaurantName,
+              slug: restaurant.slug,
+            }))
+          )
+        );
+        dispatch(setActiveRestaurant(null));
         setStaffsRestaurant(null);
       } else {
         toast.error(
@@ -72,6 +85,16 @@ export default function Page() {
       const response = await axios.get("/restaurant/staff");
       if (response.data.success) {
         setStaffsRestaurant(response.data.data);
+        dispatch(
+          setAllRestaurants([
+            {
+              _id: response.data.data._id,
+              restaurantName: response.data.data.restaurantName,
+              slug: response.data.data.slug,
+            },
+          ])
+        );
+        dispatch(setActiveRestaurant(null));
         setOwnersRestaurant([]);
       } else {
         toast.error(
@@ -158,36 +181,38 @@ export default function Page() {
                       </CardHeader>
                       <CardAction className="flex flex-col items-center justify-center w-full gap-4">
                         <div className="flex items-center gap-2">
-                          {restaurant.logoUrl ? (
-                            <Avatar className="w-15 h-15">
-                              <AvatarImage
-                                src={restaurant.logoUrl}
-                                alt="Restaurant Logo"
-                                className="object-cover"
-                                loading="lazy"
-                                draggable={false}
-                              />
-                            </Avatar>
-                          ) : (
-                            <Avatar className="w-15 h-15 bg-secondary">
-                              <Image
-                                src="/placeholder-logo.png"
-                                alt="Placeholder Logo"
-                                width={40}
-                                height={40}
-                                className="object-cover"
-                              />
-                            </Avatar>
-                          )}
+                          <Avatar className="w-15 h-15">
+                            <AvatarImage
+                              src={
+                                restaurant.logoUrl || "/placeholder-logo.png"
+                              }
+                              alt={
+                                restaurant.restaurantName
+                                  ? `${restaurant.restaurantName} Logo`
+                                  : "Placeholder Logo"
+                              }
+                              className="object-cover"
+                              loading="lazy"
+                              draggable={false}
+                            />
+                          </Avatar>
                         </div>
                         <Button
                           variant="outline"
                           className="text-sm"
-                          onClick={() =>
+                          onClick={() => {
+                            dispatch(
+                              setActiveRestaurant({
+                                _id: restaurant._id,
+                                restaurantName: restaurant.restaurantName,
+                                slug: restaurant.slug,
+                                logoUrl: restaurant.logoUrl,
+                              })
+                            );
                             router.push(
                               `/restaurant/${restaurant.slug}/dashboard`
-                            )
-                          }
+                            );
+                          }}
                         >
                           Manage Restaurant
                         </Button>
@@ -223,36 +248,38 @@ export default function Page() {
                   </CardHeader>
                   <CardAction className="flex flex-col items-center justify-center w-full gap-4">
                     <div className="flex items-center gap-2">
-                      {staffsrestaurant.logoUrl ? (
-                        <Avatar className="w-15 h-15">
-                          <AvatarImage
-                            src={staffsrestaurant.logoUrl}
-                            alt="Restaurant Logo"
-                            className="object-cover"
-                            loading="lazy"
-                            draggable={false}
-                          />
-                        </Avatar>
-                      ) : (
-                        <Avatar className="w-15 h-15 bg-secondary">
-                          <Image
-                            src="/placeholder-logo.png"
-                            alt="Placeholder Logo"
-                            width={40}
-                            height={40}
-                            className="object-cover"
-                          />
-                        </Avatar>
-                      )}
+                      <Avatar className="w-15 h-15">
+                        <AvatarImage
+                          src={
+                            staffsrestaurant.logoUrl || "/placeholder-logo.png"
+                          }
+                          alt={
+                            staffsrestaurant.restaurantName
+                              ? `${staffsrestaurant.restaurantName} Logo`
+                              : "Placeholder Logo"
+                          }
+                          className="object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      </Avatar>
                     </div>
                     <Button
                       variant="outline"
                       className="text-sm"
-                      onClick={() =>
+                      onClick={() => {
+                        dispatch(
+                          setActiveRestaurant({
+                            _id: staffsrestaurant._id,
+                            restaurantName: staffsrestaurant.restaurantName,
+                            slug: staffsrestaurant.slug,
+                            logoUrl: staffsrestaurant.logoUrl,
+                          })
+                        );
                         router.push(
                           `/restaurant/${staffsrestaurant.slug}/dashboard`
-                        )
-                      }
+                        );
+                      }}
                     >
                       Manage Restaurant
                     </Button>

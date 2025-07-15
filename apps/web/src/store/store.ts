@@ -1,23 +1,29 @@
 "use client";
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer, { UserState } from "./authSlice";
+import restaurantsReducer, { RestaurantsState } from "./restaurantSlice";
 
-type AuthState = {
+type State = {
   auth: {
     status: UserState["status"];
     user: UserState["user"];
   };
+  restaurantsSlice: RestaurantsState;
 };
 
-const preloadedState: AuthState = (() => {
+const preloadedState: State = (() => {
   try {
-    const stored = localStorage.getItem("authState");
+    const stored = localStorage.getItem("userState");
     return stored
       ? JSON.parse(stored)
       : {
           auth: {
             status: false,
             user: null,
+          },
+          restaurantsSlice: {
+            restaurants: [],
+            activeRestaurant: null,
           },
         };
   } catch {
@@ -26,6 +32,10 @@ const preloadedState: AuthState = (() => {
         status: false,
         user: null,
       },
+      restaurantsSlice: {
+        restaurants: [],
+        activeRestaurant: null,
+      },
     };
   }
 })();
@@ -33,12 +43,13 @@ const preloadedState: AuthState = (() => {
 const store = configureStore({
   reducer: {
     auth: authReducer,
+    restaurantsSlice: restaurantsReducer,
   },
   preloadedState,
 });
-
+console.log(store.getState());
 store.subscribe(() => {
-  localStorage.setItem("authState", JSON.stringify(store.getState()));
+  localStorage.setItem("userState", JSON.stringify(store.getState()));
 });
 
 // Infer the type of store

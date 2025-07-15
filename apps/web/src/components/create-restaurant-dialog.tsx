@@ -40,6 +40,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import type { RestaurantMinimalInfo } from "@repo/ui/types/Restaurant";
+import { addRestaurant } from "@/store/restaurantSlice";
 
 const CreateRestaurantDialog = ({
   children = "Create a New Restaurant",
@@ -244,6 +245,13 @@ const CreateRestaurantDialog = ({
         return;
       }
       setOwnersRestaurant((prev) => [...prev, response.data.data]);
+      dispatch(
+        addRestaurant({
+          _id: response.data.data._id,
+          restaurantName: response.data.data.restaurantName,
+          slug: response.data.data.slug,
+        })
+      );
       form.reset();
       setImageFile(null);
       if (closeDialog.current) {

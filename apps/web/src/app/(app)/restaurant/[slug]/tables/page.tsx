@@ -111,7 +111,6 @@ export default function SelectTable() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const [allTables, setAllTables] = useState<AllTables | null>(null);
-  const isFetching = useRef<boolean>(false);
   const observer = useRef<IntersectionObserver>(null);
 
   const handleTableSelect = (table: Table) => {
@@ -134,7 +133,6 @@ export default function SelectTable() {
         const response = await axios.get(`/table/${slug}`);
         setAllTables(response.data.data);
       } else {
-        isFetching.current = true;
         setIsPageChanging(true);
         const response = await axios.get(`/table/${slug}?page=${page}`);
         setAllTables((prev) => ({
@@ -159,7 +157,6 @@ export default function SelectTable() {
       setAllTables(null);
     } finally {
       setIsPageChanging(false);
-      isFetching.current = false;
       setIsPageLoading(false);
     }
   }, [slug, router, dispatch, page]);
@@ -173,7 +170,7 @@ export default function SelectTable() {
     observer.current = new IntersectionObserver((entries) => {
       if (entries && Array.isArray(entries) && entries[0]?.isIntersecting) {
         if (allTables && allTables?.totalPages > page) {
-          if (isFetching.current) return;
+          if (isPageChanging) return;
           setPage((prevPageNumber) => prevPageNumber + 1);
         }
       }
@@ -218,10 +215,9 @@ export default function SelectTable() {
       {isPageLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-y-12 gap-x-4 p-4">
           {Array.from({ length: 12 }).map((_, index) => (
-            <Card
-              key={index}
-              className="flex items-center justify-center h-24 bg-muted text-muted-foreground animate-pulse"
-            ></Card>
+            <div key={index} className="flex items-center justify-center">
+              <Card className="flex items-center justify-center h-20 w-20 bg-muted text-muted-foreground animate-pulse"></Card>
+            </div>
           ))}
         </div>
       ) : allTables &&
@@ -350,6 +346,12 @@ export default function SelectTable() {
               );
             }
           })}
+          {isPageChanging &&
+            Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="flex items-center justify-center">
+                <Card className="flex items-center justify-center h-20 w-20 bg-muted text-muted-foreground animate-pulse"></Card>
+              </div>
+            ))}
         </div>
       ) : (
         <Card className="@container/card">
@@ -366,11 +368,6 @@ export default function SelectTable() {
             </CreateTableDialog>
           </CardFooter>
         </Card>
-      )}
-      {isPageChanging && (
-        <div className="flex items-center justify-center py-4">
-          <span className="text-muted-foreground">Loading more tables...</span>
-        </div>
       )}
     </div>
   );

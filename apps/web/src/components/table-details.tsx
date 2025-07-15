@@ -247,7 +247,7 @@ const TableDetails = ({
         </SheetHeader>
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <p>Loading...</p>
+            <Loader2 className="animate-spin" />
           </div>
         ) : isEditing ? (
           <div className="px-4">
