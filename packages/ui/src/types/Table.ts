@@ -13,6 +13,7 @@ export interface TableDetails extends Table {
     restaurantName: string;
     address?: string;
     slug: string;
+    logoUrl?: string;
   };
   currentOrder?: {
     orderId: string;

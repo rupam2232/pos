@@ -47,7 +47,7 @@ const store = configureStore({
   },
   preloadedState,
 });
-console.log(store.getState());
+
 store.subscribe(() => {
   localStorage.setItem("userState", JSON.stringify(store.getState()));
 });

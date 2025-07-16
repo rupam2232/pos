@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@repo/ui/components/sheet";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
@@ -20,12 +20,6 @@ import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
 import type { Table, TableDetails, AllTables } from "@repo/ui/types/Table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@repo/ui/components/tooltip";
-import { IconQrcode } from "@tabler/icons-react";
 import { Pen, ArrowLeft, Loader2 } from "lucide-react";
 import {
   Form,
@@ -47,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/select";
+import TableQRCode from "./table-qrcode";
 
 const TableDetails = ({
   children,
@@ -70,6 +65,7 @@ const TableDetails = ({
   const [formLoading, setFormLoading] = useState<boolean>(false);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const sheetCloseRef = useRef<HTMLButtonElement>(null);
 
   const fetchTableDetails = useCallback(async () => {
     if (!table || !table.qrSlug) {
@@ -332,29 +328,8 @@ const TableDetails = ({
                 <span className="font-bold">{tableDetails.tableName}</span>
               </p>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-min [&_svg]:size-6! p-5 absolute top-0 right-4"
-                    onClick={() => {
-                      if (tableDetails.qrSlug) {
-                        navigator.clipboard.writeText(
-                          `${window.location.origin}/${restaurantSlug}/table/${tableDetails.qrSlug}`
-                        );
-                        toast.success("QR Code URL copied to clipboard!");
-                      } else {
-                        toast.error("No QR Code URL available for this table.");
-                      }
-                    }}
-                  >
-                    <IconQrcode />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Generate QR Code</p>
-                </TooltipContent>
-              </Tooltip>
+              <TableQRCode qrCodeData={`${window.location.origin}/${tableDetails.restaurantDetails.slug}/table/${tableDetails.qrSlug}`} qrCodeImage={tableDetails.restaurantDetails.logoUrl?.replace("/upload/", "/upload/r_max/")} qrCodeName={tableDetails.tableName + "-qrcode"}
+              slug={tableDetails.qrSlug} />
             </div>
             <p>
               Seat Count:{" "}
@@ -430,7 +405,7 @@ const TableDetails = ({
           </div>
         )}
         <SheetFooter className="flex flex-row items-center justify-between">
-          <SheetClose asChild>
+          <SheetClose asChild ref={sheetCloseRef}>
             <Button variant="outline" onClick={() => setIsEditing(false)}>
               Close
             </Button>

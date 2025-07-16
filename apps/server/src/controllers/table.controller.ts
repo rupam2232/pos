@@ -289,6 +289,7 @@ export const getTableBySlug = asyncHandler(async (req, res) => {
           restaurantName: "$restaurantDetails.restaurantName",
           address: "$restaurantDetails.address",
           slug: "$restaurantDetails.slug",
+          logoUrl: "$restaurantDetails.logoUrl",
         },
       },
     },
