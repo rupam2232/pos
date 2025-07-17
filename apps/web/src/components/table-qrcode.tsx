@@ -99,7 +99,7 @@ const TableQRCode = ({
         </TooltipContent>
       </Tooltip>
       <DialogContent className="p-4">
-        <DialogHeader>
+        <DialogHeader>bhyn5
           <DialogTitle>QR Code</DialogTitle>
           <div>
             <div>
@@ -117,7 +117,7 @@ const TableQRCode = ({
               height={200}
               width={200}
               alt="QR Code"
-              className="object-contain"
+              className="object-contain rounded-md"
             />
           )}
           <DialogClose />
