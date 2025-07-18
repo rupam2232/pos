@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@repo/ui/components/select";
 import TableQRCode from "./table-qrcode";
+import { IconReceipt } from "@tabler/icons-react";
 
 const TableDetails = ({
   children,
@@ -63,6 +64,7 @@ const TableDetails = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [formLoading, setFormLoading] = useState<boolean>(false);
+  const [isTableOccupied, setIsTableOccupied] = useState<boolean>(false);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const sheetCloseRef = useRef<HTMLButtonElement>(null);
@@ -79,6 +81,7 @@ const TableDetails = ({
       const response = await axios.get(
         `/table/${restaurantSlug}/${table.qrSlug}`
       );
+      setIsTableOccupied(response.data.data.isOccupied);
       setTableDetails(response.data.data);
     } catch (error) {
       console.error(
@@ -111,7 +114,7 @@ const TableDetails = ({
   const onSubmit = async (data: z.infer<typeof tableSchema>) => {
     if (isLoading || formLoading) return; // Prevent multiple submissions
     if (!user || user.role !== "owner") {
-      toast.error("You do not have permission to create a restaurant");
+      toast.error("You do not have permission to edit tables");
       return;
     }
     if (
@@ -129,19 +132,47 @@ const TableDetails = ({
         `/table/${restaurantSlug}/${table.qrSlug}`,
         data
       );
-      if (!response.data.success || !response.data.data) {
+      if (
+        !response.data.success ||
+        !response.data.data.table ||
+        !response.data.data.table.tableName ||
+        response.data.data.table.seatCount === undefined
+      ) {
         toast.error(response.data.message || "Failed to create restaurant");
         return;
       }
-      setTableDetails(response.data.data);
+      setTableDetails((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tableName: response.data.data.table.tableName,
+          seatCount: response.data.data.table.seatCount,
+          qrSlug: response.data.data.table.qrSlug ?? prev.qrSlug,
+          isOccupied: response.data.data.table.isOccupied ?? prev.isOccupied,
+        };
+      });
       setIsEditing(false);
       setAllTables((prev) => {
         if (!prev) return prev; // If allTables is null, return it
         return {
           ...prev,
           tables: prev.tables.map((t) =>
-            t.qrSlug === table.qrSlug ? { ...t, ...response.data.data } : t
+            t.qrSlug === table.qrSlug
+              ? {
+                  ...t,
+                  tableName: response.data.data.table.tableName,
+                  seatCount: response.data.data.table.seatCount,
+                  qrSlug: response.data.data.table.qrSlug ?? t.qrSlug,
+                  isOccupied:
+                    response.data.data.table.isOccupied ?? t.isOccupied,
+                }
+              : t
           ),
+          totalCount: response.data.data.totalCount ?? prev.totalCount,
+          occupiedTables:
+            response.data.data.occupiedTables ?? prev.occupiedTables,
+          availableTables:
+            response.data.data.availableTables ?? prev.availableTables,
         };
       });
       toast.success(response.data.message || "Table updated successfully!");
@@ -175,23 +206,45 @@ const TableDetails = ({
       const response = await axios.patch(
         `/table/${restaurantSlug}/${tableDetails.qrSlug}/toggle-occupied`
       );
-      if (!response.data.success || !response.data.data || response.data.data.isOccupied === undefined) {
+      if (
+        !response.data.success ||
+        !response.data.data.table ||
+        response.data.data.table.isOccupied === undefined
+      ) {
         toast.error(response.data.message || "Failed to update table status");
         return;
       }
       setTableDetails((prev) => {
         if (!prev) return prev;
-        return { ...prev, isOccupied: response.data.data.isOccupied };
+        return {
+          ...prev,
+          isOccupied: response.data.data.table.isOccupied,
+          qrSlug: response.data.data.table.qrSlug ?? prev.qrSlug,
+          tableName: response.data.data.table.tableName ?? prev.tableName,
+          seatCount: response.data.data.table.seatCount ?? prev.seatCount,
+        };
       });
+
       setAllTables((prev) => {
         if (!prev) return prev; // If allTables is null, return it
         return {
           ...prev,
           tables: prev.tables.map((t) =>
             t.qrSlug === tableDetails.qrSlug
-              ? { ...t, isOccupied: response.data.data.isOccupied }
+              ? {
+                  ...t,
+                  isOccupied: response.data.data.table.isOccupied,
+                  qrSlug: response.data.data.table.qrSlug ?? t.qrSlug,
+                  tableName: response.data.data.table.tableName ?? t.tableName,
+                  seatCount: response.data.data.table.seatCount ?? t.seatCount,
+                }
               : t
           ),
+          totalCount: response.data.data.totalCount ?? prev.totalCount,
+          occupiedTables:
+            response.data.data.occupiedTables ?? prev.occupiedTables,
+          availableTables:
+            response.data.data.availableTables ?? prev.availableTables,
         };
       });
       toast.success("Table status updated successfully!");
@@ -209,6 +262,7 @@ const TableDetails = ({
         dispatch(signOut());
         router.push("/signin");
       }
+      setIsTableOccupied((prev) => !prev); // Toggle back the status on error
     } finally {
       setFormLoading(false);
     }
@@ -325,13 +379,22 @@ const TableDetails = ({
           </div>
         ) : tableDetails ? (
           <div className="grid flex-1 auto-rows-min gap-4 px-4 text-sm font-medium">
-              
-              <TableQRCode qrCodeData={`${window.location.origin}/${tableDetails?.restaurantDetails?.slug}/table/${tableDetails.qrSlug}`} qrCodeImage={tableDetails.restaurantDetails.logoUrl?.replace("/upload/", "/upload/r_max/")} qrCodeName={tableDetails.tableName + "-qrcode"}
-              slug={tableDetails.qrSlug} />
-              <p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="whitespace-pre-wrap">
                 Table Name:{" "}
-                <span className="font-bold">{tableDetails.tableName} adf adfa fadf asf adsfa dfadsf adsfdsf daf</span>
+                <span className="font-bold">{tableDetails.tableName}</span>
               </p>
+
+              <TableQRCode
+                qrCodeData={`${window.location.origin}/${tableDetails?.restaurantDetails?.slug}/table/${tableDetails.qrSlug}`}
+                qrCodeImage={tableDetails.restaurantDetails.logoUrl?.replace(
+                  "/upload/",
+                  "/upload/r_max/"
+                )}
+                qrCodeName={tableDetails.tableName + "-qrcode"}
+                slug={tableDetails.qrSlug}
+              />
+            </div>
             <p>
               Seat Count:{" "}
               <span className="font-bold">{tableDetails.seatCount}</span>
@@ -339,10 +402,15 @@ const TableDetails = ({
             <p className="flex items-center gap-2">
               Status:
               <Select
+                value={isTableOccupied ? "occupied" : "available"}
+                disabled={user?.role !== "owner"}
                 defaultValue={
                   tableDetails.isOccupied ? "occupied" : "available"
                 }
-                onValueChange={() => toggleOccupiedStatus()}
+                onValueChange={() => {
+                  setIsTableOccupied((prev) => !prev);
+                  toggleOccupiedStatus();
+                }}
               >
                 <SelectTrigger className="text-sm font-medium w-[180px] border-muted-foreground/70">
                   <SelectValue placeholder="Status" />
@@ -359,45 +427,18 @@ const TableDetails = ({
               Array.isArray(tableDetails.currentOrder.foodItems) &&
               tableDetails.currentOrder.foodItems.length > 0 && (
                 <div>
-                  <p>Order Details</p>
-                  <div className="grid gap-2">
-                    <p>
-                      Order ID:{" "}
-                      <span className="font-bold">
-                        {tableDetails.currentOrder.orderId}
-                      </span>
-                    </p>
-                    <p>
-                      Status:{" "}
-                      <span className="font-bold">
-                        {tableDetails.currentOrder.status}
-                      </span>
-                    </p>
-                    <p>
-                      Final Amount:{" "}
-                      <span className="font-bold">
-                        ${tableDetails.currentOrder.finalAmount.toFixed(2)}
-                      </span>
-                    </p>
-                    <p>Food Items:</p>
-                    <ul className="list-disc pl-5">
-                      {tableDetails.currentOrder.foodItems.map((item) => (
-                        <li key={item.foodItemId}>
-                          {item.variantName
-                            ? `${item.variantName} (x${item.quantity}) - $${item.finalPrice.toFixed(2)}`
-                            : `Item ID: ${item.foodItemId} (x${item.quantity}) - $${item.finalPrice.toFixed(2)}`}
-                        </li>
-                      ))}
-                    </ul>
-                    <p>
-                      Created At:{" "}
-                      <span className="font-bold">
-                        {new Date(
-                          tableDetails.currentOrder.createdAt
-                        ).toLocaleString()}
-                      </span>
-                    </p>
-                  </div>
+                  <Button
+                    variant={"outline"}
+                    onClick={() =>
+                      router.push(
+                        `/restaurant/${tableDetails.restaurantDetails.slug}/orders/${tableDetails.currentOrder?.orderId}`
+                      )
+                    }
+                    className=""
+                  >
+                    <IconReceipt />
+                    View Current Order
+                  </Button>
                 </div>
               )}
           </div>

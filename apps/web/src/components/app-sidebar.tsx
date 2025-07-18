@@ -3,12 +3,12 @@
 import * as React from "react";
 import {
   IconCamera,
-  IconChartBar,
+  // IconChartBar,
   IconDatabase,
   IconFileAi,
   IconFileDescription,
   IconFileWord,
-  IconFolder,
+  // IconFolder,
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
@@ -18,7 +18,7 @@ import {
   IconSettings,
   IconTable,
   IconToolsKitchen,
-  IconUsers,
+  // IconUsers,
   IconCash,
 } from "@tabler/icons-react";
 

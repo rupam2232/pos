@@ -186,13 +186,13 @@ export default function SelectTable() {
         {/* Status Legend - Center */}
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-muted-foreground/40 border"></div>
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <span className="text-muted-foreground">
               Available: {allTables ? allTables.availableTables : 0}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            <div className="w-2 h-2 rounded-full bg-muted-foreground/40 border"></div>
             <span className="text-muted-foreground">
               Occupied: {allTables ? allTables.occupiedTables : 0}
             </span>
@@ -257,8 +257,8 @@ export default function SelectTable() {
                           className={cn(
                             "absolute w-2 h-2 rounded-sm",
                             table.isOccupied
-                              ? "bg-green-500"
-                              : "bg-muted-foreground/40"
+                              ? "bg-muted-foreground/40"
+                              : "bg-green-500"
                           )}
                           style={{
                             left: chairPos.x,
@@ -272,8 +272,8 @@ export default function SelectTable() {
                         className={cn(
                           "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg truncate whitespace-pre-wrap",
                           table.isOccupied
-                            ? "bg-green-600 text-white"
-                            : "bg-muted text-foreground"
+                            ? "bg-muted text-foreground"
+                            : "bg-green-600 text-white"
                         )}
                         style={{
                           width: `${tableSize.width}px`,
@@ -313,8 +313,8 @@ export default function SelectTable() {
                           className={cn(
                             "absolute w-2 h-2 rounded-sm",
                             table.isOccupied
-                              ? "bg-green-500"
-                              : "bg-muted-foreground/40"
+                              ? "bg-muted-foreground/40"
+                              : "bg-green-500"
                           )}
                           style={{
                             left: chairPos.x,
@@ -328,8 +328,8 @@ export default function SelectTable() {
                         className={cn(
                           "flex items-center justify-center cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md rounded-lg truncate whitespace-pre-wrap",
                           table.isOccupied
-                            ? "bg-green-600 text-white"
-                            : "bg-muted text-foreground"
+                            ? "bg-muted text-foreground"
+                            : "bg-green-600 text-white"
                         )}
                         style={{
                           width: `${tableSize.width}px`,

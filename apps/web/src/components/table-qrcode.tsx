@@ -124,25 +124,30 @@ const TableQRCode = ({
         </TooltipContent>
       </Tooltip>
       <DialogContent>
-        <ScrollArea className="overflow-y-auto max-h-[90vh]">
+        <ScrollArea className="overflow-y-auto h-[90vh]">
           <DialogHeader className="p-6">
-            {imageUrl && (
-                <Image
-                  src={imageUrl}
-                  width={300}
-                  height={400}
-                  alt="Generated QR Code"
-                  className="object-contain mx-auto"
-                  draggable={false}
-                />
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                width={300}
+                height={300}
+                alt="Generated QR Code"
+                className="object-contain mx-auto h-2/3!"
+                draggable={false}
+              />
+            ) : (
+              <div className="w-[300px] h-[385px] animate-pulse bg-gray-200 mx-auto">
+              </div>
             )}
-            <Button onClick={onButtonClick} className="w-2/3 mx-auto">Download</Button>
+            <Button onClick={onButtonClick} className="w-2/3 mx-auto">
+              Download
+            </Button>
 
             <div className="object-contain w-full flex justify-center my-4 absolute top-[-9999px]">
               <div
                 ref={ref}
                 className="flex items-center justify-center flex-col p-4 bg-gray-100"
-                style={{ width: "400px", height: "500px" }}
+                style={{ width: "400px", height: "400px" }}
               >
                 {/* QR Code */}
                 <Image

@@ -132,9 +132,27 @@ export const updateTable = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Table not found or you do not own this table");
   }
 
-  res
-    .status(200)
-    .json(new ApiResponse(200, table, "Table updated successfully"));
+  const totalTables = await Table.countDocuments({
+    restaurantId: restaurant._id,
+  });
+
+  const availableTables = await Table.countDocuments({
+    restaurantId: restaurant._id,
+    isOccupied: false,
+  });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        table,
+        totalCount: totalTables,
+        availableTables,
+        occupiedTables: totalTables - availableTables,
+      },
+      "Table updated successfully"
+    )
+  );
 });
 
 export const toggleOccupiedStatus = asyncHandler(async (req, res) => {
@@ -201,11 +219,27 @@ export const toggleOccupiedStatus = asyncHandler(async (req, res) => {
   table.isOccupied = !table.isOccupied;
   await table.save({ validateBeforeSave: false });
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(200, table, "Table occupied status updated successfully")
-    );
+  const totalTables = await Table.countDocuments({
+    restaurantId: restaurant._id,
+  });
+
+  const availableTables = await Table.countDocuments({
+    restaurantId: restaurant._id,
+    isOccupied: false,
+  });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        table,
+        totalCount: totalTables,
+        availableTables,
+        occupiedTables: totalTables - availableTables,
+      },
+      "Table occupied status updated successfully"
+    )
+  );
 });
 
 export const getTableBySlug = asyncHandler(async (req, res) => {
