@@ -5,7 +5,6 @@ import {
   DialogClose,
   DialogContent,
   DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@repo/ui/components/dialog";
 import {
@@ -17,6 +16,8 @@ import { IconQrcode } from "@tabler/icons-react";
 import Image from "next/image";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { toPng } from "html-to-image";
+import { Button } from "@repo/ui/components/button";
+import { toast } from "sonner";
 
 const TableQRCode = ({
   qrCodeData,
@@ -29,12 +30,12 @@ const TableQRCode = ({
   qrCodeName?: string;
   slug?: string;
 }) => {
-  const [fileExt, setFileExt] = useState<"png" | "jpeg" | "webp">("png");
   const qrCode = useRef<QRCodeStyling | null>(null);
   const [open, setOpen] = useState(false);
   const [qrSrc, setQrSrc] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(
     () => {
@@ -44,8 +45,8 @@ const TableQRCode = ({
             width: 1200,
             height: 1200,
             image: qrCodeImage,
-            data: qrCodeData || "https://example.com",
-            margin: 30,
+            data: qrCodeData || "Data not available",
+            margin: 40,
             dotsOptions: {
               color: "#000000",
               type: "rounded",
@@ -79,34 +80,42 @@ const TableQRCode = ({
     [open, qrCodeData, qrCodeImage]
   );
 
-  const onExtensionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    event.preventDefault();
-    setFileExt(event.target.value as "png" | "jpeg" | "webp");
-  };
-
-  const onButtonClick = useCallback(() => {
+  useEffect(() => {
     if (ref.current === null || !isImageLoaded) {
       console.error("Ref is null or image not loaded yet");
       return;
     }
-    console.log(ref.current);
     toPng(ref.current, { cacheBust: true, pixelRatio: 2 })
       .then((dataUrl) => {
-        const link = document.createElement("a");
-        link.download = `${qrCodeName.replaceAll(" ", "-")}.png`;
-        link.href = dataUrl;
-        link.click();
+        setImageUrl(dataUrl);
       })
       .catch((err) => {
-        console.log(err);
+        toast.error("Failed to generate QR Code image");
+        console.error(err);
       });
-  }, [ref, qrCodeName, isImageLoaded]);
+  }, [isImageLoaded, ref]);
+
+  const onButtonClick = useCallback(() => {
+    if (ref.current === null || !isImageLoaded || !imageUrl) {
+      console.error("Ref is null or image not loaded yet");
+      return;
+    }
+    try {
+      const link = document.createElement("a");
+      link.download = `${qrCodeName.replaceAll(" ", "-")}.png`;
+      link.href = imageUrl;
+      link.click();
+    } catch (error) {
+      toast.error("Failed to download QR Code");
+      console.error(error);
+    }
+  }, [isImageLoaded, imageUrl, qrCodeName]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <DialogTrigger className="w-min [&_svg]:size-6! p-5 absolute top-0 right-4 bg-transparent hover:bg-secondary/10 text-primary border border-accent-foreground/60">
+          <DialogTrigger className="w-min [&_svg]:size-6! p-5 bg-transparent hover:bg-secondary/10 text-primary border border-accent-foreground/60">
             <IconQrcode />
           </DialogTrigger>
         </TooltipTrigger>
@@ -117,42 +126,32 @@ const TableQRCode = ({
       <DialogContent>
         <ScrollArea className="overflow-y-auto max-h-[90vh]">
           <DialogHeader className="p-6">
-            <DialogTitle>QR Code</DialogTitle>
-            <div>
-              <div>
-                <select onChange={onExtensionChange} value={fileExt}>
-                  <option value="png">PNG</option>
-                  <option value="jpeg">JPEG</option>
-                  <option value="webp">WEBP</option>
-                </select>
-                <button onClick={onButtonClick}>Download</button>
-              </div>
-            </div>
-            <div className="mx-auto">
+            {imageUrl && (
+                <Image
+                  src={imageUrl}
+                  width={300}
+                  height={400}
+                  alt="Generated QR Code"
+                  className="object-contain mx-auto"
+                  draggable={false}
+                />
+            )}
+            <Button onClick={onButtonClick} className="w-2/3 mx-auto">Download</Button>
+
+            <div className="object-contain w-full flex justify-center my-4 absolute top-[-9999px]">
               <div
                 ref={ref}
-                className="flex items-center justify-center flex-col p-4 my-4 bg-white rounded-md"
+                className="flex items-center justify-center flex-col p-4 bg-gray-100"
                 style={{ width: "400px", height: "500px" }}
               >
                 {/* QR Code */}
                 <Image
                   src={qrSrc || "/placeholder-logo.png"}
                   alt="QR Code"
-                  width={150}
-                  height={150}
-                  style={{ marginBottom: "20px" }}
+                  width={250}
+                  height={250}
+                  style={{ marginBottom: "5px" }}
                   onLoad={() => setIsImageLoaded(true)}
-                  draggable={false}
-                  className={`object-contain rounded-md ${qrSrc ? "" : "hidden"}`}
-                />
-
-                {/* Branding */}
-                <Image
-                  src="/placeholder-logo.png"
-                  alt="Brand Logo"
-                  width={100}
-                  height={100}
-                  style={{ marginBottom: "20px" }}
                   draggable={false}
                   className={`object-contain rounded-md ${qrSrc ? "" : "hidden"}`}
                 />
@@ -160,22 +159,15 @@ const TableQRCode = ({
                 {/* Instructions */}
                 <p
                   style={{
-                    fontSize: "16px",
+                    fontSize: "10px",
                     color: "#333",
                     textAlign: "center",
                   }}
                 >
-                  Scan the QR code to visit our website!
+                  Powered by {process.env.NEXT_PUBLIC_APP_NAME || "POS App"}
                 </p>
               </div>
             </div>
-            {/* <canvas
-              width="300"
-              id="fabric-canvas"
-              height="300"
-              ref={handleCanvasRef}
-              className="border"
-            /> */}
             <DialogClose />
           </DialogHeader>
         </ScrollArea>

@@ -103,7 +103,6 @@ const OrderCard = ({
   const availableNextStatuses = orderStatusIcons.slice(currentStatusIndex + 1);
 
   const handleUpdateStatus = async (status: string) => {
-    console.log("Updating order status to:", status);
     if (!availableNextStatuses.some((item) => item.status === status)) {
       toast.error("Invalid status update");
       return;

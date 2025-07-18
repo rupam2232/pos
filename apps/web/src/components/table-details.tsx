@@ -175,18 +175,21 @@ const TableDetails = ({
       const response = await axios.patch(
         `/table/${restaurantSlug}/${tableDetails.qrSlug}/toggle-occupied`
       );
-      if (!response.data.success || !response.data.data) {
+      if (!response.data.success || !response.data.data || response.data.data.isOccupied === undefined) {
         toast.error(response.data.message || "Failed to update table status");
         return;
       }
-      setTableDetails(response.data.data);
+      setTableDetails((prev) => {
+        if (!prev) return prev;
+        return { ...prev, isOccupied: response.data.data.isOccupied };
+      });
       setAllTables((prev) => {
         if (!prev) return prev; // If allTables is null, return it
         return {
           ...prev,
           tables: prev.tables.map((t) =>
             t.qrSlug === tableDetails.qrSlug
-              ? { ...t, ...response.data.data }
+              ? { ...t, isOccupied: response.data.data.isOccupied }
               : t
           ),
         };
@@ -224,7 +227,7 @@ const TableDetails = ({
       }}
     >
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent>
+      <SheetContent className="w-full">
         <SheetHeader>
           <SheetTitle>
             {isEditing
@@ -322,15 +325,13 @@ const TableDetails = ({
           </div>
         ) : tableDetails ? (
           <div className="grid flex-1 auto-rows-min gap-4 px-4 text-sm font-medium">
-            <div className="relative">
+              
+              <TableQRCode qrCodeData={`${window.location.origin}/${tableDetails?.restaurantDetails?.slug}/table/${tableDetails.qrSlug}`} qrCodeImage={tableDetails.restaurantDetails.logoUrl?.replace("/upload/", "/upload/r_max/")} qrCodeName={tableDetails.tableName + "-qrcode"}
+              slug={tableDetails.qrSlug} />
               <p>
                 Table Name:{" "}
-                <span className="font-bold">{tableDetails.tableName}</span>
+                <span className="font-bold">{tableDetails.tableName} adf adfa fadf asf adsfa dfadsf adsfdsf daf</span>
               </p>
-
-              <TableQRCode qrCodeData={`${window.location.origin}/${tableDetails.restaurantDetails.slug}/table/${tableDetails.qrSlug}`} qrCodeImage={tableDetails.restaurantDetails.logoUrl?.replace("/upload/", "/upload/r_max/")} qrCodeName={tableDetails.tableName + "-qrcode"}
-              slug={tableDetails.qrSlug} />
-            </div>
             <p>
               Seat Count:{" "}
               <span className="font-bold">{tableDetails.seatCount}</span>
@@ -352,6 +353,7 @@ const TableDetails = ({
                 </SelectContent>
               </Select>
             </p>
+
             {tableDetails.currentOrder &&
               tableDetails.currentOrder.foodItems &&
               Array.isArray(tableDetails.currentOrder.foodItems) &&
