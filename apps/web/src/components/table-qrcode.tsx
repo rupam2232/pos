@@ -23,12 +23,12 @@ const TableQRCode = ({
   qrCodeData,
   qrCodeImage,
   qrCodeName = "table-qrcode",
-  slug,
+  // slug,
 }: {
   qrCodeData: string;
   qrCodeImage?: string;
   qrCodeName?: string;
-  slug?: string;
+  // slug?: string;
 }) => {
   const qrCode = useRef<QRCodeStyling | null>(null);
   const [open, setOpen] = useState(false);

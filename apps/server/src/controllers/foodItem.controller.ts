@@ -175,22 +175,14 @@ export const getAllFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Restaurant not found");
   }
 
-  const foodItems = await FoodItem.find({
+  const foodItemCount = await FoodItem.countDocuments({
     restaurantId: restaurant._id,
-  })
-    .sort({
-      isAvailable: -1, // Sort by availability first (available items first)
-      // Then sort by the specified field
-      [sortBy.toString()]: sortType === "asc" ? 1 : -1, // Ascending or descending sort
-    })
-    .skip((pageNumber - 1) * limitNumber) // Pagination logic
-    .limit(limitNumber) // Limit the number of results
-    .select("-restaurantId -__v"); // Exclude restaurantId and __v fields;
+  });
 
-  if (!foodItems || foodItems.length === 0) {
-    res.status(404).json(
+  if (!foodItemCount || foodItemCount === 0) {
+    res.status(200).json(
       new ApiResponse(
-        404,
+        200,
         {
           foodItems: [],
           page: pageNumber,
@@ -198,13 +190,24 @@ export const getAllFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
           totalPages: 0,
           totalCount: 0,
         },
-        "No food items found for this restaurant"
+        "No food items found"
       )
     );
   } else {
-    const foodItemCount = await FoodItem.countDocuments({
+    const foodItems = await FoodItem.find({
       restaurantId: restaurant._id,
-    });
+    })
+      .sort({
+        isAvailable: -1, // Sort by availability first (available items first)
+        // Then sort by the specified field
+        [sortBy.toString()]: sortType === "asc" ? 1 : -1, // Ascending or descending sort
+      })
+      .skip((pageNumber - 1) * limitNumber) // Pagination logic
+      .limit(limitNumber) // Limit the number of results
+      .select(
+        "-restaurantId -__v -tags -description -category -variants -hasVariants"
+      ); // Exclude restaurantId and __v fields;
+
     const totalPages = Math.ceil(foodItemCount / limitNumber);
 
     res.status(200).json(
@@ -247,7 +250,7 @@ export const getFoodItemById = asyncHandler(async (req, res) => {
     !("slug" in foodItem.restaurantId) ||
     (foodItem.restaurantId as any).slug !== req.params.restaurantSlug
   ) {
-    throw new ApiError(404, "Food item not found in this restaurant");
+    throw new ApiError(404, "Food item not found");
   }
 
   res

@@ -123,7 +123,7 @@ const CreateTableDialog = ({
                             id="tableName"
                             type="text"
                             placeholder="E.g., Table 1"
-                            autoComplete="table-name"
+                            autoComplete="off"
                             required
                             {...field}
                           />
@@ -146,7 +146,7 @@ const CreateTableDialog = ({
                             id="seatCount"
                             type="number"
                             placeholder="E.g., 4"
-                            autoComplete="seat-count"
+                            autoComplete="off"
                             {...field}
                             onChange={(e) =>
                               field.onChange(e.target.valueAsNumber)

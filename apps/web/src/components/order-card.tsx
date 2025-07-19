@@ -147,7 +147,7 @@ const OrderCard = ({
   };
 
   return (
-    <Card>
+    <Card className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md">
       <CardContent className="space-y-2">
         <div className="flex items-center justify-between text-sm font-medium">
           <span>Table: {order.table.tableName}</span>

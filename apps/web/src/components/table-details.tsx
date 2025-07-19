@@ -392,7 +392,7 @@ const TableDetails = ({
                   "/upload/r_max/"
                 )}
                 qrCodeName={tableDetails.tableName + "-qrcode"}
-                slug={tableDetails.qrSlug}
+                // slug={tableDetails.qrSlug}
               />
             </div>
             <p>
@@ -403,7 +403,7 @@ const TableDetails = ({
               Status:
               <Select
                 value={isTableOccupied ? "occupied" : "available"}
-                disabled={user?.role !== "owner"}
+                disabled={!user}
                 defaultValue={
                   tableDetails.isOccupied ? "occupied" : "available"
                 }
