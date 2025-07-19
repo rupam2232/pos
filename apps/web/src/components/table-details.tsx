@@ -20,7 +20,7 @@ import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
 import type { Table, TableDetails, AllTables } from "@repo/ui/types/Table";
-import { Pen, ArrowLeft, Loader2 } from "lucide-react";
+import { Pen, ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -43,6 +43,17 @@ import {
 } from "@repo/ui/components/select";
 import TableQRCode from "./table-qrcode";
 import { IconReceipt } from "@tabler/icons-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
 
 const TableDetails = ({
   children,
@@ -268,6 +279,51 @@ const TableDetails = ({
     }
   };
 
+  const deleteTable = async () => {
+    if (!tableDetails) return;
+    if (isLoading || formLoading) {
+      toast.error("Please wait for the current operation to complete");
+      return; // Prevent multiple submissions
+    }
+    
+    try {
+      setFormLoading(true);
+      const response = await axios.delete(
+        `/table/${restaurantSlug}/${tableDetails.qrSlug}`
+      );
+      if (!response.data.success) {
+        toast.error(response.data.message || "Failed to delete table");
+        return;
+      }
+      sheetCloseRef.current?.click(); // Close the sheet after deletion
+      handleDeselectTable(); // Deselect the table after deletion
+      toast.success("Table deleted successfully!");
+      setAllTables((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tables: prev.tables.filter((t) => t.qrSlug !== tableDetails.qrSlug),
+        };
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "An error occurred during table deletion"
+      );
+      console.error(
+        axiosError.response?.data.message ||
+          "An error occurred during table deletion"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   return (
     <Sheet
       defaultOpen={isSelected}
@@ -453,15 +509,41 @@ const TableDetails = ({
               Close
             </Button>
           </SheetClose>
-          {!isEditing && user?.role === "owner" && (
+          {!isEditing && user?.role === "owner" && !isEditing ? (
             <Button
-              type="submit"
+              type="button"
               className="w-2/4"
               onClick={() => setIsEditing(true)}
             >
               <Pen />
               Edit
             </Button>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={isLoading || formLoading}
+                  type="button"
+                  className="w-2/4 bg-red-500 hover:bg-red-600 text-white"
+                >
+                  <Trash2 />
+                  Delete Table
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the
+                    table and all associated data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white" onClick={deleteTable}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </SheetFooter>
       </SheetContent>

@@ -252,10 +252,15 @@ export const getFoodItemById = asyncHandler(async (req, res) => {
   ) {
     throw new ApiError(404, "Food item not found");
   }
+  
+  // Rename the populated field from restaurantId to restaurantDetails
+  const foodItemObj = foodItem.toObject ? foodItem.toObject() : foodItem;
+  (foodItemObj as any).restaurantDetails = foodItemObj.restaurantId;
+  delete (foodItemObj as any).restaurantId;
 
   res
     .status(200)
-    .json(new ApiResponse(200, foodItem, "Food item fetched successfully"));
+    .json(new ApiResponse(200, foodItemObj, "Food item fetched successfully"));
 });
 
 export const toggleFoodItemAvailability = asyncHandler(async (req, res) => {

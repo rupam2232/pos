@@ -50,7 +50,7 @@ router
     deleteFoodItem
   );
 
-router.post(
+router.patch(
   "/:restaurantSlug/:foodItemId/toggle-availability",
   isProduction ? limit : (req, res, next) => next(),
   verifyAuth,

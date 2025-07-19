@@ -19,6 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
+import FoodDetails from "@/components/food-details";
 
 const MenuPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -99,87 +100,97 @@ const MenuPage = () => {
         allFoodItems.foodItems.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
           {allFoodItems.foodItems.map((foodItem, index) => (
-            <Card
+            <FoodDetails
               key={foodItem._id}
-              ref={
-                index === allFoodItems.foodItems.length - 1
-                  ? lastElementRef
-                  : null
-              }
-              className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md cursor-pointer group py-0 gap-0 relative"
+              foodItem={foodItem}
+              setAllFoodItems={setAllFoodItems}
+              restaurantSlug={slug}
             >
-              <div className={"absolute top-2 right-2 z-10"}>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <span
-                      className={cn(
-                        "block w-2 h-2 rounded-full",
-                        foodItem.isAvailable ? "bg-green-500" : "bg-red-500"
-                      )}
-                    ></span>
-                    <span className="sr-only">
-                      {foodItem.isAvailable ? "Available" : "Not Available"}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {foodItem.isAvailable ? "Available" : "Not Available"}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="absolute top-2 left-2 z-10">
-                <Tooltip>
-                  <TooltipTrigger>
-                    <div className={`border border-primary p-0.5 cursor-help`}>
+              <Card
+                ref={
+                  index === allFoodItems.foodItems.length - 1
+                    ? lastElementRef
+                    : null
+                }
+                className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md cursor-pointer group py-0 gap-0 relative"
+              >
+                <div className={"absolute top-2 right-2 z-10"}>
+                  <Tooltip>
+                    <TooltipTrigger>
                       <span
-                        className={`${foodItem.foodType !== "veg" ? "bg-green-500" : ""} ${foodItem.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                        className={cn(
+                          "block w-2 h-2 rounded-full",
+                          foodItem.isAvailable ? "bg-green-500" : "bg-red-500"
+                        )}
                       ></span>
                       <span className="sr-only">
-                        {foodItem.foodType === "veg"
-                          ? "Veg"
-                          : foodItem.foodType === "non-veg"
-                            ? "Non Veg"
-                            : "Vegan"}
+                        {foodItem.isAvailable ? "Available" : "Not Available"}
                       </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {foodItem.foodType === "veg"
-                      ? "Veg"
-                      : foodItem.foodType === "non-veg"
-                        ? "Non Veg"
-                        : "Vegan"}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="relative aspect-square">
-                <Image
-                  src={foodItem.imageUrls?.[0] || "/placeholder.svg"}
-                  alt={foodItem.foodName}
-                  fill
-                  className="object-cover transition-all duration-200 group-hover:scale-101"
-                />
-              </div>
-              <CardContent className="p-3">
-                <div>
-                  <h3 className="font-medium line-clamp-1">
-                    {foodItem.foodName}
-                  </h3>
-                  {foodItem.discountedPrice ? (
-                    <p className="text-lg font-semibold">
-                      {" "}
-                      ₹{foodItem.discountedPrice.toFixed(2)}
-                      <span className="line-through ml-2 text-xs">
-                        ₹{foodItem.price.toFixed(2)}
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="text-lg font-semibold">
-                      ₹{foodItem.price.toFixed(2)}
-                    </p>
-                  )}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {foodItem.isAvailable ? "Available" : "Not Available"}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="absolute top-2 left-2 z-10">
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <div
+                        className={`border border-primary p-0.5 cursor-help bg-background/85`}
+                      >
+                        <span
+                          className={`${foodItem.foodType !== "veg" ? "bg-green-500" : ""} ${foodItem.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                        ></span>
+                        <span className="sr-only">
+                          {foodItem.foodType === "veg"
+                            ? "Veg"
+                            : foodItem.foodType === "non-veg"
+                              ? "Non Veg"
+                              : "Vegan"}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {foodItem.foodType === "veg"
+                        ? "Veg"
+                        : foodItem.foodType === "non-veg"
+                          ? "Non Veg"
+                          : "Vegan"}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="relative aspect-square">
+                  <Image
+                    src={foodItem.imageUrls?.[0] || "/placeholder.svg"}
+                    alt={foodItem.foodName}
+                    fill
+                    draggable={false}
+                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                    className="object-cover transition-all duration-200 group-hover:scale-101"
+                  />
+                </div>
+                <CardContent className="p-3">
+                  <div>
+                    <h3 className="font-medium line-clamp-1">
+                      {foodItem.foodName}
+                    </h3>
+                    {foodItem.discountedPrice ? (
+                      <p className="text-lg font-semibold">
+                        {" "}
+                        ₹{foodItem.discountedPrice.toFixed(2)}
+                        <span className="line-through ml-2 text-xs">
+                          ₹{foodItem.price.toFixed(2)}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-lg font-semibold">
+                        ₹{foodItem.price.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </FoodDetails>
           ))}
         </div>
       ) : (
