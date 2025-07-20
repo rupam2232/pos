@@ -252,7 +252,7 @@ export const getFoodItemById = asyncHandler(async (req, res) => {
   ) {
     throw new ApiError(404, "Food item not found");
   }
-  
+
   // Rename the populated field from restaurantId to restaurantDetails
   const foodItemObj = foodItem.toObject ? foodItem.toObject() : foodItem;
   (foodItemObj as any).restaurantDetails = foodItemObj.restaurantId;
@@ -272,6 +272,15 @@ export const toggleFoodItemAvailability = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid food item ID");
   }
 
+  if (req.body?.isVariant && !req.body.variantId) {
+    throw new ApiError(400, "Variant ID is required to toggle availability");
+  }
+
+  if (req.body?.isVariant && !isValidObjectId(req.body.variantId)) {
+    throw new ApiError(400, "Invalid variant ID");
+  }
+  const isVariant = req.body?.isVariant || false;
+  const variantId = req.body?.variantId;
   const restaurantSlug = req.params.restaurantSlug;
   const user = req.user;
 
@@ -320,22 +329,47 @@ export const toggleFoodItemAvailability = asyncHandler(async (req, res) => {
   }
 
   // Toggle availability
-  foodItem.isAvailable = !foodItem.isAvailable;
-
-  const updatedFoodItem = await foodItem.save();
-  if (!updatedFoodItem) {
-    throw new ApiError(500, "Failed to update food item availability");
-  }
-
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        updatedFoodItem,
-        `Food item is set to ${updatedFoodItem.isAvailable ? "available" : "not available"}`
-      )
+  if (isVariant) {
+    const variant = foodItem.variants?.find(
+      (v: FoodVariantType) => v._id!.toString() === variantId
     );
+    if (!variant) {
+      throw new ApiError(404, "Variant not found");
+    }
+    variant.isAvailable = !variant.isAvailable;
+
+    const updatedFoodItem = await foodItem.save();
+    if (!updatedFoodItem) {
+      throw new ApiError(500, "Failed to update food item availability");
+    }
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          updatedFoodItem,
+          `Variant is set to ${variant.isAvailable ? "available" : "not available"}`
+        )
+      );
+  } else {
+    foodItem.isAvailable = !foodItem.isAvailable;
+
+    const updatedFoodItem = await foodItem.save();
+    if (!updatedFoodItem) {
+      throw new ApiError(500, "Failed to update food item availability");
+    }
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          updatedFoodItem,
+          `Food item is set to ${updatedFoodItem.isAvailable ? "available" : "not available"}`
+        )
+      );
+  }
 });
 
 export const updateFoodItem = asyncHandler(async (req, res) => {
