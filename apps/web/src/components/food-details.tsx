@@ -54,7 +54,7 @@ import {
   type CarouselApi,
 } from "@repo/ui/components/carousel";
 import Image from "next/image";
-import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 import { Badge } from "@repo/ui/components/badge";
 
 const FoodDetails = ({
@@ -79,6 +79,7 @@ const FoodDetails = ({
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [carouselCurrent, setCarouselCurrent] = useState<number>(0);
   const [carouselCount, setCarouselCount] = useState<number>(0);
+  const [isWatchingVariant, setIsWatchingVariant] = useState<boolean>(false);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const sheetCloseRef = useRef<HTMLButtonElement>(null);
@@ -237,7 +238,9 @@ const FoodDetails = ({
         !response.data.data ||
         response.data.data.isAvailable === undefined
       ) {
-        toast.error(response.data.message || "Failed to update food item status");
+        toast.error(
+          response.data.message || "Failed to update food item status"
+        );
         return;
       }
       setFoodItemDetails((prev) => {
@@ -258,7 +261,7 @@ const FoodDetails = ({
                   isAvailable: response.data.data.isAvailable,
                 }
               : f
-          )
+          ),
         };
       });
       toast.success("Food item status updated successfully!");
@@ -389,7 +392,7 @@ const FoodDetails = ({
               </Form>
             </div>
           ) : foodItemDetails ? (
-            <div className="grid flex-1 auto-rows-min gap-4 px-4 text-sm font-medium">
+            <div className="grid flex-1 auto-rows-min space-y-4 px-4 text-sm font-medium">
               <div>
                 <Carousel
                   setApi={setCarouselApi}
@@ -422,6 +425,36 @@ const FoodDetails = ({
                   Slide {carouselCurrent} of {carouselCount}
                 </p>
               </div>
+              {foodItemDetails.hasVariants &&
+                Array.isArray(foodItemDetails.variants) &&
+                foodItemDetails.variants?.length > 0 && (
+                  <div className="mb-0!">
+                    <p className="whitespace-pre-wrap">Variants</p>
+                    <ScrollArea className="pt-2 pb-3 w-[93vw] sm:max-w-[340px] rounded-md border whitespace-nowrap border-none">
+                      <div className="flex items-center w-max space-x-3">
+                        {foodItemDetails.variants?.length > 0 ? (
+                          foodItemDetails.variants.map((variant, index) => (
+                            <>
+                              <Button
+                                variant="outline"
+                                type="button"
+                                key={index}
+                                className="font-bold"
+                              >
+                                {variant.variantName}
+                              </Button>
+                            </>
+                          ))
+                        ) : (
+                          <span className="font-bold">
+                            No variants available
+                          </span>
+                        )}
+                      </div>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  </div>
+                )}
               <div className="flex items-center justify-between gap-2">
                 <p className="whitespace-pre-wrap">
                   Food Name:{" "}
@@ -431,6 +464,33 @@ const FoodDetails = ({
               <p>
                 Price:{" "}
                 <span className="font-bold">₹{foodItemDetails.price}</span>
+              </p>
+              <p>
+                Discounted Price:{" "}
+                <span
+                  className={`${!foodItemDetails.discountedPrice ? "text-muted-foreground" : "font-bold"}`}
+                >
+                  {foodItemDetails.discountedPrice
+                    ? `₹${foodItemDetails.discountedPrice}`
+                    : "No discounted price set"}
+                </span>
+              </p>
+              <p className="flex items-center gap-1">
+                Food Type:{" "}
+                <div
+                  className={`w-min border border-primary p-0.5 bg-background ml-1`}
+                >
+                  <span
+                    className={`${foodItemDetails.foodType !== "veg" ? "bg-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                  ></span>
+                </div>
+                <span className="font-bold">
+                  {foodItemDetails.foodType === "veg"
+                    ? "Veg"
+                    : foodItemDetails.foodType === "non-veg"
+                      ? "Non Veg"
+                      : "Vegan"}
+                </span>
               </p>
               <div className="flex items-center gap-2">
                 Status:

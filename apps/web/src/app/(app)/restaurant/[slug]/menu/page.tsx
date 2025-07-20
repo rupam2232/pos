@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
 import FoodDetails from "@/components/food-details";
+import { IconSalad } from "@tabler/icons-react";
 
 const MenuPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -136,7 +137,7 @@ const MenuPage = () => {
                   <Tooltip>
                     <TooltipTrigger>
                       <div
-                        className={`border border-primary p-0.5 cursor-help bg-background/85`}
+                        className={`border border-primary p-0.5 cursor-help bg-background`}
                       >
                         <span
                           className={`${foodItem.foodType !== "veg" ? "bg-green-500" : ""} ${foodItem.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
@@ -160,14 +161,20 @@ const MenuPage = () => {
                   </Tooltip>
                 </div>
                 <div className="relative aspect-square">
-                  <Image
-                    src={foodItem.imageUrls?.[0] || "/placeholder.svg"}
-                    alt={foodItem.foodName}
-                    fill
-                    draggable={false}
-                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                    className="object-cover transition-all duration-200 group-hover:scale-101"
-                  />
+                  {foodItem.imageUrls?.length === 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                      <IconSalad className="size-8 sm:size-16" />
+                    </div>
+                  ) : (
+                    <Image
+                      src={foodItem.imageUrls?.[0] || "/placeholder.svg"}
+                      alt={foodItem.foodName}
+                      fill
+                      draggable={false}
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                      className="object-cover transition-all duration-200 group-hover:scale-101"
+                    />
+                  )}
                 </div>
                 <CardContent className="p-3">
                   <div>
