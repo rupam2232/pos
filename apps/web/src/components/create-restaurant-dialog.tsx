@@ -60,7 +60,7 @@ const CreateRestaurantDialog = ({
   const [slug, setSlug] = useState<string>("");
   const [isSlugUnqiue, setIsSlugUnique] = useState<boolean | null>(null);
   const [isCheckingSlug, setIsCheckingSlug] = useState<boolean>(false);
-  const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
+  const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const debounced = useDebounceCallback(setSlug, 300);
@@ -192,7 +192,7 @@ const CreateRestaurantDialog = ({
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0] as File;
       if (file.size > MAX_IMAGE_SIZE) {
-        setImageErrorMessage("Logo file size exceeds 3MB.");
+        setImageErrorMessage("Logo file size exceeds 1MB.");
         return;
       }
       handleImageUpload(file);
@@ -207,9 +207,9 @@ const CreateRestaurantDialog = ({
         "image/jpeg": [],
         "image/png": [],
         "image/jpg": [],
-        "image/gif": [],
       },
       multiple: false,
+      maxSize: MAX_IMAGE_SIZE,
       onDrop: onImageDrop,
     });
 

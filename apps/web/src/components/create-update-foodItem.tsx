@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -18,14 +18,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@repo/ui/components/form";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { foodItemSchema } from "@/schemas/foodItemSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@repo/ui/components/input";
 import { Textarea } from "@repo/ui/components/textarea";
 import { Button } from "@repo/ui/components/button";
-import { Check, ChevronsUpDown, Loader2, Pen } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  ImagePlusIcon,
+  Loader2,
+  Pen,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -48,6 +54,15 @@ import {
 } from "@repo/ui/components/popover";
 import { cn } from "@repo/ui/lib/utils";
 import { TagsInput } from "@repo/ui/components/tags-input";
+import { FileRejection, useDropzone } from "react-dropzone";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "@/store/store";
+import axios from "@/utils/axiosInstance";
+import { toast } from "sonner";
+import { AxiosError } from "axios";
+import { ApiResponse } from "@repo/ui/types/ApiResponse";
+import { signOut } from "@/store/authSlice";
+import { useRouter } from "next/navigation";
 
 type CreateUpdateFoodItemProps = {
   isEditing?: boolean; // Optional prop to indicate if it's for editing an existing item
@@ -63,6 +78,12 @@ const CreateUpdateFoodItem = ({
   setFormLoading, // Optional prop to set form loading state
 }: CreateUpdateFoodItemProps) => {
   const closeDialog = useRef<HTMLButtonElement>(null);
+  const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageErrorMessage, setImageErrorMessage] = useState<string>("");
+  const user = useSelector((state: RootState) => state.auth.user);
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof foodItemSchema>>({
     resolver: zodResolver(foodItemSchema),
@@ -79,6 +100,106 @@ const CreateUpdateFoodItem = ({
       variants: foodItemDetails?.variants || [],
     },
   });
+
+  const imageUrls = useWatch({
+    control: form.control,
+    name: "imageUrls",
+  });
+
+  const handleImageRemove = async () => {
+    setImageErrorMessage("");
+    if (imageUrls && imageUrls.length > 0) {
+      // If logoUrl is set, remove the image from the server
+      const mediaUrl = imageUrls;
+      form.setValue("imageUrls", undefined);
+      setImageFile(null);
+      try {
+        const response = await axios.delete("/media/restaurant-logo", {
+          data: {
+            mediaUrl,
+          },
+        });
+        if (!response.data.success) {
+          toast.error(response.data.message || "Failed to remove logo");
+        }
+      } catch (error) {
+        console.error("Error removing image:", error);
+        const axiosError = error as AxiosError<ApiResponse>;
+        toast.error(
+          axiosError.response?.data.message || "Failed to remove logo"
+        );
+        if (axiosError.response?.status === 401) {
+          dispatch(signOut());
+          router.push("/signin");
+        }
+      }
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      const response = await axios.post(
+        "/media/restaurant-logo",
+        { restaurantLogo: file },
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      form.setValue("imageUrls", response.data.data);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message || "Failed to upload image"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    }
+  };
+
+  const onImageDrop = (
+    acceptedFiles: File[],
+    rejectedFiles: FileRejection[]
+  ) => {
+    const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"];
+
+    if (
+      rejectedFiles.length > 0 ||
+      (acceptedFiles.length > 0 &&
+        (!acceptedFiles[0]?.type ||
+          !allowedImageTypes.includes(acceptedFiles[0].type)))
+    ) {
+      setImageErrorMessage("Only .jpeg, .jpg, .png files are allowed.");
+      return;
+    }
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0] as File;
+      if (file.size > MAX_IMAGE_SIZE) {
+        setImageErrorMessage("Logo file size exceeds 1MB.");
+        return;
+      }
+      handleImageUpload(file);
+      setImageFile(file);
+      setImageErrorMessage("");
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive, isDragReject } =
+    useDropzone({
+      accept: {
+        "image/jpeg": [],
+        "image/png": [],
+        "image/jpg": [],
+      },
+      multiple: true,
+      maxFiles: 5,
+      maxSize: MAX_IMAGE_SIZE,
+      onDrop: onImageDrop,
+    });
 
   const onSubmit = async (data: z.infer<typeof foodItemSchema>) => {
     console.log(data);
@@ -166,6 +287,19 @@ const CreateUpdateFoodItem = ({
     // }
   };
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (imageUrls && imageUrls.length > 0) {
+        handleImageRemove();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageUrls]);
+
   return (
     <Dialog>
       <DialogTrigger className="w-2/4" type="button">
@@ -175,7 +309,7 @@ const CreateUpdateFoodItem = ({
       <DialogContent className="sm:max-w-md">
         <ScrollArea className="overflow-y-auto max-h-[90vh]">
           <DialogHeader className="p-6">
-            <DialogTitle className="mb-4">
+            <DialogTitle className="mb-4 line-clamp-1">
               {isEditing
                 ? `Editing Food Item: ${foodItemDetails?.foodName}`
                 : "Create Food Item"}
@@ -183,6 +317,64 @@ const CreateUpdateFoodItem = ({
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="grid gap-4 mt-4">
+                  {(imageFile || imageUrls) && (
+                    <div className="group relative mx-auto rounded-full cursor-pointer">
+                      {/* <Tooltip>
+                                          <TooltipTrigger className="cursor-pointer" asChild> */}
+                      <div>
+                        {/* <Avatar className="w-30 h-30 rounded-full">
+                                                <AvatarImage
+                                                  src={
+                                                    logoUrl
+                                                      ? logoUrl
+                                                      : URL.createObjectURL(imageFile!)
+                                                  }
+                                                  alt="Restaurant Logo"
+                                                  className="object-cover"
+                                                  loading="lazy"
+                                                  draggable={false}
+                                                />
+                                              </Avatar>
+                                              <Button
+                                                type="button"
+                                                className="bg-black/50 text-primary/50 group-hover:text-primary hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
+                                                onClick={handleImageRemove}
+                                                aria-label="Remove Logo"
+                                              >
+                                                <Trash2 className="size-6 text-red-600" />
+                                              </Button> */}
+                      </div>
+                      {/* </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p className="text-sm font-semibold">
+                                              Click to remove the logo
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip> */}
+                    </div>
+                  )}
+                  <div
+                    {...getRootProps()}
+                    className={`group rounded-full w-30 h-30 mx-auto ${imageFile && "hidden"} text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
+                      isDragActive
+                        ? `${!isDragReject ? "border-green-500" : "border-red-500"} border-2`
+                        : isDragReject
+                          ? "border-red-500 border-2"
+                          : "border-zinc-500 border-dashed border"
+                    }`}
+                  >
+                    <input {...getInputProps()} name="logoUrl" />
+                    <Button
+                      type="button"
+                      className="bg-transparent hover:bg-transparent text-primary/50 group-hover:text-primary"
+                    >
+                      <ImagePlusIcon />
+                      Select Logo
+                    </Button>
+                  </div>
+                  {imageErrorMessage && (
+                    <p className="text-red-500 mb-2">{imageErrorMessage}</p>
+                  )}
                   <FormField
                     control={form.control}
                     name="foodName"
@@ -269,27 +461,30 @@ const CreateUpdateFoodItem = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel htmlFor="foodType">Food Type</FormLabel>
-                        <FormControl>
-                          <Select {...field}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
                             <SelectTrigger className="text-sm font-medium w-[180px] border-muted-foreground/70">
                               <SelectValue placeholder="Type" />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="veg">
-                                <div className="w-min border border-primary p-0.5 bg-background ml-1">
-                                  <span className="bg-green-500 w-1.5 h-1.5 block rounded-full"></span>
-                                </div>
-                                Veg
-                              </SelectItem>
-                              <SelectItem value="non-veg">
-                                <div className="w-min border border-primary p-0.5 bg-background ml-1">
-                                  <span className="bg-red-500 w-1.5 h-1.5 block rounded-full"></span>
-                                </div>
-                                Non Veg
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="veg">
+                              <div className="w-min border border-primary p-0.5 bg-background ml-1">
+                                <span className="bg-green-500 w-1.5 h-1.5 block rounded-full"></span>
+                              </div>
+                              Veg
+                            </SelectItem>
+                            <SelectItem value="non-veg">
+                              <div className="w-min border border-primary p-0.5 bg-background ml-1">
+                                <span className="bg-red-500 w-1.5 h-1.5 block rounded-full"></span>
+                              </div>
+                              Non Veg
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                         <FormDescription>
                           Type of food (e.g., &quot;veg&quot; or &quot;non
@@ -422,15 +617,19 @@ const CreateUpdateFoodItem = ({
                           <TagsInput
                             id="tags"
                             value={field.value}
-                            onChange={field.onChange}
-                            placeholder="E.g., Cheese pizza with fresh toppings"
+                            onValueChange={field.onChange}
+                            placeholder={
+                              field.value && field.value?.length > 0
+                                ? "Add another tag"
+                                : "E.g., spicy, vegetarian"
+                            }
                             className="resize-none pb-4 whitespace-pre-wrap break-all"
-                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
                         <FormDescription>
-                          Optional description for the food item.
+                          Optional description for the food item. After adding a
+                          tag, press Enter to add another tag.
                         </FormDescription>
                       </FormItem>
                     )}

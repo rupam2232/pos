@@ -18,7 +18,7 @@ const SPLITTER_REGEX = /[\n#?=&\t,./-]+/;
 const FORMATTING_REGEX = /^[^a-zA-Z0-9]*|[^a-zA-Z0-9]*$/g;
 
 interface TagsInputProps extends React.HTMLAttributes<HTMLDivElement> {
-  value: string[];
+  value: string[] | undefined;
   onValueChange: (value: string[]) => void;
   placeholder?: string;
   maxItems?: number;
@@ -26,7 +26,7 @@ interface TagsInputProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 interface TagsInputContextProps {
-  value: string[];
+  value: string[] | undefined;
   onValueChange: (value: string[]) => void;
   inputValue: string;
   setInputValue: React.Dispatch<React.SetStateAction<string>>;
@@ -46,6 +46,7 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
       minItems,
       className,
       dir,
+      id,
       ...props
     },
     ref
@@ -56,13 +57,14 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
     const [disableButton, setDisableButton] = React.useState(false);
     const [isValueSelected, setIsValueSelected] = React.useState(false);
     const [selectedValue, setSelectedValue] = React.useState("");
+    const inputRef = React.useRef<HTMLInputElement>(null);
 
     const parseMinItems = minItems ?? 0;
     const parseMaxItems = maxItems ?? Infinity;
 
     const onValueChangeHandler = React.useCallback(
       (val: string) => {
-        if (!value.includes(val) && value.length < parseMaxItems) {
+        if (value && !value.includes(val) && value.length < parseMaxItems) {
           onValueChange([...value, val]);
         }
       },
@@ -71,7 +73,7 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
 
     const RemoveValue = React.useCallback(
       (val: string) => {
-        if (value.includes(val) && value.length > parseMinItems) {
+        if (value && value.includes(val) && value.length > parseMinItems) {
           onValueChange(value.filter((item) => item !== val));
         }
       },
@@ -82,7 +84,7 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
         e.preventDefault();
         const tags = e.clipboardData.getData("text").split(SPLITTER_REGEX);
-        const newValue = [...value];
+        const newValue = value ? [...value] : [];
         tags.forEach((item) => {
           const parsedItem = item.replaceAll(FORMATTING_REGEX, "").trim();
           if (
@@ -117,12 +119,12 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
 
     React.useEffect(() => {
       const VerifyDisable = () => {
-        if (value.length - 1 >= parseMinItems) {
+        if (value && value.length - 1 >= parseMinItems) {
           setDisableButton(false);
         } else {
           setDisableButton(true);
         }
-        if (value.length + 1 <= parseMaxItems) {
+        if (value && value.length + 1 <= parseMaxItems) {
           setDisableInput(false);
         } else {
           setDisableInput(true);
@@ -145,19 +147,19 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
 
         const moveNext = () => {
           const nextIndex =
-            activeIndex + 1 > value.length - 1 ? -1 : activeIndex + 1;
+            value && activeIndex + 1 > value.length - 1 ? -1 : activeIndex + 1;
           setActiveIndex(nextIndex);
         };
 
         const movePrev = () => {
           const prevIndex =
-            activeIndex - 1 < 0 ? value.length - 1 : activeIndex - 1;
+            value && activeIndex - 1 < 0 ? value.length - 1 : activeIndex - 1;
           setActiveIndex(prevIndex);
         };
 
         const moveCurrent = () => {
           const newIndex =
-            activeIndex - 1 <= 0
+            value && activeIndex - 1 <= 0
               ? value.length - 1 === 0
                 ? -1
                 : 0
@@ -171,11 +173,11 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
         switch (e.key) {
           case "ArrowLeft":
             if (dir === "rtl") {
-              if (value.length > 0 && activeIndex !== -1) {
+              if (value && value.length > 0 && activeIndex !== -1) {
                 moveNext();
               }
             } else {
-              if (value.length > 0 && target.selectionStart === 0) {
+              if (value && value.length > 0 && target.selectionStart === 0) {
                 movePrev();
               }
             }
@@ -183,11 +185,11 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
 
           case "ArrowRight":
             if (dir === "rtl") {
-              if (value.length > 0 && target.selectionStart === 0) {
+              if (value && value.length > 0 && target.selectionStart === 0) {
                 movePrev();
               }
             } else {
-              if (value.length > 0 && activeIndex !== -1) {
+              if (value && value.length > 0 && activeIndex !== -1) {
                 moveNext();
               }
             }
@@ -210,7 +212,7 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
             break;
 
           case "Escape": {
-            const newIndex = activeIndex === -1 ? value.length - 1 : -1;
+            const newIndex = value && activeIndex === -1 ? value.length - 1 : -1;
             setActiveIndex(newIndex);
             break;
           }
@@ -262,15 +264,21 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
           {...props}
           ref={ref}
           dir={dir}
+          onClick={() => {
+            if (inputRef.current) {
+              inputRef.current.focus();
+            }
+          }}
           className={cn(
-            "flex items-center flex-wrap gap-1 p-1 rounded-lg bg-background overflow-hidden   ring-1 ring-muted  ",
+            "flex items-center flex-wrap gap-1 px-2 py-1 rounded-lg bg-background overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-ring",
+            "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
             {
-              "focus-within:ring-ring": activeIndex === -1,
+              "focus-within:ring-foreground": activeIndex === -1,
             },
             className
           )}
         >
-          {value.map((item, index) => (
+          {value && value.map((item, index) => (
             <Badge
               tabIndex={activeIndex !== -1 ? 0 : activeIndex}
               key={item}
@@ -298,6 +306,10 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
           ))}
           <Input
             tabIndex={0}
+            ref={inputRef}
+            id={id}
+            autoComplete="off"
+            type="text"
             aria-label="input tag"
             disabled={disableInput}
             onKeyDown={handleKeyDown}

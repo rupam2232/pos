@@ -77,6 +77,14 @@ export const createFoodItem = asyncHandler(async (req, res) => {
     throw new ApiError(400, "You can only create a maximum of 6 food variants");
   }
 
+  if (tags && !Array.isArray(tags)) {
+    throw new ApiError(400, "Tags must be an array");
+  }
+
+  if (tags && tags.length > 15) {
+    throw new ApiError(400, "You can only have a maximum of 15 tags");
+  }
+
   // Usage for tags
   if (tags && tags.length > 0 && hasDuplicates(tags)) {
     throw new ApiError(400, "all Tags must be unique.");
@@ -450,6 +458,14 @@ export const updateFoodItem = asyncHandler(async (req, res) => {
 
   if (hasVariants && variants.length > 6) {
     throw new ApiError(400, "You can only create a maximum of 6 food variants");
+  }
+
+  if (tags && !Array.isArray(tags)) {
+    throw new ApiError(400, "Tags must be an array");
+  }
+
+  if (tags && tags.length > 15) {
+    throw new ApiError(400, "You can only have a maximum of 15 tags");
   }
 
   // Usage for tags
