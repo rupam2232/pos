@@ -116,7 +116,7 @@ const FoodDetails = ({
     carouselApi.on("select", () => {
       setCarouselCurrent(carouselApi.selectedScrollSnap() + 1);
     });
-  }, [carouselApi]);
+  }, [carouselApi, foodItemDetails]);
 
 
   const toggleAvailableStatus = async () => {
@@ -557,7 +557,7 @@ const FoodDetails = ({
                 </Button>
               </SheetClose>
               {user?.role === "owner" && (
-                <CreateUpdateFoodItem isEditing={true} foodItemDetails={foodItemDetails} formLoading={formLoading} setFormLoading={setFormLoading} />
+                <CreateUpdateFoodItem isEditing={true} foodItemDetails={foodItemDetails} formLoading={formLoading} setFormLoading={setFormLoading} restaurantSlug={restaurantSlug} setFoodItemDetails={setFoodItemDetails} setAllFoodItems={setAllFoodItems} />
               )}
             </SheetFooter>
           )}

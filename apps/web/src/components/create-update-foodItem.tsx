@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "@repo/ui/components/dialog";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
-import type { FoodItemDetails } from "@repo/ui/types/FoodItem";
+import type { FoodItemDetails, AllFoodItems } from "@repo/ui/types/FoodItem";
 import {
   Form,
   FormControl,
@@ -31,6 +31,7 @@ import {
   ImagePlusIcon,
   Loader2,
   Pen,
+  Trash2,
 } from "lucide-react";
 import {
   Select,
@@ -63,12 +64,18 @@ import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 type CreateUpdateFoodItemProps = {
   isEditing?: boolean; // Optional prop to indicate if it's for editing an existing item
   foodItemDetails?: FoodItemDetails | null; // Optional prop to pass food item details when editing
-  formLoading?: boolean; // Optional prop to control form loading state
-  setFormLoading?: React.Dispatch<React.SetStateAction<boolean>>; // Optional prop to set form loading state
+  formLoading: boolean; // Optional prop to control form loading state
+  setFormLoading: React.Dispatch<React.SetStateAction<boolean>>; // Optional prop to set form loading state
+  restaurantSlug: string; // Required prop to identify the restaurant
+  setFoodItemDetails?: React.Dispatch<
+    React.SetStateAction<FoodItemDetails | null>
+  >; // Optional prop to update food item details after creation or update
+  setAllFoodItems: React.Dispatch<React.SetStateAction<AllFoodItems | null>>; // Optional prop to update all food items after creation or update
 };
 
 const CreateUpdateFoodItem = ({
@@ -76,11 +83,15 @@ const CreateUpdateFoodItem = ({
   foodItemDetails,
   formLoading = false, // Optional prop to control form loading state
   setFormLoading, // Optional prop to set form loading state
+  restaurantSlug,
+  setFoodItemDetails, // Optional prop to update food item details after creation or update
+  setAllFoodItems, // Optional prop to update all food items after creation or update
 }: CreateUpdateFoodItemProps) => {
   const closeDialog = useRef<HTMLButtonElement>(null);
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[] | null>(null);
   const [imageErrorMessage, setImageErrorMessage] = useState<string>("");
+  const [tempImages, setTempImages] = useState<string[]>([]);
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -106,28 +117,47 @@ const CreateUpdateFoodItem = ({
     name: "imageUrls",
   });
 
-  const handleImageRemove = async () => {
+  const handleImageRemove = async (url: string) => {
     setImageErrorMessage("");
     if (imageUrls && imageUrls.length > 0) {
-      // If logoUrl is set, remove the image from the server
-      const mediaUrl = imageUrls;
-      form.setValue("imageUrls", undefined);
-      setImageFile(null);
+      if (!imageUrls.includes(url) && !tempImages.includes(url)) {
+        toast.error("Image not found in the list");
+        return;
+      }
+      // If imageUrls is set, remove the image from the server
+      const tempImageUrls = imageUrls;
+      const tempImageFiles = imageFiles;
+      form.setValue(
+        "imageUrls",
+        imageUrls.filter((u) => u !== url)
+      );
+      setImageFiles((prev) =>
+        prev ? prev.filter((file) => file.name !== url) : null
+      );
       try {
-        const response = await axios.delete("/media/restaurant-logo", {
+        const response = await axios.delete("/media/food-item", {
           data: {
-            mediaUrl,
+            mediaUrl: url,
+            foodItemId:
+              isEditing &&
+              foodItemDetails?.imageUrls?.includes(url) &&
+              foodItemDetails?._id
+                ? foodItemDetails._id
+                : undefined,
           },
         });
         if (!response.data.success) {
-          toast.error(response.data.message || "Failed to remove logo");
+          toast.error(response.data.message || "Failed to remove image");
         }
+        setTempImages((prev) => prev.filter((img) => img !== url));
       } catch (error) {
         console.error("Error removing image:", error);
         const axiosError = error as AxiosError<ApiResponse>;
         toast.error(
-          axiosError.response?.data.message || "Failed to remove logo"
+          axiosError.response?.data.message || "Failed to remove image"
         );
+        form.setValue("imageUrls", tempImageUrls);
+        setImageFiles(tempImageFiles);
         if (axiosError.response?.status === 401) {
           dispatch(signOut());
           router.push("/signin");
@@ -136,23 +166,29 @@ const CreateUpdateFoodItem = ({
     }
   };
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (files: File[]) => {
     try {
-      const response = await axios.post(
-        "/media/restaurant-logo",
-        { restaurantLogo: file },
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-      form.setValue("imageUrls", response.data.data);
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append("foodItemImages", file);
+      });
+      // if (isEditing && foodItemDetails?._id) {
+      //   formData.append("foodItemId", foodItemDetails._id);
+      // }
+      const response = await axios.post("/media/food-item", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      form.setValue("imageUrls", [...(imageUrls ?? []), ...response.data.data]);
+      setTempImages((prev) => [...prev, ...response.data.data]);
+      setImageFiles(null);
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error uploading images:", error);
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
-        axiosError.response?.data.message || "Failed to upload image"
+        axiosError.response?.data.message || "Failed to upload images"
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
@@ -168,22 +204,43 @@ const CreateUpdateFoodItem = ({
     const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"];
 
     if (
+      rejectedFiles.length > 0 &&
+      rejectedFiles[0]?.errors[0]?.code === "file-too-large"
+    ) {
+      setImageErrorMessage("One or more files exceed the 1MB size limit");
+      return;
+    }
+
+    if (!user || user.role !== "owner") {
+      toast.error("You do not have permission to upload images");
+      return;
+    }
+
+    if (
       rejectedFiles.length > 0 ||
       (acceptedFiles.length > 0 &&
-        (!acceptedFiles[0]?.type ||
-          !allowedImageTypes.includes(acceptedFiles[0].type)))
+        acceptedFiles.some(
+          (file) => !file.type || !allowedImageTypes.includes(file.type)
+        ))
     ) {
-      setImageErrorMessage("Only .jpeg, .jpg, .png files are allowed.");
+      setImageErrorMessage("Only .jpeg, .jpg, .png files are allowed");
       return;
     }
     if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0] as File;
-      if (file.size > MAX_IMAGE_SIZE) {
-        setImageErrorMessage("Logo file size exceeds 1MB.");
+      if (acceptedFiles.length > 5) {
+        setImageErrorMessage("You can only upload up to 5 images");
         return;
       }
-      handleImageUpload(file);
-      setImageFile(file);
+      if (acceptedFiles.some((file) => file.size > MAX_IMAGE_SIZE)) {
+        setImageErrorMessage("One or more files exceed the 1MB size limit");
+        return;
+      }
+      if (imageUrls && imageUrls.length + acceptedFiles.length > 5) {
+        setImageErrorMessage("You can only upload a maximum of 5 images");
+        return;
+      }
+      handleImageUpload(acceptedFiles);
+      setImageFiles(acceptedFiles);
       setImageErrorMessage("");
     }
   };
@@ -204,93 +261,73 @@ const CreateUpdateFoodItem = ({
   const onSubmit = async (data: z.infer<typeof foodItemSchema>) => {
     console.log(data);
     setFormLoading?.(false); // Set form loading state if provided
-    //   if (isLoading || formLoading) return; // Prevent multiple submissions
-    //   if (!user || user.role !== "owner") {
-    //     toast.error("You do not have permission to edit tables");
-    //     return;
-    //   }
-    // if (
-    //   form.getValues("tableName") === table.tableName &&
-    //   form.getValues("seatCount") === table.seatCount
-    // ) {
-    //   toast.error(
-    //     "No changes detected. Please modify the table details before submitting"
-    //   );
-    //   return;
-    // }
-    // try {
-    //   setFormLoading(true);
-    //   const response = await axios.patch(
-    //     `/table/${restaurantSlug}/${table.qrSlug}`,
-    //     data
-    //   );
-    //   if (
-    //     !response.data.success ||
-    //     !response.data.data.table ||
-    //     !response.data.data.table.tableName ||
-    //     response.data.data.table.seatCount === undefined
-    //   ) {
-    //     toast.error(response.data.message || "Failed to create restaurant");
-    //     return;
-    //   }
-    //   setTableDetails((prev) => {
-    //     if (!prev) return prev;
-    //     return {
-    //       ...prev,
-    //       tableName: response.data.data.table.tableName,
-    //       seatCount: response.data.data.table.seatCount,
-    //       qrSlug: response.data.data.table.qrSlug ?? prev.qrSlug,
-    //       isOccupied: response.data.data.table.isOccupied ?? prev.isOccupied,
-    //     };
-    //   });
-    //   setIsEditing(false);
-    //   setAllTables((prev) => {
-    //     if (!prev) return prev; // If allTables is null, return it
-    //     return {
-    //       ...prev,
-    //       tables: prev.tables.map((t) =>
-    //         t.qrSlug === table.qrSlug
-    //           ? {
-    //               ...t,
-    //               tableName: response.data.data.table.tableName,
-    //               seatCount: response.data.data.table.seatCount,
-    //               qrSlug: response.data.data.table.qrSlug ?? t.qrSlug,
-    //               isOccupied:
-    //                 response.data.data.table.isOccupied ?? t.isOccupied,
-    //             }
-    //           : t
-    //       ),
-    //       totalCount: response.data.data.totalCount ?? prev.totalCount,
-    //       occupiedTables:
-    //         response.data.data.occupiedTables ?? prev.occupiedTables,
-    //       availableTables:
-    //         response.data.data.availableTables ?? prev.availableTables,
-    //     };
-    //   });
-    //   toast.success(response.data.message || "Table updated successfully!");
-    // } catch (error) {
-    //   const axiosError = error as AxiosError<ApiResponse>;
-    //   toast.error(
-    //     axiosError.response?.data.message ||
-    //       "An error occurred during table update"
-    //   );
-    //   console.error(
-    //     axiosError.response?.data.message ||
-    //       "An error occurred during table update"
-    //   );
-    //   if (axiosError.response?.status === 401) {
-    //     dispatch(signOut());
-    //     router.push("/signin");
-    //   }
-    // } finally {
-    //   setFormLoading(false);
-    // }
+    if (formLoading) return; // Prevent multiple submissions
+    if (!user || user.role !== "owner") {
+      toast.error("You do not have permission to edit food items");
+      return;
+    }
+    try {
+      setFormLoading(true);
+      const response = await axios.patch(
+        `/food-item/${restaurantSlug}/${foodItemDetails?._id}`,
+        data
+      );
+      if (!response.data.success) {
+        toast.error(response.data.message || "Failed to update food item");
+        return;
+      }
+      if (setFoodItemDetails) {
+        setFoodItemDetails((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ...response.data.data,
+          };
+        });
+      }
+
+      setAllFoodItems((prev) => {
+        if (!prev) return prev; // If allFoodItems is null, return it
+        return {
+          ...prev,
+          foodItems: prev.foodItems.map((item) =>
+            item._id === foodItemDetails?._id
+              ? { ...item, ...response.data.data }
+              : item
+          ),
+        };
+      });
+      setTempImages([]);
+
+      if (closeDialog.current) {
+        closeDialog.current.click(); // Close the dialog if the ref is set
+      }
+
+      toast.success(response.data.message || "Food item updated successfully!");
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "An error occurred during food item update"
+      );
+      console.error(
+        axiosError.response?.data.message ||
+          "An error occurred during food item update"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (imageUrls && imageUrls.length > 0) {
-        handleImageRemove();
+      if (tempImages && tempImages.length > 0) {
+        // If there are images, remove them before leaving the page
+        tempImages.forEach((url) => handleImageRemove(url));
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -301,13 +338,19 @@ const CreateUpdateFoodItem = ({
   }, [imageUrls]);
 
   return (
-    <Dialog>
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open && tempImages && tempImages.length > 0) {
+          tempImages.forEach((url) => handleImageRemove(url));
+        }
+      }}
+    >
       <DialogTrigger className="w-2/4" type="button">
         <Pen />
         Edit
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <ScrollArea className="overflow-y-auto max-h-[90vh]">
+        <ScrollArea className="max-h-[90vh]">
           <DialogHeader className="p-6">
             <DialogTitle className="mb-4 line-clamp-1">
               {isEditing
@@ -317,45 +360,9 @@ const CreateUpdateFoodItem = ({
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="grid gap-4 mt-4">
-                  {(imageFile || imageUrls) && (
-                    <div className="group relative mx-auto rounded-full cursor-pointer">
-                      {/* <Tooltip>
-                                          <TooltipTrigger className="cursor-pointer" asChild> */}
-                      <div>
-                        {/* <Avatar className="w-30 h-30 rounded-full">
-                                                <AvatarImage
-                                                  src={
-                                                    logoUrl
-                                                      ? logoUrl
-                                                      : URL.createObjectURL(imageFile!)
-                                                  }
-                                                  alt="Restaurant Logo"
-                                                  className="object-cover"
-                                                  loading="lazy"
-                                                  draggable={false}
-                                                />
-                                              </Avatar>
-                                              <Button
-                                                type="button"
-                                                className="bg-black/50 text-primary/50 group-hover:text-primary hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
-                                                onClick={handleImageRemove}
-                                                aria-label="Remove Logo"
-                                              >
-                                                <Trash2 className="size-6 text-red-600" />
-                                              </Button> */}
-                      </div>
-                      {/* </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p className="text-sm font-semibold">
-                                              Click to remove the logo
-                                            </p>
-                                          </TooltipContent>
-                                        </Tooltip> */}
-                    </div>
-                  )}
                   <div
                     {...getRootProps()}
-                    className={`group rounded-full w-30 h-30 mx-auto ${imageFile && "hidden"} text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
+                    className={`group aspect-square rounded-xl mx-auto text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
                       isDragActive
                         ? `${!isDragReject ? "border-green-500" : "border-red-500"} border-2`
                         : isDragReject
@@ -369,11 +376,96 @@ const CreateUpdateFoodItem = ({
                       className="bg-transparent hover:bg-transparent text-primary/50 group-hover:text-primary"
                     >
                       <ImagePlusIcon />
-                      Select Logo
+                      Select Images
                     </Button>
                   </div>
                   {imageErrorMessage && (
                     <p className="text-red-500 mb-2">{imageErrorMessage}</p>
+                  )}
+                  {((imageFiles && imageFiles.length > 0) ||
+                    (imageUrls && imageUrls.length > 0)) && (
+                    <div className="group relative w-full rounded-full h-20">
+                      <div className="flex flex-wrap gap-2">
+                        {imageFiles && imageFiles.length > 0 ? (
+                          <>
+                            {isEditing &&
+                              imageUrls &&
+                              imageUrls.length > 0 &&
+                              imageUrls.map((url, index) => (
+                                <div
+                                  key={index}
+                                  className="aspect-square w-20 relative"
+                                >
+                                  <Image
+                                    src={url}
+                                    fill
+                                    alt={`Food Item Image ${index + 1}`}
+                                    className="rounded-xl object-cover static"
+                                  />
+                                  <Button
+                                    type="button"
+                                    className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
+                                    onClick={() => handleImageRemove(url)}
+                                  >
+                                    <Trash2 className="w-4 h-4 p-0" />
+                                  </Button>
+                                </div>
+                              ))}
+                            {imageFiles.map((file, index) => (
+                              <div
+                                key={index}
+                                className="aspect-square w-20 relative"
+                              >
+                                <Image
+                                  src={URL.createObjectURL(file)}
+                                  fill
+                                  alt={`Food Item Image ${index + 1}`}
+                                  className="rounded-xl object-cover static"
+                                />
+                                <Button
+                                  type="button"
+                                  className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
+                                  onClick={() =>
+                                    setImageFiles((prev) =>
+                                      prev
+                                        ? prev.filter(
+                                            (f) => f.name !== file.name
+                                          )
+                                        : null
+                                    )
+                                  }
+                                >
+                                  <Trash2 className="w-4 h-4 p-0" />
+                                </Button>
+                              </div>
+                            ))}
+                          </>
+                        ) : (
+                          imageUrls &&
+                          imageUrls.length > 0 &&
+                          imageUrls.map((url, index) => (
+                            <div
+                              key={index}
+                              className="aspect-square w-20 relative"
+                            >
+                              <Image
+                                src={url}
+                                fill
+                                alt={`Food Item Image ${index + 1}`}
+                                className="rounded-xl object-cover static"
+                              />
+                              <Button
+                                type="button"
+                                className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
+                                onClick={() => handleImageRemove(url)}
+                              >
+                                <Trash2 className="w-4 h-4 p-0" />
+                              </Button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   )}
                   <FormField
                     control={form.control}
@@ -592,7 +684,7 @@ const CreateUpdateFoodItem = ({
                               id="description"
                               placeholder="E.g., Cheese pizza with fresh toppings"
                               autoComplete="on"
-                              className="resize-none pb-4 whitespace-pre-wrap break-all"
+                              className="resize-none pb-4 whitespace-pre-wrap"
                               {...field}
                             />
                           </FormControl>

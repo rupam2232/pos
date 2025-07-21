@@ -47,7 +47,7 @@ router
   .post(
     isProduction ? foodItemImageLimit : (req, res, next) => next(),
     verifyAuth,
-    upload.array("foodItemImages"),
+    upload.array("foodItemImages", 5),
     foodItemImageUpload
   )
   .delete(verifyAuth, deleteFoodItemImage);
