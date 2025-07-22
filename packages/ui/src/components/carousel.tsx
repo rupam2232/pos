@@ -132,8 +132,24 @@ function Carousel({
   )
 }
 
-function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
-  const { carouselRef, orientation } = useCarousel()
+function CarouselContent({ className, setCarouselCount, setCarouselCurrent, ...props }: {
+  className?: string
+  setCarouselCount?: (count: number) => void
+  setCarouselCurrent?: (current: number) => void
+} & React.ComponentProps<"div">) {
+  const { carouselRef, orientation, api } = useCarousel()
+  const scrollSnapList = api?.scrollSnapList()
+  const selectedScrollSnap = api?.selectedScrollSnap()
+
+  React.useEffect(() => {
+    if (!api || !setCarouselCount || !setCarouselCurrent) return
+    if (scrollSnapList) {
+      setCarouselCount(scrollSnapList.length)
+    }
+    if (selectedScrollSnap !== undefined) {
+      setCarouselCurrent(selectedScrollSnap + 1)
+    }
+  }, [api, scrollSnapList, scrollSnapList?.length, setCarouselCount, setCarouselCurrent, selectedScrollSnap])
 
   return (
     <div

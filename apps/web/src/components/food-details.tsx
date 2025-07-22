@@ -106,7 +106,6 @@ const FoodDetails = ({
     }
   }, [dispatch, restaurantSlug, router, foodItem]);
 
-
   useEffect(() => {
     if (!carouselApi) {
       return;
@@ -116,8 +115,7 @@ const FoodDetails = ({
     carouselApi.on("select", () => {
       setCarouselCurrent(carouselApi.selectedScrollSnap() + 1);
     });
-  }, [carouselApi, foodItemDetails]);
-
+  }, [carouselApi]);
 
   const toggleAvailableStatus = async () => {
     if (!foodItemDetails) return;
@@ -300,7 +298,7 @@ const FoodDetails = ({
                   setApi={setCarouselApi}
                   className="rounded-xl w-full max-w-xs mx-auto"
                 >
-                  <CarouselContent className="aspect-square ml-0">
+                  <CarouselContent setCarouselCount={setCarouselCount} setCarouselCurrent={setCarouselCurrent} className="aspect-square ml-0">
                     {foodItemDetails.imageUrls &&
                     foodItemDetails.imageUrls.length > 0 ? (
                       foodItemDetails.imageUrls.map((url, index) => (

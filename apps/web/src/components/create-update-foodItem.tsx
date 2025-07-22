@@ -65,6 +65,17 @@ import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
 
 type CreateUpdateFoodItemProps = {
   isEditing?: boolean; // Optional prop to indicate if it's for editing an existing item
@@ -91,7 +102,7 @@ const CreateUpdateFoodItem = ({
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
   const [imageFiles, setImageFiles] = useState<File[] | null>(null);
   const [imageErrorMessage, setImageErrorMessage] = useState<string>("");
-  const [tempImages, setTempImages] = useState<string[]>([]);
+  const [tempImages, setTempImages] = useState<string[]>([]);const [pendingImageOperations, setPendingImageOperations] = useState<Promise<void>[]>([]);
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -118,6 +129,7 @@ const CreateUpdateFoodItem = ({
   });
 
   const handleImageRemove = async (url: string) => {
+    
     setImageErrorMessage("");
     if (imageUrls && imageUrls.length > 0) {
       if (!imageUrls.includes(url) && !tempImages.includes(url)) {
@@ -150,6 +162,15 @@ const CreateUpdateFoodItem = ({
           toast.error(response.data.message || "Failed to remove image");
         }
         setTempImages((prev) => prev.filter((img) => img !== url));
+        if (isEditing && setFoodItemDetails) {
+          setFoodItemDetails((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              imageUrls: prev.imageUrls?.filter((img) => img !== url),
+            };
+          });
+        }
       } catch (error) {
         console.error("Error removing image:", error);
         const axiosError = error as AxiosError<ApiResponse>;
@@ -167,6 +188,7 @@ const CreateUpdateFoodItem = ({
   };
 
   const handleImageUpload = async (files: File[]) => {
+      const uploadPromise = new Promise<void>(async (resolve, reject) => {
     try {
       const formData = new FormData();
       files.forEach((file) => {
@@ -184,6 +206,7 @@ const CreateUpdateFoodItem = ({
       form.setValue("imageUrls", [...(imageUrls ?? []), ...response.data.data]);
       setTempImages((prev) => [...prev, ...response.data.data]);
       setImageFiles(null);
+      resolve();
     } catch (error) {
       console.error("Error uploading images:", error);
       const axiosError = error as AxiosError<ApiResponse>;
@@ -194,7 +217,11 @@ const CreateUpdateFoodItem = ({
         dispatch(signOut());
         router.push("/signin");
       }
+      reject(error);
     }
+  });
+
+  setPendingImageOperations((prev) => [...prev, uploadPromise]);
   };
 
   const onImageDrop = (
@@ -259,7 +286,6 @@ const CreateUpdateFoodItem = ({
     });
 
   const onSubmit = async (data: z.infer<typeof foodItemSchema>) => {
-    console.log(data);
     setFormLoading?.(false); // Set form loading state if provided
     if (formLoading) return; // Prevent multiple submissions
     if (!user || user.role !== "owner") {
@@ -402,13 +428,40 @@ const CreateUpdateFoodItem = ({
                                     alt={`Food Item Image ${index + 1}`}
                                     className="rounded-xl object-cover static"
                                   />
-                                  <Button
-                                    type="button"
-                                    className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
-                                    onClick={() => handleImageRemove(url)}
-                                  >
-                                    <Trash2 className="w-4 h-4 p-0" />
-                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
+                                      >
+                                        <Trash2 className="w-4 h-4 p-0" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Are you absolutely sure?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This action cannot be undone. This
+                                          will permanently delete the image from
+                                          the server. Even if you don&apos;t
+                                          submit this form.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          className="bg-red-500 hover:bg-red-600 text-white"
+                                          onClick={() => handleImageRemove(url)}
+                                        >
+                                          Continue
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
                                 </div>
                               ))}
                             {imageFiles.map((file, index) => (
@@ -454,13 +507,50 @@ const CreateUpdateFoodItem = ({
                                 alt={`Food Item Image ${index + 1}`}
                                 className="rounded-xl object-cover static"
                               />
-                              <Button
-                                type="button"
-                                className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
-                                onClick={() => handleImageRemove(url)}
-                              >
-                                <Trash2 className="w-4 h-4 p-0" />
-                              </Button>
+                              {foodItemDetails?.imageUrls?.includes(url) ? (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-4 h-4 p-0" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Are you absolutely sure?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This action cannot be undone. This will
+                                        permanently delete the image from the
+                                        server. Even if you don&apos;t submit
+                                        this form.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-red-500 hover:bg-red-600 text-white"
+                                        onClick={() => handleImageRemove(url)}
+                                      >
+                                        Continue
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
+                                  onClick={() => handleImageRemove(url)}
+                                >
+                                  <Trash2 className="w-4 h-4 p-0" />
+                                </Button>
+                              )}
                             </div>
                           ))
                         )}
