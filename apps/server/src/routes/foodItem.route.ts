@@ -31,7 +31,7 @@ router
   .post(
     isProduction ? limit : (req, res, next) => next(),
     verifyAuth,
-    isSubscriptionActive,
+    isProduction ? isSubscriptionActive : (req, res, next) => next(),
     createFoodItem
   )
   .get(getAllFoodItemsOfRestaurant);

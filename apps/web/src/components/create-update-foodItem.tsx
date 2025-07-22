@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@repo/ui/components/dialog";
-import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 import type { FoodItemDetails, AllFoodItems } from "@repo/ui/types/FoodItem";
 import {
   Form,
@@ -102,7 +102,10 @@ const CreateUpdateFoodItem = ({
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
   const [imageFiles, setImageFiles] = useState<File[] | null>(null);
   const [imageErrorMessage, setImageErrorMessage] = useState<string>("");
-  const [tempImages, setTempImages] = useState<string[]>([]);const [pendingImageOperations, setPendingImageOperations] = useState<Promise<void>[]>([]);
+  const [tempImages, setTempImages] = useState<string[]>([]);
+  const [pendingImageOperations, setPendingImageOperations] = useState<
+    Promise<void>[]
+  >([]);
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -111,7 +114,7 @@ const CreateUpdateFoodItem = ({
     resolver: zodResolver(foodItemSchema),
     defaultValues: {
       foodName: foodItemDetails?.foodName || "",
-      price: foodItemDetails?.price || 0,
+      price: foodItemDetails?.price || undefined,
       discountedPrice: foodItemDetails?.discountedPrice || undefined,
       category: foodItemDetails?.category || undefined,
       foodType: foodItemDetails?.foodType || "veg",
@@ -128,101 +131,147 @@ const CreateUpdateFoodItem = ({
     name: "imageUrls",
   });
 
-  const handleImageRemove = async (url: string) => {
-    
-    setImageErrorMessage("");
-    if (imageUrls && imageUrls.length > 0) {
-      if (!imageUrls.includes(url) && !tempImages.includes(url)) {
-        toast.error("Image not found in the list");
+  const imageUrlsRef = useRef<string[]>(imageUrls || []);
+
+  useEffect(() => {
+    imageUrlsRef.current = imageUrls || [];
+  }, [imageUrls]);
+
+  const handleImageRemove = useCallback(
+    async (url: string) => {
+      if (!imageUrls || imageUrls.length === 0) {
+        toast.error("No images to remove");
         return;
       }
-      // If imageUrls is set, remove the image from the server
-      const tempImageUrls = imageUrls;
-      const tempImageFiles = imageFiles;
-      form.setValue(
-        "imageUrls",
-        imageUrls.filter((u) => u !== url)
-      );
-      setImageFiles((prev) =>
-        prev ? prev.filter((file) => file.name !== url) : null
-      );
-      try {
-        const response = await axios.delete("/media/food-item", {
-          data: {
-            mediaUrl: url,
-            foodItemId:
-              isEditing &&
-              foodItemDetails?.imageUrls?.includes(url) &&
-              foodItemDetails?._id
-                ? foodItemDetails._id
-                : undefined,
-          },
-        });
-        if (!response.data.success) {
-          toast.error(response.data.message || "Failed to remove image");
-        }
-        setTempImages((prev) => prev.filter((img) => img !== url));
-        if (isEditing && setFoodItemDetails) {
-          setFoodItemDetails((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              imageUrls: prev.imageUrls?.filter((img) => img !== url),
-            };
-          });
-        }
-      } catch (error) {
-        console.error("Error removing image:", error);
-        const axiosError = error as AxiosError<ApiResponse>;
-        toast.error(
-          axiosError.response?.data.message || "Failed to remove image"
-        );
-        form.setValue("imageUrls", tempImageUrls);
-        setImageFiles(tempImageFiles);
-        if (axiosError.response?.status === 401) {
-          dispatch(signOut());
-          router.push("/signin");
-        }
-      }
-    }
-  };
-
-  const handleImageUpload = async (files: File[]) => {
-      const uploadPromise = new Promise<void>(async (resolve, reject) => {
-    try {
-      const formData = new FormData();
-      files.forEach((file) => {
-        formData.append("foodItemImages", file);
-      });
-      // if (isEditing && foodItemDetails?._id) {
-      //   formData.append("foodItemId", foodItemDetails._id);
-      // }
-      const response = await axios.post("/media/food-item", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      const removePromise = new Promise<void>((resolve, reject) => {
+        (async () => {
+          setImageErrorMessage("");
+          if (!imageUrls.includes(url) && !tempImages.includes(url)) {
+            toast.error("Image not found in the list");
+            resolve();
+            return;
+          }
+          const tempImageUrls = imageUrls;
+          const tempImageFiles = imageFiles;
+          try {
+            form.setValue(
+              "imageUrls",
+              imageUrls.filter((u) => u !== url)
+            );
+            setImageFiles((prev) =>
+              prev ? prev.filter((file) => file.name !== url) : null
+            );
+            await Promise.all(pendingImageOperations);
+            const response = await axios.delete("/media/food-item", {
+              data: {
+                mediaUrl: url,
+                foodItemId:
+                  isEditing &&
+                  foodItemDetails?.imageUrls?.includes(url) &&
+                  foodItemDetails?._id
+                    ? foodItemDetails._id
+                    : undefined,
+              },
+            });
+            if (!response.data.success) {
+              toast.error(response.data.message || "Failed to remove image");
+            }
+            setTempImages((prev) => prev.filter((img) => img !== url));
+            if (isEditing && setFoodItemDetails) {
+              setFoodItemDetails((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  imageUrls: prev.imageUrls?.filter((img) => img !== url),
+                };
+              });
+            }
+            resolve();
+          } catch (error) {
+            console.error("Error removing image:", error);
+            const axiosError = error as AxiosError<ApiResponse>;
+            toast.error(
+              axiosError.response?.data.message || "Failed to remove image"
+            );
+            form.setValue("imageUrls", tempImageUrls);
+            setImageFiles(tempImageFiles);
+            if (axiosError.response?.status === 401) {
+              dispatch(signOut());
+              router.push("/signin");
+            }
+            reject(error);
+          }
+        })();
       });
 
-      form.setValue("imageUrls", [...(imageUrls ?? []), ...response.data.data]);
-      setTempImages((prev) => [...prev, ...response.data.data]);
-      setImageFiles(null);
-      resolve();
-    } catch (error) {
-      console.error("Error uploading images:", error);
-      const axiosError = error as AxiosError<ApiResponse>;
-      toast.error(
-        axiosError.response?.data.message || "Failed to upload images"
-      );
-      if (axiosError.response?.status === 401) {
-        dispatch(signOut());
-        router.push("/signin");
-      }
-      reject(error);
-    }
-  });
+      setPendingImageOperations((prev) => [...prev, removePromise]);
+    },
+    [
+      imageUrls,
+      tempImages,
+      imageFiles,
+      form,
+      isEditing,
+      foodItemDetails,
+      dispatch,
+      router,
+      setFoodItemDetails,
+      pendingImageOperations,
+    ]
+  );
 
-  setPendingImageOperations((prev) => [...prev, uploadPromise]);
-  };
+  const handleImageUpload = useCallback(
+    async (files: File[]) => {
+      const uploadPromise = new Promise<void>((resolve, reject) => {
+        (async () => {
+          try {
+            const formData = new FormData();
+            files.forEach((file) => {
+              formData.append("foodItemImages", file);
+            });
+            // if (isEditing && foodItemDetails?._id) {
+            //   formData.append("foodItemId", foodItemDetails._id);
+            // }
+            const response = await axios.post("/media/food-item", formData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            });
+            if (!response.data.success) {
+              toast.error(response.data.message || "Failed to upload images");
+              reject(new Error("Image upload failed"));
+              return;
+            }
+            imageUrlsRef.current = [
+              ...(imageUrlsRef.current || []),
+              ...response.data.data,
+            ];
+            form.setValue("imageUrls", [
+              ...(imageUrls || []),
+              ...response.data.data,
+            ]);
+            setTempImages((prev) => [...prev, ...response.data.data]);
+            setImageFiles(null);
+            resolve();
+          } catch (error) {
+            console.error("Error uploading images:", error);
+            const axiosError = error as AxiosError<ApiResponse>;
+            toast.error(
+              axiosError.response?.data.message || "Failed to upload images"
+            );
+            if (axiosError.response?.status === 401) {
+              dispatch(signOut());
+              router.push("/signin");
+            }
+            reject(error);
+          }
+        })();
+      });
+
+      setPendingImageOperations((prev) => [...prev, uploadPromise]);
+    },
+    [imageUrls, form, dispatch, router]
+  );
 
   const onImageDrop = (
     acceptedFiles: File[],
@@ -230,6 +279,7 @@ const CreateUpdateFoodItem = ({
   ) => {
     const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"];
 
+    console.log(rejectedFiles, acceptedFiles);
     if (
       rejectedFiles.length > 0 &&
       rejectedFiles[0]?.errors[0]?.code === "file-too-large"
@@ -286,18 +336,33 @@ const CreateUpdateFoodItem = ({
     });
 
   const onSubmit = async (data: z.infer<typeof foodItemSchema>) => {
-    setFormLoading?.(false); // Set form loading state if provided
     if (formLoading) return; // Prevent multiple submissions
     if (!user || user.role !== "owner") {
       toast.error("You do not have permission to edit food items");
       return;
     }
+    // Check if the form values have changed
+    if (!form.formState.isDirty) {
+      toast.error(
+        "No changes detected. Please update the form before submitting."
+      );
+      return;
+    }
     try {
       setFormLoading(true);
-      const response = await axios.patch(
-        `/food-item/${restaurantSlug}/${foodItemDetails?._id}`,
-        data
-      );
+      // Wait for all pending image operations to complete
+      await Promise.all(pendingImageOperations);
+      // Use the ref value for imageUrls
+      const updatedData = {
+        ...data,
+        imageUrls: imageUrlsRef.current,
+      };
+      const response = isEditing
+        ? await axios.patch(
+            `/food-item/${restaurantSlug}/${foodItemDetails?._id}`,
+            updatedData
+          )
+        : await axios.post(`/food-item/${restaurantSlug}`, updatedData);
       if (!response.data.success) {
         toast.error(response.data.message || "Failed to update food item");
         return;
@@ -316,29 +381,41 @@ const CreateUpdateFoodItem = ({
         if (!prev) return prev; // If allFoodItems is null, return it
         return {
           ...prev,
-          foodItems: prev.foodItems.map((item) =>
-            item._id === foodItemDetails?._id
-              ? { ...item, ...response.data.data }
-              : item
-          ),
+          foodItems:
+            prev.foodItems.length > 0
+              ? prev.foodItems.map((item) =>
+                  item._id === foodItemDetails?._id
+                    ? { ...item, ...response.data.data }
+                    : item
+                )
+              : [response.data.data],
         };
       });
       setTempImages([]);
-
+      form.reset();
       if (closeDialog.current) {
         closeDialog.current.click(); // Close the dialog if the ref is set
       }
 
-      toast.success(response.data.message || "Food item updated successfully!");
+      toast.success(
+        response.data.message ||
+          (isEditing
+            ? "Food item updated successfully!"
+            : "Food item created successfully!")
+      );
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message ||
-          "An error occurred during food item update"
+          (isEditing
+            ? "An error occurred during food item update"
+            : "An error occurred during food item creation")
       );
       console.error(
         axiosError.response?.data.message ||
-          "An error occurred during food item update"
+          (isEditing
+            ? "An error occurred during food item update"
+            : "An error occurred during food item creation")
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
@@ -366,21 +443,29 @@ const CreateUpdateFoodItem = ({
   return (
     <Dialog
       onOpenChange={(open) => {
-        if (!open && tempImages && tempImages.length > 0) {
-          tempImages.forEach((url) => handleImageRemove(url));
+        if (!open) {
+          if (tempImages && tempImages.length > 0) {
+            tempImages.forEach((url) => handleImageRemove(url));
+          }
+          form.reset();
+          setImageFiles(null);
         }
       }}
     >
-      <DialogTrigger className="w-2/4" type="button">
-        <Pen />
-        Edit
-      </DialogTrigger>
+      {isEditing ? (
+        <DialogTrigger className="w-2/4" type="button">
+          <Pen />
+          Edit
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger type="button">Create a Food Item</DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <ScrollArea className="max-h-[90vh]">
           <DialogHeader className="p-6">
-            <DialogTitle className="mb-4 line-clamp-1">
+            <DialogTitle className="mb-4 line-clamp-1 leading-6">
               {isEditing
-                ? `Editing Food Item: ${foodItemDetails?.foodName}`
+                ? `Editing: ${foodItemDetails?.foodName}`
                 : "Create Food Item"}
             </DialogTitle>
             <Form {...form}>
@@ -408,26 +493,100 @@ const CreateUpdateFoodItem = ({
                   {imageErrorMessage && (
                     <p className="text-red-500 mb-2">{imageErrorMessage}</p>
                   )}
+
                   {((imageFiles && imageFiles.length > 0) ||
                     (imageUrls && imageUrls.length > 0)) && (
-                    <div className="group relative w-full rounded-full h-20">
-                      <div className="flex flex-wrap gap-2">
-                        {imageFiles && imageFiles.length > 0 ? (
-                          <>
-                            {isEditing &&
-                              imageUrls &&
-                              imageUrls.length > 0 &&
-                              imageUrls.map((url, index) => (
+                    <ScrollArea
+                      viewportClassName="h-24 flex items-center"
+                      className="pt-2 pb-2 w-[85vw] sm:max-w-[400px] rounded-md border whitespace-nowrap border-none"
+                    >
+                      <div className="group relative w-full rounded-full h-20">
+                        <div className="flex gap-2">
+                          {imageFiles && imageFiles.length > 0 ? (
+                            <>
+                              {imageUrls &&
+                                imageUrls.length > 0 &&
+                                imageUrls.map((url, index) => (
+                                  <div
+                                    key={index}
+                                    className="aspect-square w-20 relative"
+                                  >
+                                    <Image
+                                      src={url}
+                                      fill
+                                      alt={`Food Item Image ${index + 1}`}
+                                      className="rounded-xl object-cover static"
+                                    />
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          type="button"
+                                          className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
+                                        >
+                                          <Trash2 className="w-4 h-4 p-0" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>
+                                            Are you absolutely sure?
+                                          </AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            This action cannot be undone. This
+                                            will permanently delete the image
+                                            from the server. Even if you
+                                            don&apos;t submit this form.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>
+                                            Cancel
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction
+                                            className="bg-red-500 hover:bg-red-600 text-white"
+                                            onClick={() =>
+                                              handleImageRemove(url)
+                                            }
+                                          >
+                                            Continue
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                ))}
+                              {imageFiles.map((file, index) => (
                                 <div
                                   key={index}
                                   className="aspect-square w-20 relative"
                                 >
                                   <Image
-                                    src={url}
+                                    src={URL.createObjectURL(file)}
                                     fill
                                     alt={`Food Item Image ${index + 1}`}
                                     className="rounded-xl object-cover static"
                                   />
+                                  <div className="absolute bg-muted/70 inset-0 flex items-center justify-center z-20 rounded-xl">
+                                    <Loader2 className="animate-spin w-6 h-6 text-primary" />
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          ) : (
+                            imageUrls &&
+                            imageUrls.length > 0 &&
+                            imageUrls.map((url, index) => (
+                              <div
+                                key={index}
+                                className="aspect-square w-20 relative"
+                              >
+                                <Image
+                                  src={url}
+                                  fill
+                                  alt={`Food Item Image ${index + 1}`}
+                                  className="rounded-xl object-cover static"
+                                />
+                                {foodItemDetails?.imageUrls?.includes(url) ? (
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button
@@ -462,100 +621,22 @@ const CreateUpdateFoodItem = ({
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
-                                </div>
-                              ))}
-                            {imageFiles.map((file, index) => (
-                              <div
-                                key={index}
-                                className="aspect-square w-20 relative"
-                              >
-                                <Image
-                                  src={URL.createObjectURL(file)}
-                                  fill
-                                  alt={`Food Item Image ${index + 1}`}
-                                  className="rounded-xl object-cover static"
-                                />
-                                <Button
-                                  type="button"
-                                  className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
-                                  onClick={() =>
-                                    setImageFiles((prev) =>
-                                      prev
-                                        ? prev.filter(
-                                            (f) => f.name !== file.name
-                                          )
-                                        : null
-                                    )
-                                  }
-                                >
-                                  <Trash2 className="w-4 h-4 p-0" />
-                                </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
+                                    onClick={() => handleImageRemove(url)}
+                                  >
+                                    <Trash2 className="w-4 h-4 p-0" />
+                                  </Button>
+                                )}
                               </div>
-                            ))}
-                          </>
-                        ) : (
-                          imageUrls &&
-                          imageUrls.length > 0 &&
-                          imageUrls.map((url, index) => (
-                            <div
-                              key={index}
-                              className="aspect-square w-20 relative"
-                            >
-                              <Image
-                                src={url}
-                                fill
-                                alt={`Food Item Image ${index + 1}`}
-                                className="rounded-xl object-cover static"
-                              />
-                              {foodItemDetails?.imageUrls?.includes(url) ? (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
-                                    >
-                                      <Trash2 className="w-4 h-4 p-0" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Are you absolutely sure?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This action cannot be undone. This will
-                                        permanently delete the image from the
-                                        server. Even if you don&apos;t submit
-                                        this form.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        className="bg-red-500 hover:bg-red-600 text-white"
-                                        onClick={() => handleImageRemove(url)}
-                                      >
-                                        Continue
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              ) : (
-                                <Button
-                                  type="button"
-                                  className="absolute top-0 right-0 -translate-y-1/3 text-red-500 rounded-full p-1! h-min bg-muted hover:bg-muted/90 hover:text-red-600 cursor-pointer"
-                                  onClick={() => handleImageRemove(url)}
-                                >
-                                  <Trash2 className="w-4 h-4 p-0" />
-                                </Button>
-                              )}
-                            </div>
-                          ))
-                        )}
+                            ))
+                          )}
+                        </div>
                       </div>
-                    </div>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
                   )}
                   <FormField
                     control={form.control}

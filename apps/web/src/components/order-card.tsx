@@ -277,7 +277,7 @@ const OrderCard = ({
                           className={`border border-primary p-0.5 cursor-help`}
                         >
                           <span
-                            className={`${item.foodType !== "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                            className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
                           ></span>
                         </div>
                       </TooltipTrigger>

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardFooter } from "@repo/ui/components/card";
 import { cn } from "@repo/ui/lib/utils";
 import { toast } from "sonner";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
@@ -14,7 +14,7 @@ import { useParams } from "next/navigation";
 import TableDetails from "@/components/table-details";
 import type { Table, AllTables } from "@repo/ui/types/Table";
 import CreateTableDialog from "@/components/create-table";
-import type { AppDispatch } from "@/store/store";
+import type { AppDispatch, RootState } from "@/store/store";
 
 const getTableSize = (chairs: number) => {
   if (chairs <= 1) return { width: 80, height: 60 };
@@ -112,6 +112,7 @@ export default function SelectTable() {
   const router = useRouter();
   const [allTables, setAllTables] = useState<AllTables | null>(null);
   const observer = useRef<IntersectionObserver>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const handleTableSelect = (table: Table) => {
     setSelectedTable(table);
@@ -200,7 +201,8 @@ export default function SelectTable() {
         </div>
         {allTables &&
           Array.isArray(allTables.tables) &&
-          allTables.tables.length > 0 && (
+          allTables.tables.length > 0 &&
+          user?.role === "owner" && (
             <div>
               <CreateTableDialog
                 isLoading={isPageLoading}
@@ -359,13 +361,15 @@ export default function SelectTable() {
             <div className="line-clamp-1 flex gap-2 font-medium text-center text-balance">
               This restaurant has no tables yet.
             </div>
-            <CreateTableDialog
-              isLoading={isPageLoading}
-              restaurantSlug={slug}
-              setAllTables={setAllTables}
-            >
-              Create a New Table
-            </CreateTableDialog>
+            {user?.role === "owner" && (
+              <CreateTableDialog
+                isLoading={isPageLoading}
+                restaurantSlug={slug}
+                setAllTables={setAllTables}
+              >
+                Create a New Table
+              </CreateTableDialog>
+            )}
           </CardFooter>
         </Card>
       )}

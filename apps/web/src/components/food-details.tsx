@@ -467,7 +467,7 @@ const FoodDetails = ({
                       className={`w-min border border-primary p-0.5 bg-background ml-1`}
                     >
                       <span
-                        className={`${foodItemDetails.foodType !== "veg" ? "bg-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                        className={`${foodItemDetails.foodType === "veg" ? "bg-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
                       ></span>
                     </div>
                     <span className="font-bold">

@@ -119,7 +119,10 @@ export const createFoodItem = asyncHandler(async (req, res) => {
     );
   }
 
-  await canCreateFoodItem(req.subscription!, restaurant._id!.toString());
+  const isProduction = process.env?.NODE_ENV === "production";
+  if (isProduction) {
+    await canCreateFoodItem(req.subscription!, restaurant._id!.toString());
+  }
   // Check if the food item already exists
   const existingFoodItem = await FoodItem.findOne({
     restaurantId: restaurant._id,

@@ -5,6 +5,7 @@ import {
   DialogClose,
   DialogContent,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@repo/ui/components/dialog";
 import {
@@ -82,7 +83,7 @@ const TableQRCode = ({
 
   useEffect(() => {
     if (ref.current === null || !isImageLoaded) {
-      console.error("Ref is null or image not loaded yet");
+      console.log("Ref is null or image not loaded yet");
       return;
     }
     toPng(ref.current, { cacheBust: true, pixelRatio: 2 })
@@ -97,7 +98,7 @@ const TableQRCode = ({
 
   const onButtonClick = useCallback(() => {
     if (ref.current === null || !isImageLoaded || !imageUrl) {
-      console.error("Ref is null or image not loaded yet");
+      console.log("Ref is null or image not loaded yet");
       return;
     }
     try {
@@ -124,6 +125,7 @@ const TableQRCode = ({
         </TooltipContent>
       </Tooltip>
       <DialogContent>
+        <DialogTitle className="sr-only">Download QR Code</DialogTitle>
         <ScrollArea className="overflow-y-auto h-[90vh]">
           <DialogHeader className="p-6">
             {imageUrl ? (

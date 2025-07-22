@@ -4,14 +4,14 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { AllFoodItems } from "@repo/ui/types/FoodItem";
 import { toast } from "sonner";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
-import type { AppDispatch } from "@/store/store";
-import { Card, CardContent } from "@repo/ui/components/card";
+import type { AppDispatch, RootState } from "@/store/store";
+import { Card, CardContent, CardFooter } from "@repo/ui/components/card";
 import Image from "next/image";
 import { cn } from "@repo/ui/lib/utils";
 import {
@@ -21,6 +21,7 @@ import {
 } from "@repo/ui/components/tooltip";
 import FoodDetails from "@/components/food-details";
 import { IconSalad } from "@tabler/icons-react";
+import CreateUpdateFoodItem from "@/components/create-update-foodItem";
 
 const MenuPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -31,6 +32,7 @@ const MenuPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const observer = useRef<IntersectionObserver>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const fetchAllFoodItems = useCallback(async () => {
     if (!slug) {
@@ -94,6 +96,19 @@ const MenuPage = () => {
 
   return (
     <div className="p-4">
+      {allFoodItems &&
+        Array.isArray(allFoodItems.foodItems) &&
+        allFoodItems.foodItems.length > 0 &&
+        user?.role === "owner" && (
+          <div className="pb-3 flex justify-end">
+            <CreateUpdateFoodItem
+              setAllFoodItems={setAllFoodItems}
+              formLoading={isPageLoading}
+              setFormLoading={setIsPageLoading}
+              restaurantSlug={slug}
+            />
+          </div>
+        )}
       {isPageLoading ? (
         <div>Loading...</div>
       ) : allFoodItems &&
@@ -140,7 +155,7 @@ const MenuPage = () => {
                         className={`border border-primary p-0.5 cursor-help bg-background`}
                       >
                         <span
-                          className={`${foodItem.foodType !== "veg" ? "bg-green-500" : ""} ${foodItem.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                          className={`${foodItem.foodType === "veg" ? "bg-green-500" : ""} ${foodItem.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
                         ></span>
                         <span className="sr-only">
                           {foodItem.foodType === "veg"
@@ -201,9 +216,21 @@ const MenuPage = () => {
           ))}
         </div>
       ) : (
-        <div className="text-center text-gray-500">
-          No food items found for this restaurant.
-        </div>
+        <Card className="@container/card">
+          <CardFooter className="flex-col gap-4 text-sm flex justify-center">
+            <div className="line-clamp-1 flex gap-2 font-medium text-center text-balance">
+              No food items found.
+            </div>
+            {user?.role === "owner" && (
+              <CreateUpdateFoodItem
+                setAllFoodItems={setAllFoodItems}
+                formLoading={isPageLoading}
+                setFormLoading={setIsPageLoading}
+                restaurantSlug={slug}
+              />
+            )}
+          </CardFooter>
+        </Card>
       )}
     </div>
   );
