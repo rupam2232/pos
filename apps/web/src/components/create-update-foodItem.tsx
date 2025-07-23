@@ -18,7 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@repo/ui/components/form";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { foodItemSchema } from "@/schemas/foodItemSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +31,7 @@ import {
   ImagePlusIcon,
   Loader2,
   Pen,
+  Plus,
   Trash2,
 } from "lucide-react";
 import {
@@ -76,6 +77,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@repo/ui/components/accordion";
 
 type CreateUpdateFoodItemProps = {
   isEditing?: boolean; // Optional prop to indicate if it's for editing an existing item
@@ -106,6 +113,12 @@ const CreateUpdateFoodItem = ({
   const [pendingImageOperations, setPendingImageOperations] = useState<
     Promise<void>[]
   >([]);
+  const [openParentAccordion, setOpenParentAccordion] = useState<string | null>(
+    null
+  ); // Parent accordion state
+  const [openChildAccordion, setOpenChildAccordion] = useState<string[] | null>(
+    null
+  ); // Child accordion state
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -129,6 +142,11 @@ const CreateUpdateFoodItem = ({
   const imageUrls = useWatch({
     control: form.control,
     name: "imageUrls",
+  });
+
+  const { fields, append, remove, update } = useFieldArray({
+    control: form.control,
+    name: "variants", // Name of the field in the schema
   });
 
   const imageUrlsRef = useRef<string[]>(imageUrls || []);
@@ -279,7 +297,6 @@ const CreateUpdateFoodItem = ({
   ) => {
     const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"];
 
-    console.log(rejectedFiles, acceptedFiles);
     if (
       rejectedFiles.length > 0 &&
       rejectedFiles[0]?.errors[0]?.code === "file-too-large"
@@ -336,94 +353,95 @@ const CreateUpdateFoodItem = ({
     });
 
   const onSubmit = async (data: z.infer<typeof foodItemSchema>) => {
+    console.log(data);
     if (formLoading) return; // Prevent multiple submissions
-    if (!user || user.role !== "owner") {
-      toast.error("You do not have permission to edit food items");
-      return;
-    }
-    // Check if the form values have changed
-    if (!form.formState.isDirty) {
-      toast.error(
-        "No changes detected. Please update the form before submitting."
-      );
-      return;
-    }
-    try {
-      setFormLoading(true);
-      // Wait for all pending image operations to complete
-      await Promise.all(pendingImageOperations);
-      // Use the ref value for imageUrls
-      const updatedData = {
-        ...data,
-        imageUrls: imageUrlsRef.current,
-      };
-      const response = isEditing
-        ? await axios.patch(
-            `/food-item/${restaurantSlug}/${foodItemDetails?._id}`,
-            updatedData
-          )
-        : await axios.post(`/food-item/${restaurantSlug}`, updatedData);
-      if (!response.data.success) {
-        toast.error(response.data.message || "Failed to update food item");
-        return;
-      }
-      if (setFoodItemDetails) {
-        setFoodItemDetails((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            ...response.data.data,
-          };
-        });
-      }
+    // if (!user || user.role !== "owner") {
+    //   toast.error("You do not have permission to edit food items");
+    //   return;
+    // }
+    // // Check if the form values have changed
+    // if (!form.formState.isDirty) {
+    //   toast.error(
+    //     "No changes detected. Please update the form before submitting."
+    //   );
+    //   return;
+    // }
+    // try {
+    //   setFormLoading(true);
+    //   // Wait for all pending image operations to complete
+    //   await Promise.all(pendingImageOperations);
+    //   // Use the ref value for imageUrls
+    //   const updatedData = {
+    //     ...data,
+    //     imageUrls: imageUrlsRef.current,
+    //   };
+    //   const response = isEditing
+    //     ? await axios.patch(
+    //         `/food-item/${restaurantSlug}/${foodItemDetails?._id}`,
+    //         updatedData
+    //       )
+    //     : await axios.post(`/food-item/${restaurantSlug}`, updatedData);
+    //   if (!response.data.success) {
+    //     toast.error(response.data.message || "Failed to update food item");
+    //     return;
+    //   }
+    //   if (setFoodItemDetails) {
+    //     setFoodItemDetails((prev) => {
+    //       if (!prev) return prev;
+    //       return {
+    //         ...prev,
+    //         ...response.data.data,
+    //       };
+    //     });
+    //   }
 
-      setAllFoodItems((prev) => {
-        if (!prev) return prev; // If allFoodItems is null, return it
-        return {
-          ...prev,
-          foodItems:
-            prev.foodItems.length > 0
-              ? prev.foodItems.map((item) =>
-                  item._id === foodItemDetails?._id
-                    ? { ...item, ...response.data.data }
-                    : item
-                )
-              : [response.data.data],
-        };
-      });
-      setTempImages([]);
-      form.reset();
-      if (closeDialog.current) {
-        closeDialog.current.click(); // Close the dialog if the ref is set
-      }
+    //   setAllFoodItems((prev) => {
+    //     if (!prev) return prev; // If allFoodItems is null, return it
+    //     return {
+    //       ...prev,
+    //       foodItems:
+    //         prev.foodItems.length > 0
+    //           ? prev.foodItems.map((item) =>
+    //               item._id === foodItemDetails?._id
+    //                 ? { ...item, ...response.data.data }
+    //                 : item
+    //             )
+    //           : [response.data.data],
+    //     };
+    //   });
+    //   setTempImages([]);
+    //   form.reset();
+    //   if (closeDialog.current) {
+    //     closeDialog.current.click(); // Close the dialog if the ref is set
+    //   }
 
-      toast.success(
-        response.data.message ||
-          (isEditing
-            ? "Food item updated successfully!"
-            : "Food item created successfully!")
-      );
-    } catch (error) {
-      const axiosError = error as AxiosError<ApiResponse>;
-      toast.error(
-        axiosError.response?.data.message ||
-          (isEditing
-            ? "An error occurred during food item update"
-            : "An error occurred during food item creation")
-      );
-      console.error(
-        axiosError.response?.data.message ||
-          (isEditing
-            ? "An error occurred during food item update"
-            : "An error occurred during food item creation")
-      );
-      if (axiosError.response?.status === 401) {
-        dispatch(signOut());
-        router.push("/signin");
-      }
-    } finally {
-      setFormLoading(false);
-    }
+    //   toast.success(
+    //     response.data.message ||
+    //       (isEditing
+    //         ? "Food item updated successfully!"
+    //         : "Food item created successfully!")
+    //   );
+    // } catch (error) {
+    //   const axiosError = error as AxiosError<ApiResponse>;
+    //   toast.error(
+    //     axiosError.response?.data.message ||
+    //       (isEditing
+    //         ? "An error occurred during food item update"
+    //         : "An error occurred during food item creation")
+    //   );
+    //   console.error(
+    //     axiosError.response?.data.message ||
+    //       (isEditing
+    //         ? "An error occurred during food item update"
+    //         : "An error occurred during food item creation")
+    //   );
+    //   if (axiosError.response?.status === 401) {
+    //     dispatch(signOut());
+    //     router.push("/signin");
+    //   }
+    // } finally {
+    //   setFormLoading(false);
+    // }
   };
 
   useEffect(() => {
@@ -439,6 +457,24 @@ const CreateUpdateFoodItem = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageUrls]);
+
+  useEffect(() => {
+  const errors = form.formState.errors;
+
+  if (errors.variants) {
+    // Open the parent accordion
+    setOpenParentAccordion("variants");
+
+    // Open the first child accordion with errors
+    let firstErrorIndex = -1;
+    if (Array.isArray(errors.variants)) {
+      firstErrorIndex = errors.variants.findIndex((error) => error !== undefined);
+    }
+    if (firstErrorIndex !== -1) {
+      setOpenChildAccordion((prev) => [...(prev || []), `item-${firstErrorIndex}`]);
+    }
+  }
+}, [form.formState.errors, fields]);
 
   return (
     <Dialog
@@ -854,7 +890,7 @@ const CreateUpdateFoodItem = ({
                             <Textarea
                               id="description"
                               placeholder="E.g., Cheese pizza with fresh toppings"
-                              autoComplete="on"
+                              autoComplete="off"
                               className="resize-none pb-4 whitespace-pre-wrap"
                               {...field}
                             />
@@ -897,6 +933,205 @@ const CreateUpdateFoodItem = ({
                       </FormItem>
                     )}
                   />
+                  {foodItemDetails?.hasVariants && (
+                    <Accordion
+                      type="single"
+                      collapsible
+                      className="w-full"
+                      value={openParentAccordion || ""}
+                      onValueChange={(value) => setOpenParentAccordion(value)}
+                    >
+                      <AccordionItem value="variants">
+                        <AccordionTrigger className="cursor-pointer">
+                          Variants
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {fields.length > 0 ? (
+                            fields.map((field, index) => (
+                              <Accordion
+                                type="multiple"
+                                // collapsible
+                                className="w-full"
+                                value={openChildAccordion || [""]}
+                                onValueChange={(value) =>
+                                  setOpenChildAccordion(value)
+                                }
+                                key={field.id}
+                              >
+                                <AccordionItem
+                                  key={field.id}
+                                  value={`item-${index}`}
+                                >
+                                  <AccordionTrigger className="cursor-pointer">
+                                    {field.variantName || "New Variant"}
+                                  </AccordionTrigger>
+                                  <AccordionContent>
+                                    <div
+                                      // key={field.id}
+                                      className="border p-4 rounded-md space-y-3"
+                                    >
+                                      <FormField
+                                        control={form.control}
+                                        name={`variants.${index}.variantName`}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel
+                                              htmlFor={`variantName-${index}`}
+                                            >
+                                              Variant Name
+                                            </FormLabel>
+                                            <FormControl>
+                                              <Input
+                                                id={`variantName-${index}`}
+                                                placeholder="E.g., Large"
+                                                {...field}
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                            <FormDescription>
+                                              Name of the variant (e.g., Large,
+                                              Medium, Small).
+                                            </FormDescription>
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name={`variants.${index}.price`}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel
+                                              htmlFor={`price-${index}`}
+                                            >
+                                              Price
+                                            </FormLabel>
+                                            <FormControl>
+                                              <Input
+                                                id={`price-${index}`}
+                                                type="number"
+                                                placeholder="E.g., 100"
+                                                {...field}
+                                                onChange={(e) =>
+                                                  field.onChange(
+                                                    e.target.valueAsNumber
+                                                  )
+                                                }
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                            <FormDescription>
+                                              Price for this variant. Must be a
+                                              positive number.
+                                            </FormDescription>
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name={`variants.${index}.discountedPrice`}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel
+                                              htmlFor={`discountedPrice-${index}`}
+                                            >
+                                              Discounted Price
+                                            </FormLabel>
+                                            <FormControl>
+                                              <Input
+                                                id={`discountedPrice-${index}`}
+                                                type="number"
+                                                placeholder="E.g., 80"
+                                                {...field}
+                                                onChange={(e) =>
+                                                  field.onChange(
+                                                    e.target.valueAsNumber
+                                                  )
+                                                }
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                            <FormDescription>
+                                              Optional discounted price for this
+                                              variant.
+                                            </FormDescription>
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name={`variants.${index}.description`}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel
+                                              htmlFor={`description-${index}`}
+                                            >
+                                              Description
+                                            </FormLabel>
+                                            <div className="relative">
+                                              <FormControl>
+                                                <Textarea
+                                                  id={`description-${index}`}
+                                                  placeholder="E.g., Spicy variant"
+                                                  className="resize-none pb-4 whitespace-pre-wrap"
+                                                  {...field}
+                                                />
+                                              </FormControl>
+                                              <span className="absolute bottom-[1px] right-1 text-xs">
+                                                {field?.value?.length || 0}/100
+                                              </span>
+                                            </div>
+                                            <FormMessage />
+                                            <FormDescription>
+                                              Optional description for this
+                                              variant.
+                                            </FormDescription>
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="mt-2"
+                                        onClick={() => remove(index)}
+                                      >
+                                        Remove Variant
+                                      </Button>
+                                    </div>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              </Accordion>
+                            ))
+                          ) : (
+                            <p>No variants available.</p>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className=""
+                      onClick={() => {
+                        form.setValue("hasVariants", true);
+                        append({
+                          variantName: "",
+                          price: 0,
+                          discountedPrice: undefined,
+                          description: "",
+                        });
+                        // Open the parent accordion
+                        setOpenParentAccordion("variants");
+
+                        // Open the newly added child accordion
+                        setOpenChildAccordion((prev) => [...(prev || []), `item-${fields.length - 1}`]);
+                      }}
+                    >
+                      <Plus /> Add Variant
+                    </Button>
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full"

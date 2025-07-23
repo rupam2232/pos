@@ -32,7 +32,7 @@ export const foodItemSchema = z.object({
         .optional(),
       description: z
         .string()
-        .max(200, "Variant description cannot exceed 200 characters")
+        .max(100, "Variant description cannot exceed 100 characters")
         .trim()
         .optional(),
     })
