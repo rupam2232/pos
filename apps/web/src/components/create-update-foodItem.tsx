@@ -143,8 +143,12 @@ const CreateUpdateFoodItem = ({
     control: form.control,
     name: "imageUrls",
   });
+  const hasVariants = useWatch({
+    control: form.control,
+    name: "hasVariants",
+  });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "variants", // Name of the field in the schema
   });
@@ -355,93 +359,126 @@ const CreateUpdateFoodItem = ({
   const onSubmit = async (data: z.infer<typeof foodItemSchema>) => {
     console.log(data);
     if (formLoading) return; // Prevent multiple submissions
-    // if (!user || user.role !== "owner") {
-    //   toast.error("You do not have permission to edit food items");
-    //   return;
-    // }
-    // // Check if the form values have changed
-    // if (!form.formState.isDirty) {
-    //   toast.error(
-    //     "No changes detected. Please update the form before submitting."
-    //   );
-    //   return;
-    // }
-    // try {
-    //   setFormLoading(true);
-    //   // Wait for all pending image operations to complete
-    //   await Promise.all(pendingImageOperations);
-    //   // Use the ref value for imageUrls
-    //   const updatedData = {
-    //     ...data,
-    //     imageUrls: imageUrlsRef.current,
-    //   };
-    //   const response = isEditing
-    //     ? await axios.patch(
-    //         `/food-item/${restaurantSlug}/${foodItemDetails?._id}`,
-    //         updatedData
-    //       )
-    //     : await axios.post(`/food-item/${restaurantSlug}`, updatedData);
-    //   if (!response.data.success) {
-    //     toast.error(response.data.message || "Failed to update food item");
-    //     return;
-    //   }
-    //   if (setFoodItemDetails) {
-    //     setFoodItemDetails((prev) => {
-    //       if (!prev) return prev;
-    //       return {
-    //         ...prev,
-    //         ...response.data.data,
-    //       };
-    //     });
-    //   }
+    if (!user || user.role !== "owner") {
+      toast.error("You do not have permission to edit food items");
+      return;
+    }
 
-    //   setAllFoodItems((prev) => {
-    //     if (!prev) return prev; // If allFoodItems is null, return it
-    //     return {
-    //       ...prev,
-    //       foodItems:
-    //         prev.foodItems.length > 0
-    //           ? prev.foodItems.map((item) =>
-    //               item._id === foodItemDetails?._id
-    //                 ? { ...item, ...response.data.data }
-    //                 : item
-    //             )
-    //           : [response.data.data],
-    //     };
+    // Validate if any variant price is undefined or not a number from variants array
+    const invalidVariantPrice = data.variants.find(
+      (variant) =>
+        variant.price === undefined ||
+        isNaN(variant.price) ||
+        variant.variantName === ""
+    );
+    // const invalidVariantDiscountPrice = data.variants.find(
+    //   (variant) => {
+    //     if (variant.discountedPrice === undefined) return false;
+    //     return isNaN(variant.discountedPrice) && variant.discountedPrice < 0;
+    //   }
+    // );
+
+    if (invalidVariantPrice) {
+      const index = data.variants.indexOf(invalidVariantPrice);
+      form.setError(`variants.${index}.price`, {
+        type: "manual",
+        message: "Variant price is required",
+      });
+      return;
+    }
+    // if (invalidVariantDiscountPrice) {
+    //   const index = data.variants.indexOf(invalidVariantDiscountPrice);
+    //   form.setError(`variants.${index}.discountedPrice`, {
+    //     type: "manual",
+    //     message: "Variant discounted price must be a positive number",
     //   });
-    //   setTempImages([]);
-    //   form.reset();
-    //   if (closeDialog.current) {
-    //     closeDialog.current.click(); // Close the dialog if the ref is set
-    //   }
-
-    //   toast.success(
-    //     response.data.message ||
-    //       (isEditing
-    //         ? "Food item updated successfully!"
-    //         : "Food item created successfully!")
-    //   );
-    // } catch (error) {
-    //   const axiosError = error as AxiosError<ApiResponse>;
-    //   toast.error(
-    //     axiosError.response?.data.message ||
-    //       (isEditing
-    //         ? "An error occurred during food item update"
-    //         : "An error occurred during food item creation")
-    //   );
-    //   console.error(
-    //     axiosError.response?.data.message ||
-    //       (isEditing
-    //         ? "An error occurred during food item update"
-    //         : "An error occurred during food item creation")
-    //   );
-    //   if (axiosError.response?.status === 401) {
-    //     dispatch(signOut());
-    //     router.push("/signin");
-    //   }
-    // } finally {
-    //   setFormLoading(false);
+    //   return;
     // }
+    // return;
+
+    // Check if the form values have changed
+    if (!form.formState.isDirty) {
+      toast.error(
+        "No changes detected. Please update the form before submitting."
+      );
+      return;
+    }
+    try {
+      setFormLoading(true);
+      // Wait for all pending image operations to complete
+      await Promise.all(pendingImageOperations);
+      // Use the ref value for imageUrls
+      const updatedData = {
+        ...data,
+        imageUrls: imageUrlsRef.current,
+      };
+      const response = isEditing
+        ? await axios.patch(
+            `/food-item/${restaurantSlug}/${foodItemDetails?._id}`,
+            updatedData
+          )
+        : await axios.post(`/food-item/${restaurantSlug}`, updatedData);
+      if (!response.data.success) {
+        toast.error(response.data.message || "Failed to update food item");
+        return;
+      }
+      if (setFoodItemDetails) {
+        setFoodItemDetails((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ...response.data.data,
+          };
+        });
+      }
+
+      setAllFoodItems((prev) => {
+        if (!prev) return prev; // If allFoodItems is null, return it
+        return {
+          ...prev,
+          foodItems:
+            prev.foodItems.length > 0
+              ? prev.foodItems.map((item) =>
+                  item._id === foodItemDetails?._id
+                    ? { ...item, ...response.data.data }
+                    : item
+                )
+              : [response.data.data],
+        };
+      });
+      setTempImages([]);
+      form.reset();
+      if (closeDialog.current) {
+        closeDialog.current.click(); // Close the dialog if the ref is set
+      }
+
+      toast.success(
+        response.data.message ||
+          (isEditing
+            ? "Food item updated successfully!"
+            : "Food item created successfully!")
+      );
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          (isEditing
+            ? "An error occurred during food item update"
+            : "An error occurred during food item creation")
+      );
+      console.error(
+        axiosError.response?.data.message ||
+          (isEditing
+            ? "An error occurred during food item update"
+            : "An error occurred during food item creation")
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -459,22 +496,31 @@ const CreateUpdateFoodItem = ({
   }, [imageUrls]);
 
   useEffect(() => {
-  const errors = form.formState.errors;
+    const errors = form.formState.errors;
 
-  if (errors.variants) {
-    // Open the parent accordion
-    setOpenParentAccordion("variants");
+    if (fields.length === 0 && hasVariants) {
+      form.setValue("hasVariants", false);
+    }
 
-    // Open the first child accordion with errors
-    let firstErrorIndex = -1;
-    if (Array.isArray(errors.variants)) {
-      firstErrorIndex = errors.variants.findIndex((error) => error !== undefined);
+    if (errors.variants) {
+      // Open the parent accordion
+      setOpenParentAccordion("variants");
+
+      // Open the first child accordion with errors
+      let firstErrorIndex = -1;
+      if (Array.isArray(errors.variants)) {
+        firstErrorIndex = errors.variants.findIndex(
+          (error) => error !== undefined
+        );
+      }
+      if (firstErrorIndex !== -1) {
+        setOpenChildAccordion((prev) => [
+          ...(prev || []),
+          `item-${firstErrorIndex}`,
+        ]);
+      }
     }
-    if (firstErrorIndex !== -1) {
-      setOpenChildAccordion((prev) => [...(prev || []), `item-${firstErrorIndex}`]);
-    }
-  }
-}, [form.formState.errors, fields]);
+  }, [form.formState.errors, fields, form, hasVariants]);
 
   return (
     <Dialog
@@ -710,12 +756,17 @@ const CreateUpdateFoodItem = ({
                           <Input
                             id="price"
                             type="number"
+                            inputMode="numeric"
                             placeholder="E.g., 100"
                             autoComplete="off"
                             {...field}
                             onChange={(e) =>
                               field.onChange(e.target.valueAsNumber)
                             }
+                            onWheel={(e) => {
+                              (e.target as HTMLInputElement).blur();
+                            }}
+                            step={"0"}
                           />
                         </FormControl>
                         <FormMessage />
@@ -738,12 +789,17 @@ const CreateUpdateFoodItem = ({
                           <Input
                             id="discountedPrice"
                             type="number"
+                            inputMode="numeric"
                             placeholder="E.g., 80"
                             autoComplete="off"
                             {...field}
                             onChange={(e) =>
                               field.onChange(e.target.valueAsNumber)
                             }
+                            onWheel={(e) => {
+                              (e.target as HTMLInputElement).blur();
+                            }}
+                            step={"0"}
                           />
                         </FormControl>
                         <FormMessage />
@@ -933,7 +989,7 @@ const CreateUpdateFoodItem = ({
                       </FormItem>
                     )}
                   />
-                  {foodItemDetails?.hasVariants && (
+                  {hasVariants && (
                     <Accordion
                       type="single"
                       collapsible
@@ -950,7 +1006,6 @@ const CreateUpdateFoodItem = ({
                             fields.map((field, index) => (
                               <Accordion
                                 type="multiple"
-                                // collapsible
                                 className="w-full"
                                 value={openChildAccordion || [""]}
                                 onValueChange={(value) =>
@@ -966,10 +1021,7 @@ const CreateUpdateFoodItem = ({
                                     {field.variantName || "New Variant"}
                                   </AccordionTrigger>
                                   <AccordionContent>
-                                    <div
-                                      // key={field.id}
-                                      className="border p-4 rounded-md space-y-3"
-                                    >
+                                    <div className="border pt-6 p-4 rounded-md space-y-3 relative">
                                       <FormField
                                         control={form.control}
                                         name={`variants.${index}.variantName`}
@@ -1009,6 +1061,7 @@ const CreateUpdateFoodItem = ({
                                               <Input
                                                 id={`price-${index}`}
                                                 type="number"
+                                                inputMode="numeric"
                                                 placeholder="E.g., 100"
                                                 {...field}
                                                 onChange={(e) =>
@@ -1016,6 +1069,12 @@ const CreateUpdateFoodItem = ({
                                                     e.target.valueAsNumber
                                                   )
                                                 }
+                                                onWheel={(e) => {
+                                                  (
+                                                    e.target as HTMLInputElement
+                                                  ).blur();
+                                                }}
+                                                step={"0"}
                                               />
                                             </FormControl>
                                             <FormMessage />
@@ -1040,13 +1099,25 @@ const CreateUpdateFoodItem = ({
                                               <Input
                                                 id={`discountedPrice-${index}`}
                                                 type="number"
+                                                inputMode="numeric"
                                                 placeholder="E.g., 80"
                                                 {...field}
-                                                onChange={(e) =>
+                                                value={(field.value === undefined || typeof field.value === "string") ? "" : field.value}
+                                                onChange={(e) => {
+                                                  const value =
+                                                    e.target.valueAsNumber;
                                                   field.onChange(
-                                                    e.target.valueAsNumber
-                                                  )
-                                                }
+                                                    isNaN(value)
+                                                      ? undefined
+                                                      : value
+                                                  ); // Handle NaN as undefined
+                                                }}
+                                                onWheel={(e) => {
+                                                  (
+                                                    e.target as HTMLInputElement
+                                                  ).blur();
+                                                }}
+                                                step={"0"}
                                               />
                                             </FormControl>
                                             <FormMessage />
@@ -1090,11 +1161,16 @@ const CreateUpdateFoodItem = ({
                                       />
                                       <Button
                                         type="button"
-                                        variant="outline"
-                                        className="mt-2"
-                                        onClick={() => remove(index)}
+                                        variant="destructive"
+                                        className="mt-2 absolute top-0 right-2 p-2! h-min"
+                                        onClick={() => {
+                                          remove(index);
+                                        }}
                                       >
-                                        Remove Variant
+                                        <Trash2 className="size-4" />
+                                        <span className="sr-only">
+                                          Remove Variant
+                                        </span>
                                       </Button>
                                     </div>
                                   </AccordionContent>
@@ -1117,7 +1193,7 @@ const CreateUpdateFoodItem = ({
                         form.setValue("hasVariants", true);
                         append({
                           variantName: "",
-                          price: 0,
+                          price: undefined,
                           discountedPrice: undefined,
                           description: "",
                         });
@@ -1125,10 +1201,16 @@ const CreateUpdateFoodItem = ({
                         setOpenParentAccordion("variants");
 
                         // Open the newly added child accordion
-                        setOpenChildAccordion((prev) => [...(prev || []), `item-${fields.length - 1}`]);
+                        setOpenChildAccordion((prev) => [
+                          ...(prev || []),
+                          `item-${fields.length}`,
+                        ]);
                       }}
                     >
-                      <Plus /> Add Variant
+                      <Plus />{" "}
+                      {fields.length > 0
+                        ? "Add Another Variant"
+                        : "Add Variant"}
                     </Button>
                   </div>
 

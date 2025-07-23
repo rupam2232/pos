@@ -10,9 +10,11 @@ export const foodItemSchema = z.object({
     .number({ message: "Price must be a positive number" })
     .min(0, "Price must be a positive number"),
   discountedPrice: z
-    .number({ message: "Discounted price must be a positive number" })
-    .min(0, "Discounted price must be a positive number")
-    .optional(),
+    .union([
+        z.number().min(0, "Discounted price must be a positive number or zero to make it free"),
+        z.undefined(),
+      ])
+      .optional(),
   hasVariants: z.boolean().optional(),
   variants: z.array(
     z.object({
@@ -23,13 +25,14 @@ export const foodItemSchema = z.object({
         .trim(),
       price: z
         .number({ message: "Variant price must be a positive number" })
-        .min(0, "Variant price must be a positive number"),
-      discountedPrice: z
-        .number({
-          message: "Variant discounted price must be a positive number",
-        })
-        .min(0, "Variant discounted price must be a positive number")
+        .min(0, "Variant price must be a positive number")
         .optional(),
+      discountedPrice: z
+        .union([
+        z.number().min(0, "Variant discounted price must be a positive number or zero to make it free"),
+        z.undefined(),
+      ])
+      .optional(),
       description: z
         .string()
         .max(100, "Variant description cannot exceed 100 characters")
