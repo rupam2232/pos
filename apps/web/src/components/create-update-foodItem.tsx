@@ -148,6 +148,16 @@ const CreateUpdateFoodItem = ({
     name: "hasVariants",
   });
 
+  const discountedPrice = useWatch({
+    control: form.control,
+    name: "discountedPrice",
+  });
+
+  const variantDiscountedPrices = useWatch({
+  control: form.control,
+  name: "variants", // This will give you the whole variants array
+});
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "variants", // Name of the field in the schema
@@ -357,7 +367,6 @@ const CreateUpdateFoodItem = ({
     });
 
   const onSubmit = async (data: z.infer<typeof foodItemSchema>) => {
-    console.log(data);
     if (formLoading) return; // Prevent multiple submissions
     if (!user || user.role !== "owner") {
       toast.error("You do not have permission to edit food items");
@@ -371,12 +380,6 @@ const CreateUpdateFoodItem = ({
         isNaN(variant.price) ||
         variant.variantName === ""
     );
-    // const invalidVariantDiscountPrice = data.variants.find(
-    //   (variant) => {
-    //     if (variant.discountedPrice === undefined) return false;
-    //     return isNaN(variant.discountedPrice) && variant.discountedPrice < 0;
-    //   }
-    // );
 
     if (invalidVariantPrice) {
       const index = data.variants.indexOf(invalidVariantPrice);
@@ -386,18 +389,10 @@ const CreateUpdateFoodItem = ({
       });
       return;
     }
-    // if (invalidVariantDiscountPrice) {
-    //   const index = data.variants.indexOf(invalidVariantDiscountPrice);
-    //   form.setError(`variants.${index}.discountedPrice`, {
-    //     type: "manual",
-    //     message: "Variant discounted price must be a positive number",
-    //   });
-    //   return;
-    // }
-    // return;
 
     // Check if the form values have changed
     if (!form.formState.isDirty) {
+      console.log(data, form)
       toast.error(
         "No changes detected. Please update the form before submitting."
       );
@@ -760,6 +755,7 @@ const CreateUpdateFoodItem = ({
                             placeholder="E.g., 100"
                             autoComplete="off"
                             {...field}
+                            value={field.value === undefined ? "" : field.value} // Convert undefined to an empty string
                             onChange={(e) =>
                               field.onChange(e.target.valueAsNumber)
                             }
@@ -793,9 +789,17 @@ const CreateUpdateFoodItem = ({
                             placeholder="E.g., 80"
                             autoComplete="off"
                             {...field}
-                            onChange={(e) =>
-                              field.onChange(e.target.valueAsNumber)
-                            }
+                            value={
+                              discountedPrice === undefined
+                                ? ""
+                                : discountedPrice
+                            } // Convert undefined to an empty string
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              const number =
+                                value === "" ? undefined : Number(value); // Convert empty string to undefined
+                              form.setValue("discountedPrice", number);
+                            }}
                             onWheel={(e) => {
                               (e.target as HTMLInputElement).blur();
                             }}
@@ -999,184 +1003,199 @@ const CreateUpdateFoodItem = ({
                     >
                       <AccordionItem value="variants">
                         <AccordionTrigger className="cursor-pointer">
-                          Variants
+                          See Variants
                         </AccordionTrigger>
                         <AccordionContent>
                           {fields.length > 0 ? (
-                            fields.map((field, index) => (
-                              <Accordion
-                                type="multiple"
-                                className="w-full"
-                                value={openChildAccordion || [""]}
-                                onValueChange={(value) =>
-                                  setOpenChildAccordion(value)
-                                }
-                                key={field.id}
-                              >
-                                <AccordionItem
+                            fields.map((field, index) => {
+                              const discountedPrice = variantDiscountedPrices?.[index]?.discountedPrice ?? undefined;
+
+                              return (
+                                <Accordion
+                                  type="multiple"
+                                  className="w-full"
+                                  value={openChildAccordion || [""]}
+                                  onValueChange={(value) =>
+                                    setOpenChildAccordion(value)
+                                  }
                                   key={field.id}
-                                  value={`item-${index}`}
                                 >
-                                  <AccordionTrigger className="cursor-pointer">
-                                    {field.variantName || "New Variant"}
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="border pt-6 p-4 rounded-md space-y-3 relative">
-                                      <FormField
-                                        control={form.control}
-                                        name={`variants.${index}.variantName`}
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel
-                                              htmlFor={`variantName-${index}`}
-                                            >
-                                              Variant Name
-                                            </FormLabel>
-                                            <FormControl>
-                                              <Input
-                                                id={`variantName-${index}`}
-                                                placeholder="E.g., Large"
-                                                {...field}
-                                              />
-                                            </FormControl>
-                                            <FormMessage />
-                                            <FormDescription>
-                                              Name of the variant (e.g., Large,
-                                              Medium, Small).
-                                            </FormDescription>
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <FormField
-                                        control={form.control}
-                                        name={`variants.${index}.price`}
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel
-                                              htmlFor={`price-${index}`}
-                                            >
-                                              Price
-                                            </FormLabel>
-                                            <FormControl>
-                                              <Input
-                                                id={`price-${index}`}
-                                                type="number"
-                                                inputMode="numeric"
-                                                placeholder="E.g., 100"
-                                                {...field}
-                                                onChange={(e) =>
-                                                  field.onChange(
-                                                    e.target.valueAsNumber
-                                                  )
-                                                }
-                                                onWheel={(e) => {
-                                                  (
-                                                    e.target as HTMLInputElement
-                                                  ).blur();
-                                                }}
-                                                step={"0"}
-                                              />
-                                            </FormControl>
-                                            <FormMessage />
-                                            <FormDescription>
-                                              Price for this variant. Must be a
-                                              positive number.
-                                            </FormDescription>
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <FormField
-                                        control={form.control}
-                                        name={`variants.${index}.discountedPrice`}
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel
-                                              htmlFor={`discountedPrice-${index}`}
-                                            >
-                                              Discounted Price
-                                            </FormLabel>
-                                            <FormControl>
-                                              <Input
-                                                id={`discountedPrice-${index}`}
-                                                type="number"
-                                                inputMode="numeric"
-                                                placeholder="E.g., 80"
-                                                {...field}
-                                                value={(field.value === undefined || typeof field.value === "string") ? "" : field.value}
-                                                onChange={(e) => {
-                                                  const value =
-                                                    e.target.valueAsNumber;
-                                                  field.onChange(
-                                                    isNaN(value)
-                                                      ? undefined
-                                                      : value
-                                                  ); // Handle NaN as undefined
-                                                }}
-                                                onWheel={(e) => {
-                                                  (
-                                                    e.target as HTMLInputElement
-                                                  ).blur();
-                                                }}
-                                                step={"0"}
-                                              />
-                                            </FormControl>
-                                            <FormMessage />
-                                            <FormDescription>
-                                              Optional discounted price for this
-                                              variant.
-                                            </FormDescription>
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <FormField
-                                        control={form.control}
-                                        name={`variants.${index}.description`}
-                                        render={({ field }) => (
-                                          <FormItem>
-                                            <FormLabel
-                                              htmlFor={`description-${index}`}
-                                            >
-                                              Description
-                                            </FormLabel>
-                                            <div className="relative">
+                                  <AccordionItem
+                                    key={field.id}
+                                    value={`item-${index}`}
+                                  >
+                                    <AccordionTrigger className="cursor-pointer">
+                                      {field.variantName || "New Variant"}
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="border pt-6 p-4 rounded-md space-y-3 relative">
+                                        <FormField
+                                          control={form.control}
+                                          name={`variants.${index}.variantName`}
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel
+                                                htmlFor={`variantName-${index}`}
+                                              >
+                                                Variant Name
+                                              </FormLabel>
                                               <FormControl>
-                                                <Textarea
-                                                  id={`description-${index}`}
-                                                  placeholder="E.g., Spicy variant"
-                                                  className="resize-none pb-4 whitespace-pre-wrap"
+                                                <Input
+                                                  id={`variantName-${index}`}
+                                                  placeholder="E.g., Large"
                                                   {...field}
                                                 />
                                               </FormControl>
-                                              <span className="absolute bottom-[1px] right-1 text-xs">
-                                                {field?.value?.length || 0}/100
-                                              </span>
-                                            </div>
-                                            <FormMessage />
-                                            <FormDescription>
-                                              Optional description for this
-                                              variant.
-                                            </FormDescription>
-                                          </FormItem>
-                                        )}
-                                      />
-                                      <Button
-                                        type="button"
-                                        variant="destructive"
-                                        className="mt-2 absolute top-0 right-2 p-2! h-min"
-                                        onClick={() => {
-                                          remove(index);
-                                        }}
-                                      >
-                                        <Trash2 className="size-4" />
-                                        <span className="sr-only">
-                                          Remove Variant
-                                        </span>
-                                      </Button>
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              </Accordion>
-                            ))
+                                              <FormMessage />
+                                              <FormDescription>
+                                                Name of the variant (e.g.,
+                                                Large, Medium, Small).
+                                              </FormDescription>
+                                            </FormItem>
+                                          )}
+                                        />
+                                        <FormField
+                                          control={form.control}
+                                          name={`variants.${index}.price`}
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel
+                                                htmlFor={`price-${index}`}
+                                              >
+                                                Price
+                                              </FormLabel>
+                                              <FormControl>
+                                                <Input
+                                                  id={`price-${index}`}
+                                                  type="number"
+                                                  inputMode="numeric"
+                                                  placeholder="E.g., 100"
+                                                  {...field}
+                                                  value={field.value === undefined ? "" : field.value} // Convert undefined to an empty string
+                                                  onChange={(e) =>
+                                                    field.onChange(
+                                                      e.target.valueAsNumber
+                                                    )
+                                                  }
+                                                  onWheel={(e) => {
+                                                    (
+                                                      e.target as HTMLInputElement
+                                                    ).blur();
+                                                  }}
+                                                  step={"0"}
+                                                />
+                                              </FormControl>
+                                              <FormMessage />
+                                              <FormDescription>
+                                                Price for this variant. Must be
+                                                a positive number.
+                                              </FormDescription>
+                                            </FormItem>
+                                          )}
+                                        />
+                                        <FormField
+                                          control={form.control}
+                                          name={`variants.${index}.discountedPrice`}
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel
+                                                htmlFor={`discountedPrice-${index}`}
+                                              >
+                                                Discounted Price
+                                              </FormLabel>
+                                              <FormControl>
+                                                <Input
+                                                  id={`discountedPrice-${index}`}
+                                                  type="number"
+                                                  inputMode="numeric"
+                                                  placeholder="E.g., 80"
+                                                  {...field}
+                                                  value={
+                                                    discountedPrice ===
+                                                    undefined
+                                                      ? ""
+                                                      : discountedPrice
+                                                  }
+                                                  onChange={(e) => {
+                                                    const value =
+                                                    e.target.value;
+                                                    const number =
+                                                    value === ""
+                                                    ? undefined
+                                                    : Number(value); // Convert empty string to undefined
+                                                    
+                                                    form.setValue(
+                                                      `variants.${index}.discountedPrice`,
+                                                      number
+                                                    ); // Explicitly update the form state
+                                                  }}
+                                                  onWheel={(e) => {
+                                                    (
+                                                      e.target as HTMLInputElement
+                                                    ).blur();
+                                                  }}
+                                                  step={"0"}
+                                                />
+                                              </FormControl>
+                                              <FormMessage />
+                                              <FormDescription>
+                                                Optional discounted price for
+                                                this variant.
+                                              </FormDescription>
+                                            </FormItem>
+                                          )}
+                                        />
+                                        <FormField
+                                          control={form.control}
+                                          name={`variants.${index}.description`}
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel
+                                                htmlFor={`description-${index}`}
+                                              >
+                                                Description
+                                              </FormLabel>
+                                              <div className="relative">
+                                                <FormControl>
+                                                  <Textarea
+                                                    id={`description-${index}`}
+                                                    placeholder="E.g., Spicy variant"
+                                                    className="resize-none pb-4 whitespace-pre-wrap"
+                                                    {...field}
+                                                  />
+                                                </FormControl>
+                                                <span className="absolute bottom-[1px] right-1 text-xs">
+                                                  {field?.value?.length || 0}
+                                                  /100
+                                                </span>
+                                              </div>
+                                              <FormMessage />
+                                              <FormDescription>
+                                                Optional description for this
+                                                variant.
+                                              </FormDescription>
+                                            </FormItem>
+                                          )}
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="destructive"
+                                          className="mt-2 absolute top-0 right-2 p-2! h-min"
+                                          onClick={() => {
+                                            remove(index);
+                                          }}
+                                        >
+                                          <Trash2 className="size-4" />
+                                          <span className="sr-only">
+                                            Remove Variant
+                                          </span>
+                                        </Button>
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                </Accordion>
+                              );
+                            })
                           ) : (
                             <p>No variants available.</p>
                           )}
