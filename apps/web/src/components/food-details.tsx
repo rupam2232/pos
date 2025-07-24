@@ -24,7 +24,7 @@ import type {
   FoodItemDetails,
   FoodVariant,
 } from "@repo/ui/types/FoodItem";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -278,13 +278,13 @@ const FoodDetails = ({
           <SheetHeader>
             <SheetTitle>
               {foodItemDetails
-                  ? `Food Item: ${foodItemDetails.foodName}`
-                  : "Food Item Details"}
+                ? `Food Item: ${foodItemDetails.foodName}`
+                : "Food Item Details"}
             </SheetTitle>
             <SheetDescription>
               {foodItemDetails
-                  ? `View details and manage food item`
-                  : "Select a food item to view its details."}
+                ? `View details and manage food item`
+                : "Select a food item to view its details."}
             </SheetDescription>
           </SheetHeader>
           {isLoading ? (
@@ -298,7 +298,11 @@ const FoodDetails = ({
                   setApi={setCarouselApi}
                   className="rounded-xl w-full max-w-xs mx-auto"
                 >
-                  <CarouselContent setCarouselCount={setCarouselCount} setCarouselCurrent={setCarouselCurrent} className="aspect-square ml-0">
+                  <CarouselContent
+                    setCarouselCount={setCarouselCount}
+                    setCarouselCurrent={setCarouselCurrent}
+                    className="aspect-square ml-0"
+                  >
                     {foodItemDetails.imageUrls &&
                     foodItemDetails.imageUrls.length > 0 ? (
                       foodItemDetails.imageUrls.map((url, index) => (
@@ -359,7 +363,10 @@ const FoodDetails = ({
                               )
                             }
                           >
-                            {variant.variantName}
+                            {variant.variantName}{" "}
+                            {foodVariant && foodVariant._id === variant._id && (
+                              <X />
+                            )}
                           </Button>
                         ))}
                       </div>
@@ -367,7 +374,10 @@ const FoodDetails = ({
                     </ScrollArea>
                   </div>
                 )}
-              {foodVariant ? (
+              {foodVariant &&
+              foodItemDetails.variants?.find(
+                (v) => v._id === foodVariant._id
+              ) ? (
                 <>
                   <div className="flex items-center justify-between gap-2">
                     <p className="whitespace-pre-wrap">
@@ -379,15 +389,18 @@ const FoodDetails = ({
                   </div>
                   <p>
                     Price:{" "}
-                    <span className="font-bold">₹{foodVariant.price}</span>
+                    <span className="font-bold">
+                      ₹{foodVariant.price.toFixed(2)}
+                    </span>
                   </p>
                   <p>
                     Discounted Price:{" "}
                     <span
-                      className={`${!foodVariant.discountedPrice ? "text-muted-foreground" : "font-bold"}`}
+                      className={`${typeof foodVariant.discountedPrice !== "number" || isNaN(foodVariant.discountedPrice) ? "text-muted-foreground" : "font-bold"}`}
                     >
-                      {foodVariant.discountedPrice
-                        ? `₹${foodVariant.discountedPrice}`
+                      {typeof foodVariant.discountedPrice === "number" &&
+                      !isNaN(foodVariant.discountedPrice)
+                        ? `₹${foodVariant.discountedPrice.toFixed(2)}`
                         : "No discounted price set"}
                     </span>
                   </p>
@@ -449,15 +462,18 @@ const FoodDetails = ({
                   </div>
                   <p>
                     Price:{" "}
-                    <span className="font-bold">₹{foodItemDetails.price}</span>
+                    <span className="font-bold">
+                      ₹{foodItemDetails.price.toFixed(2)}
+                    </span>
                   </p>
                   <p>
                     Discounted Price:{" "}
                     <span
-                      className={`${!foodItemDetails.discountedPrice ? "text-muted-foreground" : "font-bold"}`}
+                      className={`${typeof foodItemDetails.discountedPrice !== "number" || isNaN(foodItemDetails.discountedPrice) ? "text-muted-foreground" : "font-bold"}`}
                     >
-                      {foodItemDetails.discountedPrice
-                        ? `₹${foodItemDetails.discountedPrice}`
+                      {typeof foodItemDetails.discountedPrice === "number" &&
+                      !isNaN(foodItemDetails.discountedPrice)
+                        ? `₹${foodItemDetails.discountedPrice.toFixed(2)}`
                         : "No discounted price set"}
                     </span>
                   </p>
@@ -529,7 +545,7 @@ const FoodDetails = ({
                     <p className="inline">Tags:</p>
                     {foodItemDetails.tags && foodItemDetails.tags.length > 0 ? (
                       foodItemDetails.tags.map((tag, index) => (
-                        <Badge key={index} className="mx-1 my-1">
+                        <Badge key={index} variant="secondary" className="mx-1 my-1">
                           {tag}
                         </Badge>
                       ))
@@ -544,18 +560,24 @@ const FoodDetails = ({
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p>No details available for this table.</p>
+              <p>No details available for this food item.</p>
             </div>
           )}
           {!isLoading && (
             <SheetFooter className="flex flex-row items-center justify-between">
               <SheetClose asChild ref={sheetCloseRef}>
-                <Button variant="outline">
-                  Close
-                </Button>
+                <Button variant="outline">Close</Button>
               </SheetClose>
               {user?.role === "owner" && (
-                <CreateUpdateFoodItem isEditing={true} foodItemDetails={foodItemDetails} formLoading={formLoading} setFormLoading={setFormLoading} restaurantSlug={restaurantSlug} setFoodItemDetails={setFoodItemDetails} setAllFoodItems={setAllFoodItems} />
+                <CreateUpdateFoodItem
+                  isEditing={true}
+                  foodItemDetails={foodItemDetails}
+                  formLoading={formLoading}
+                  setFormLoading={setFormLoading}
+                  restaurantSlug={restaurantSlug}
+                  setFoodItemDetails={setFoodItemDetails}
+                  setAllFoodItems={setAllFoodItems}
+                />
               )}
             </SheetFooter>
           )}

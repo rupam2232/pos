@@ -127,9 +127,9 @@ const CreateUpdateFoodItem = ({
     resolver: zodResolver(foodItemSchema),
     defaultValues: {
       foodName: foodItemDetails?.foodName || "",
-      price: foodItemDetails?.price || undefined,
-      discountedPrice: foodItemDetails?.discountedPrice || undefined,
-      category: foodItemDetails?.category || undefined,
+      price: foodItemDetails?.price ?? undefined,
+      discountedPrice: foodItemDetails?.discountedPrice ?? undefined,
+      category: foodItemDetails?.category ?? undefined,
       foodType: foodItemDetails?.foodType || "veg",
       description: foodItemDetails?.description || "",
       tags: foodItemDetails?.tags || [],
@@ -154,9 +154,9 @@ const CreateUpdateFoodItem = ({
   });
 
   const variantDiscountedPrices = useWatch({
-  control: form.control,
-  name: "variants", // This will give you the whole variants array
-});
+    control: form.control,
+    name: "variants", // This will give you the whole variants array
+  });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -168,6 +168,24 @@ const CreateUpdateFoodItem = ({
   useEffect(() => {
     imageUrlsRef.current = imageUrls || [];
   }, [imageUrls]);
+
+  useEffect(() => {
+    if (foodItemDetails) {
+      form.reset({
+        foodName: foodItemDetails.foodName || "",
+        price: foodItemDetails.price ?? undefined,
+        discountedPrice: foodItemDetails.discountedPrice ?? undefined,
+        category: foodItemDetails.category ?? undefined,
+        foodType: foodItemDetails.foodType || "veg",
+        description: foodItemDetails.description || "",
+        tags: foodItemDetails.tags || [],
+        imageUrls: tempImages ? imageUrls : foodItemDetails.imageUrls || [],
+        hasVariants: foodItemDetails.hasVariants || false,
+        variants: foodItemDetails.variants || [],
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foodItemDetails, form]);
 
   const handleImageRemove = useCallback(
     async (url: string) => {
@@ -278,10 +296,15 @@ const CreateUpdateFoodItem = ({
               ...(imageUrlsRef.current || []),
               ...response.data.data,
             ];
-            form.setValue("imageUrls", [
-              ...(imageUrls || []),
-              ...response.data.data,
-            ]);
+            form.setValue(
+              "imageUrls",
+              [...(imageUrls || []), ...response.data.data],
+              {
+                shouldDirty: true,
+                shouldValidate: true,
+                shouldTouch: true,
+              }
+            );
             setTempImages((prev) => [...prev, ...response.data.data]);
             setImageFiles(null);
             resolve();
@@ -390,18 +413,23 @@ const CreateUpdateFoodItem = ({
       return;
     }
 
-    // Check if the form values have changed
-    if (!form.formState.isDirty) {
-      console.log(data, form)
-      toast.error(
-        "No changes detected. Please update the form before submitting."
-      );
-      return;
-    }
     try {
       setFormLoading(true);
       // Wait for all pending image operations to complete
       await Promise.all(pendingImageOperations);
+      // Check if the form values have changed
+      if (
+        !form.formState.isDirty &&
+        Object.keys(form.formState.dirtyFields).length === 0
+      ) {
+        toast.error(
+          "No changes detected. Please update the form before submitting."
+        );
+
+        setFormLoading(false);
+        return;
+      }
+
       // Use the ref value for imageUrls
       const updatedData = {
         ...data,
@@ -420,10 +448,32 @@ const CreateUpdateFoodItem = ({
       if (setFoodItemDetails) {
         setFoodItemDetails((prev) => {
           if (!prev) return prev;
-          return {
+          const updated = {
             ...prev,
             ...response.data.data,
           };
+          // Explicitly set discountedPrice to undefined if not present in response
+          if (!("discountedPrice" in response.data.data)) {
+            updated.discountedPrice = undefined;
+          }
+          // For variants
+          if (
+            Array.isArray(prev.variants) &&
+            Array.isArray(response.data.data.variants)
+          ) {
+            updated.variants = prev.variants.map((variant, idx) => {
+              const updatedVariant = response.data.data.variants[idx] || {};
+              return {
+                ...variant,
+                ...updatedVariant,
+                discountedPrice:
+                  "discountedPrice" in updatedVariant
+                    ? updatedVariant.discountedPrice
+                    : undefined,
+              };
+            });
+          }
+          return updated;
         });
       }
 
@@ -434,8 +484,15 @@ const CreateUpdateFoodItem = ({
           foodItems:
             prev.foodItems.length > 0
               ? prev.foodItems.map((item) =>
-                  item._id === foodItemDetails?._id
-                    ? { ...item, ...response.data.data }
+                  item._id === response.data.data._id
+                    ? {
+                        ...item,
+                        ...response.data.data,
+                        discountedPrice:
+                          "discountedPrice" in response.data.data
+                            ? response.data.data.discountedPrice
+                            : undefined,
+                      }
                     : item
                 )
               : [response.data.data],
@@ -526,6 +583,9 @@ const CreateUpdateFoodItem = ({
           }
           form.reset();
           setImageFiles(null);
+          setImageErrorMessage("");
+          setOpenParentAccordion(null);
+          setOpenChildAccordion(null);
         }
       }}
     >
@@ -547,10 +607,15 @@ const CreateUpdateFoodItem = ({
             </DialogTitle>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="grid gap-4 mt-4">
+                <div
+                  className={cn(
+                    "grid gap-4 transition-all ease-in delay-75",
+                    !(imageUrls && imageUrls.length >= 5) ? "mt-4" : ""
+                  )}
+                >
                   <div
                     {...getRootProps()}
-                    className={`group aspect-square rounded-xl mx-auto text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
+                    className={`group aspect-square rounded-xl mx-auto text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${imageUrls && imageUrls.length >= 5 ? "hidden" : ""} ${
                       isDragActive
                         ? `${!isDragReject ? "border-green-500" : "border-red-500"} border-2`
                         : isDragReject
@@ -610,7 +675,7 @@ const CreateUpdateFoodItem = ({
                                           </AlertDialogTitle>
                                           <AlertDialogDescription>
                                             This action cannot be undone. This
-                                            will permanently delete the image
+                                            will permanently delete this image
                                             from the server. Even if you
                                             don&apos;t submit this form.
                                           </AlertDialogDescription>
@@ -680,9 +745,9 @@ const CreateUpdateFoodItem = ({
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
                                           This action cannot be undone. This
-                                          will permanently delete the image from
-                                          the server. Even if you don&apos;t
-                                          submit this form.
+                                          will permanently delete this image
+                                          from the server. Even if you
+                                          don&apos;t submit this form.
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>
@@ -798,7 +863,11 @@ const CreateUpdateFoodItem = ({
                               const value = e.target.value;
                               const number =
                                 value === "" ? undefined : Number(value); // Convert empty string to undefined
-                              form.setValue("discountedPrice", number);
+                              form.setValue("discountedPrice", number, {
+                                shouldDirty: true,
+                                shouldValidate: true,
+                                shouldTouch: true,
+                              });
                             }}
                             onWheel={(e) => {
                               (e.target as HTMLInputElement).blur();
@@ -1008,7 +1077,9 @@ const CreateUpdateFoodItem = ({
                         <AccordionContent>
                           {fields.length > 0 ? (
                             fields.map((field, index) => {
-                              const discountedPrice = variantDiscountedPrices?.[index]?.discountedPrice ?? undefined;
+                              const discountedPrice =
+                                variantDiscountedPrices?.[index]
+                                  ?.discountedPrice ?? undefined;
 
                               return (
                                 <Accordion
@@ -1043,6 +1114,7 @@ const CreateUpdateFoodItem = ({
                                                 <Input
                                                   id={`variantName-${index}`}
                                                   placeholder="E.g., Large"
+                                                  autoComplete="off"
                                                   {...field}
                                                 />
                                               </FormControl>
@@ -1069,9 +1141,14 @@ const CreateUpdateFoodItem = ({
                                                   id={`price-${index}`}
                                                   type="number"
                                                   inputMode="numeric"
+                                                  autoComplete="off"
                                                   placeholder="E.g., 100"
                                                   {...field}
-                                                  value={field.value === undefined ? "" : field.value} // Convert undefined to an empty string
+                                                  value={
+                                                    field.value === undefined
+                                                      ? ""
+                                                      : field.value
+                                                  } // Convert undefined to an empty string
                                                   onChange={(e) =>
                                                     field.onChange(
                                                       e.target.valueAsNumber
@@ -1107,6 +1184,7 @@ const CreateUpdateFoodItem = ({
                                                 <Input
                                                   id={`discountedPrice-${index}`}
                                                   type="number"
+                                                  autoComplete="off"
                                                   inputMode="numeric"
                                                   placeholder="E.g., 80"
                                                   {...field}
@@ -1118,15 +1196,20 @@ const CreateUpdateFoodItem = ({
                                                   }
                                                   onChange={(e) => {
                                                     const value =
-                                                    e.target.value;
+                                                      e.target.value;
                                                     const number =
-                                                    value === ""
-                                                    ? undefined
-                                                    : Number(value); // Convert empty string to undefined
-                                                    
+                                                      value === ""
+                                                        ? undefined
+                                                        : Number(value); // Convert empty string to undefined
+
                                                     form.setValue(
                                                       `variants.${index}.discountedPrice`,
-                                                      number
+                                                      number,
+                                                      {
+                                                        shouldDirty: true,
+                                                        shouldValidate: true,
+                                                        shouldTouch: true,
+                                                      }
                                                     ); // Explicitly update the form state
                                                   }}
                                                   onWheel={(e) => {
@@ -1160,6 +1243,7 @@ const CreateUpdateFoodItem = ({
                                                   <Textarea
                                                     id={`description-${index}`}
                                                     placeholder="E.g., Spicy variant"
+                                                    autoComplete="off"
                                                     className="resize-none pb-4 whitespace-pre-wrap"
                                                     {...field}
                                                   />

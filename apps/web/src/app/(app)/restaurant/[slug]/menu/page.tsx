@@ -196,7 +196,8 @@ const MenuPage = () => {
                     <h3 className="font-medium line-clamp-1">
                       {foodItem.foodName}
                     </h3>
-                    {foodItem.discountedPrice ? (
+                    {typeof foodItem.discountedPrice === "number" &&
+                    !isNaN(foodItem.discountedPrice) ? (
                       <p className="text-lg font-semibold">
                         {" "}
                         ₹{foodItem.discountedPrice.toFixed(2)}
