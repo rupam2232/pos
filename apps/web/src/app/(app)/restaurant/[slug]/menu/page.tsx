@@ -26,6 +26,7 @@ import CreateUpdateFoodItem from "@/components/create-update-foodItem";
 const MenuPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [allFoodItems, setAllFoodItems] = useState<AllFoodItems | null>(null);
+  const [restaurantCategories, setRestaurantCategories] = useState<string[]>([]);
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [isPageChanging, setIsPageChanging] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
@@ -76,9 +77,36 @@ const MenuPage = () => {
     }
   }, [slug, router, dispatch, page]);
 
+  const fetchRestaurantCategories = useCallback(async () => {
+    if (!slug) {
+      toast.error("Restaurant slug is required to fetch categories");
+      return;
+    }
+    try {
+      const response = await axios.get(`/restaurant/${slug}/categories`);
+      setRestaurantCategories(response.data.data);
+    } catch (error) {
+      console.error(
+        "Failed to fetch all categories. Please try again later:",
+        error
+      );
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "Failed to fetch all categories. Please try again later"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+      setRestaurantCategories([]);
+    }
+  }, [slug, router, dispatch]);
+
   useEffect(() => {
+    fetchRestaurantCategories();
     fetchAllFoodItems();
-  }, [slug, fetchAllFoodItems, page]);
+  }, [slug, fetchAllFoodItems, page, fetchRestaurantCategories]);
 
   const lastElementRef = useCallback((node: HTMLDivElement | null) => {
     if (observer.current) observer.current.disconnect();
@@ -106,6 +134,8 @@ const MenuPage = () => {
               formLoading={isPageLoading}
               setFormLoading={setIsPageLoading}
               restaurantSlug={slug}
+              categories={restaurantCategories}
+              setCategories={setRestaurantCategories}
             />
           </div>
         )}

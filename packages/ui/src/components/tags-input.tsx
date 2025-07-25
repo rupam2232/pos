@@ -271,7 +271,7 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
           }}
           className={cn(
             "flex items-center flex-wrap gap-1 px-2 py-1 rounded-lg bg-background overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-ring",
-            "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+            "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent",
             {
               "focus-within:ring-foreground": activeIndex === -1,
             },
@@ -320,7 +320,7 @@ export const TagsInput = React.forwardRef<HTMLDivElement, TagsInputProps>(
             placeholder={placeholder}
             onClick={() => setActiveIndex(-1)}
             className={cn(
-              "outline-0 border-none h-7 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 placeholder:text-muted-foreground px-1",
+              "outline-0 border-none h-7 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 placeholder:text-muted-foreground px-1 shadow-none bg-transparent dark:bg-transparent",
               activeIndex !== -1 && "caret-transparent"
             )}
           />

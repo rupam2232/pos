@@ -3,6 +3,7 @@ import fs from "fs";
 import cloudinary from "../utils/cloudinary.js";
 import { Restaurant } from "../models/restaurant.models.js";
 import {
+  canAddCategory,
   canCreateRestaurant,
   canToggleOpeningStatus,
 } from "../service/restaurant.service.js";
@@ -11,6 +12,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { restaurantCreatedTemplate } from "../utils/emailTemplates.js";
 import sendEmail from "../utils/sendEmail.js";
+const isProduction = process.env?.NODE_ENV === "production";
 
 export const createRestaurant = asyncHandler(async (req, res) => {
   if (!req.body?.restaurantName || !req.body?.slug) {
@@ -34,15 +36,21 @@ export const createRestaurant = asyncHandler(async (req, res) => {
     );
   }
 
-  await canCreateRestaurant(req.user!, req.subscription!);
+  isProduction && await canCreateRestaurant(req.user!, req.subscription!);
 
   // Check if the restaurant already exists
   const existingRestaurant = await Restaurant.findOne({
-    $or: [{ slug: {$regex: slug, $options: "i"} }, { restaurantName: {$regex: restaurantName, $options: "i"}, ownerId }],
+    $or: [
+      { slug: { $regex: slug, $options: "i" } },
+      { restaurantName: { $regex: restaurantName, $options: "i" }, ownerId },
+    ],
   });
 
   if (existingRestaurant) {
-    throw new ApiError(400, `Restaurant with slug "${slug}" or name "${restaurantName}" already exists`);
+    throw new ApiError(
+      400,
+      `Restaurant with slug "${slug}" or name "${restaurantName}" already exists`
+    );
   }
 
   const restaurant = await Restaurant.create({
@@ -218,7 +226,7 @@ export const toggleRestaurantOpenStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Restaurant not found or you are not the owner.");
   }
 
-  await canToggleOpeningStatus(restaurant);
+  isProduction && await canToggleOpeningStatus(restaurant);
 
   restaurant.isCurrentlyOpen = !restaurant.isCurrentlyOpen;
   await restaurant.save();
@@ -234,30 +242,44 @@ export const toggleRestaurantOpenStatus = asyncHandler(async (req, res) => {
     );
 });
 
-export const createRestaurantCategories = asyncHandler(async (req, res) => {
+export const addRestaurantCategory = asyncHandler(async (req, res) => {
   if (!req.params?.slug) {
-    throw new ApiError(400, "Restaurant slug is required.");
+    throw new ApiError(400, "Restaurant slug is required");
   }
   const { slug } = req.params;
-  if (!req.body?.categories || !Array.isArray(req.body.categories)) {
-    throw new ApiError(400, "Categories must be an array.");
+  if (
+    !req.body ||
+    !req.body?.category ||
+    typeof req.body.category !== "string" ||
+    req.body.category.trim() === ""
+  ) {
+    throw new ApiError(400, "Category is required");
   }
   if (req.user!.role !== "owner") {
-    throw new ApiError(403, "Only owners can create restaurant categories.");
+    throw new ApiError(403, "Only owners can create restaurant categories");
   }
 
-  const restaurant = await Restaurant.findOneAndUpdate(
-    { slug, ownerId: req.user!._id },
-    { $set: { categories: req.body.categories } },
-    { new: true, runValidators: true }
-  );
+  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id });
+
   if (!restaurant) {
-    throw new ApiError(404, "Restaurant not found or you are not the owner.");
+    throw new ApiError(404, "Restaurant not found");
   }
+
+  isProduction && canAddCategory(restaurant, req.subscription!);
+
+  const categories = restaurant.categories || [];
+  // Check if the category already exists
+  if (categories.includes(req.body.category.trim())) {
+    throw new ApiError(400, "Category already exists in the restaurant");
+  }
+
+  // Add categories to the restaurant
+  restaurant.categories.push(req.body.category);
+  await restaurant.save();
 
   res
     .status(200)
-    .json(new ApiResponse(200, restaurant, "Categories created successfully"));
+    .json(new ApiResponse(200, restaurant, "Category added successfully"));
 });
 
 export const removeRestaurantCategories = asyncHandler(async (req, res) => {
@@ -290,6 +312,32 @@ export const removeRestaurantCategories = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, restaurant, "Categories removed successfully"));
+});
+
+export const getRestaurantCategories = asyncHandler(async (req, res) => {
+  if (!req.params?.slug) {
+    throw new ApiError(400, "Restaurant slug is required.");
+  }
+  const { slug } = req.params;
+  if (req.user!.role !== "owner" && req.user!.role !== "staff") {
+    throw new ApiError(403, "Only owners and staff can view restaurant categories");
+  }
+  const restaurant = await Restaurant.findOne({ slug })
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found.");
+  }
+
+  if (req.user!.role === "staff" && (!restaurant.staffIds || !Array.isArray(restaurant.staffIds) || restaurant.staffIds.length === 0 || !restaurant.staffIds.includes(req.user!.id))) {
+    throw new ApiError(403, "You are not authorized to view this restaurant's categories");
+  }
+
+  if(req.user!.role === "owner" && restaurant.ownerId.toString() !== req.user!.id.toString()) {
+    throw new ApiError(403, "You are not authorized to view this restaurant's categories");
+  }
+  
+  res
+    .status(200)
+    .json(new ApiResponse(200, restaurant.categories, "Categories fetched successfully"));
 });
 
 export const setRestaurantTax = asyncHandler(async (req, res) => {

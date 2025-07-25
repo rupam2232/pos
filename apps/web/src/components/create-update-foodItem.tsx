@@ -94,6 +94,8 @@ type CreateUpdateFoodItemProps = {
     React.SetStateAction<FoodItemDetails | null>
   >; // Optional prop to update food item details after creation or update
   setAllFoodItems: React.Dispatch<React.SetStateAction<AllFoodItems | null>>; // Optional prop to update all food items after creation or update
+  categories?: string[]; // Optional prop to pass categories for the restaurant
+  setCategories?: React.Dispatch<React.SetStateAction<string[]>>; // Optional prop to update categories after creation or update
 };
 
 const CreateUpdateFoodItem = ({
@@ -104,6 +106,8 @@ const CreateUpdateFoodItem = ({
   restaurantSlug,
   setFoodItemDetails, // Optional prop to update food item details after creation or update
   setAllFoodItems, // Optional prop to update all food items after creation or update
+  categories = [], // Optional prop to pass categories for the restaurant
+  setCategories, // Optional prop to update categories after creation or update
 }: CreateUpdateFoodItemProps) => {
   const closeDialog = useRef<HTMLButtonElement>(null);
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
@@ -958,9 +962,19 @@ const CreateUpdateFoodItem = ({
                                   <CommandEmpty>
                                     No category found.
                                   </CommandEmpty>
-                                  <CommandGroup>
-                                    <CommandItem
-                                      onSelect={() => {
+                                  <div className="p-1 w-full space-y-1">
+                                  <Button
+                                    type="button"
+                                    className="w-full text-sm"
+                                  
+                                  >
+                                    <Plus /> Add new category
+                                    </Button>
+
+                                    <Button
+                                    variant="secondary"
+                                    className="w-full text-sm"
+                                      onClick={() => {
                                         form.setValue("category", undefined);
                                       }}
                                     >
@@ -973,27 +987,69 @@ const CreateUpdateFoodItem = ({
                                             : "opacity-0"
                                         )}
                                       />
-                                    </CommandItem>
-                                    {foodItemDetails?.restaurantDetails.categories.map(
-                                      (category) => (
-                                        <CommandItem
-                                          value={category}
-                                          key={category}
-                                          onSelect={() => {
-                                            form.setValue("category", category);
-                                          }}
-                                        >
-                                          {category}
-                                          <Check
-                                            className={cn(
-                                              "ml-auto",
-                                              category === field.value
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                            )}
-                                          />
-                                        </CommandItem>
+                                    </Button>
+                                    </div>
+                                  <CommandGroup>
+                                    {(Array.isArray(
+                                      foodItemDetails?.restaurantDetails
+                                        .categories
+                                    ) &&
+                                      foodItemDetails?.restaurantDetails
+                                        .categories.length > 0) ||
+                                    categories.length > 0 ? (
+                                      categories.length > 0 ? (
+                                        categories.map((category) => (
+                                          <CommandItem
+                                            value={category}
+                                            key={category}
+                                            onSelect={() => {
+                                              form.setValue(
+                                                "category",
+                                                category
+                                              );
+                                            }}
+                                          >
+                                            {category}
+                                            <Check
+                                              className={cn(
+                                                "ml-auto",
+                                                category === field.value
+                                                  ? "opacity-100"
+                                                  : "opacity-0"
+                                              )}
+                                            />
+                                          </CommandItem>
+                                        ))
+                                      ) : (
+                                        foodItemDetails?.restaurantDetails.categories.map(
+                                          (category) => (
+                                            <CommandItem
+                                              value={category}
+                                              key={category}
+                                              onSelect={() => {
+                                                form.setValue(
+                                                  "category",
+                                                  category
+                                                );
+                                              }}
+                                            >
+                                              {category}
+                                              <Check
+                                                className={cn(
+                                                  "ml-auto",
+                                                  category === field.value
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                                )}
+                                              />
+                                            </CommandItem>
+                                          )
+                                        )
                                       )
+                                    ) : (
+                                      <CommandItem disabled>
+                                        No category available
+                                      </CommandItem>
                                     )}
                                   </CommandGroup>
                                 </CommandList>

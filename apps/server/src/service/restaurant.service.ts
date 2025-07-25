@@ -81,3 +81,21 @@ export async function canToggleOpeningStatus(
     );
   }
 }
+
+export async function canAddCategory(
+  restaurant: RestaurantType,
+  subscription: SubscriptionType
+) {
+  const categoryCount = restaurant.categories.length;
+
+  let maxCategories = 5;
+  if (subscription.plan === "medium") maxCategories = 10;
+  if (subscription.plan === "pro") maxCategories = 20;
+
+  if (categoryCount >= maxCategories) {
+    throw new ApiError(
+      403,
+      `Your plan allows to add max ${maxCategories} categories`
+    );
+  }
+}

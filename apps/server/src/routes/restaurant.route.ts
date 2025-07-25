@@ -3,7 +3,7 @@ import { verifyAuth } from "../middlewares/auth.middleware.js";
 import {
   checkUniqueRestaurantSlug,
   createRestaurant,
-  createRestaurantCategories,
+  addRestaurantCategory,
   getAllRestaurantofOwner,
   getRestaurantBySlug,
   getRestaurantofStaff,
@@ -12,6 +12,7 @@ import {
   toggleRestaurantOpenStatus,
   updateRestaurantDetails,
   updateRestaurantLogo,
+  getRestaurantCategories,
 } from "../controllers/restaurant.controller.js";
 import { rateLimit } from "express-rate-limit";
 import { ApiError } from "../utils/ApiError.js";
@@ -64,7 +65,8 @@ router.post(
 );
 router
   .route("/:slug/categories")
-  .post(verifyAuth, createRestaurantCategories)
+  .get(verifyAuth, getRestaurantCategories)
+  .post(verifyAuth, isSubscriptionActive, addRestaurantCategory)
   .patch(verifyAuth, removeRestaurantCategories);
 
 router.post("/:slug/tax", verifyAuth, setRestaurantTax);
