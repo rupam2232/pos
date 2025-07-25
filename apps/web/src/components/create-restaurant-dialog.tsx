@@ -20,11 +20,12 @@ import {
 import { useDebounceCallback } from "usehooks-ts";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { createRestaurantSchema } from "@/schemas/createRestaurantSchema";
+import { createRestaurantSchema } from "@/schemas/restaurantSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -58,7 +59,7 @@ const CreateRestaurantDialog = ({
   const [imageErrorMessage, setImageErrorMessage] = useState<string>("");
   const [formLoading, setformLoading] = useState<boolean>(false);
   const [slug, setSlug] = useState<string>("");
-  const [isSlugUnqiue, setIsSlugUnique] = useState<boolean | null>(null);
+  const [isSlugUnique, setIsSlugUnique] = useState<boolean | null>(null);
   const [isCheckingSlug, setIsCheckingSlug] = useState<boolean>(false);
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
   const dispatch = useDispatch<AppDispatch>();
@@ -87,7 +88,6 @@ const CreateRestaurantDialog = ({
     if (!slug) return; // Skip if slug is empty
     form.trigger("slug"); // Ensure slug is validated before checking uniqueness
     if (slug.length > 2) {
-      if (form.formState.isSubmitting) return; // Prevent checking during form submission
       setIsCheckingSlug(true);
       setIsSlugUnique(null);
       try {
@@ -221,7 +221,7 @@ const CreateRestaurantDialog = ({
     }
     await checkUsernameUnique(); // Ensure slug uniqueness check is done
     // Block submission if slug is not unique or check is in progress
-    if (isSlugUnqiue !== true) {
+    if (isSlugUnique !== true) {
       form.setError("slug", {
         type: "validate",
         message: "Slug is already taken",
@@ -383,6 +383,14 @@ const CreateRestaurantDialog = ({
                           />
                         </FormControl>
                         <FormMessage />
+                        <FormDescription>
+                          The name of your restaurant. It will be displayed on
+                          your restaurant page.
+                          <span className="text-muted-foreground block">
+                            Note: All your created restaurant names must be
+                            unique.
+                          </span>
+                        </FormDescription>
                       </FormItem>
                     )}
                   />
@@ -411,7 +419,7 @@ const CreateRestaurantDialog = ({
                             <p className="text-sm text-muted-foreground">
                               Checking slug uniqueness...
                             </p>
-                          ) : isSlugUnqiue === true ? (
+                          ) : isSlugUnique === true ? (
                             <p className="text-sm text-green-500">
                               Slug is available
                             </p>
@@ -421,6 +429,10 @@ const CreateRestaurantDialog = ({
                         ) : (
                           <FormMessage />
                         )}
+                        <FormDescription>
+                          A unique identifier for your restaurant. It will be
+                          used in the URL for your restaurant&apos;s page.
+                        </FormDescription>
                       </FormItem>
                     )}
                   />
@@ -442,6 +454,9 @@ const CreateRestaurantDialog = ({
                           />
                         </FormControl>
                         <FormMessage />
+                        <FormDescription>
+                          Optional description of your restaurant.
+                        </FormDescription>
                       </FormItem>
                     )}
                   />
@@ -463,6 +478,9 @@ const CreateRestaurantDialog = ({
                           />
                         </FormControl>
                         <FormMessage />
+                        <FormDescription>
+                          Optional address of your restaurant.
+                        </FormDescription>
                       </FormItem>
                     )}
                   />

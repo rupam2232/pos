@@ -47,7 +47,7 @@ router.post(
   "/create",
   isProduction ? createLimit : (req, res, next) => next(),
   verifyAuth,
-  isSubscriptionActive,
+  isProduction ? isSubscriptionActive : (req, res, next) => next(),
   createRestaurant
 );
 
@@ -66,7 +66,7 @@ router.post(
 router
   .route("/:slug/categories")
   .get(verifyAuth, getRestaurantCategories)
-  .post(verifyAuth, isSubscriptionActive, addRestaurantCategory)
+  .post(verifyAuth, isProduction ? isSubscriptionActive : (req, res, next) => next(), addRestaurantCategory)
   .patch(verifyAuth, removeRestaurantCategories);
 
 router.post("/:slug/tax", verifyAuth, setRestaurantTax);

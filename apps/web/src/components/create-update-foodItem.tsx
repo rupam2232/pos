@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -83,6 +83,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@repo/ui/components/accordion";
+import CreateRestaurantCategory from "./create-restaurant-category";
 
 type CreateUpdateFoodItemProps = {
   isEditing?: boolean; // Optional prop to indicate if it's for editing an existing item
@@ -944,7 +945,9 @@ const CreateUpdateFoodItem = ({
                                   )}
                                 >
                                   {field.value
-                                    ? foodItemDetails?.restaurantDetails.categories.find(
+                                    ? categories.length > 0 ? 
+                                    categories.find((category) => category === field.value)
+                                    : foodItemDetails?.restaurantDetails.categories.find(
                                         (category) => category === field.value
                                       )
                                     : "Select category"}
@@ -962,18 +965,11 @@ const CreateUpdateFoodItem = ({
                                   <CommandEmpty>
                                     No category found.
                                   </CommandEmpty>
-                                  <div className="p-1 w-full space-y-1">
-                                  <Button
-                                    type="button"
-                                    className="w-full text-sm"
-                                  
-                                  >
-                                    <Plus /> Add new category
-                                    </Button>
-
+                                  <div className="p-1 pb-0 w-full space-y-1">
+                                    <CreateRestaurantCategory isLoading={formLoading} setIsLoading={setFormLoading} restaurantSlug={restaurantSlug} setCategories={setCategories} categories={categories} />
                                     <Button
-                                    variant="secondary"
-                                    className="w-full text-sm"
+                                    variant="ghost"
+                                    className="w-full text-sm font-normal h-min py-1.5 px-2! hover:bg-accent!"
                                       onClick={() => {
                                         form.setValue("category", undefined);
                                       }}
@@ -1001,6 +997,7 @@ const CreateUpdateFoodItem = ({
                                         categories.map((category) => (
                                           <CommandItem
                                             value={category}
+                                            className="cursor-pointer"
                                             key={category}
                                             onSelect={() => {
                                               form.setValue(
@@ -1025,6 +1022,7 @@ const CreateUpdateFoodItem = ({
                                           (category) => (
                                             <CommandItem
                                               value={category}
+                                              className="cursor-pointer"
                                               key={category}
                                               onSelect={() => {
                                                 form.setValue(
