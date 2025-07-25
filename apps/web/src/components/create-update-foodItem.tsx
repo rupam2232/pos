@@ -97,6 +97,7 @@ type CreateUpdateFoodItemProps = {
   setAllFoodItems: React.Dispatch<React.SetStateAction<AllFoodItems | null>>; // Optional prop to update all food items after creation or update
   categories?: string[]; // Optional prop to pass categories for the restaurant
   setCategories?: React.Dispatch<React.SetStateAction<string[]>>; // Optional prop to update categories after creation or update
+  setTabName?: React.Dispatch<React.SetStateAction<string>>; // Optional prop to set the current tab name
 };
 
 const CreateUpdateFoodItem = ({
@@ -109,6 +110,7 @@ const CreateUpdateFoodItem = ({
   setAllFoodItems, // Optional prop to update all food items after creation or update
   categories = [], // Optional prop to pass categories for the restaurant
   setCategories, // Optional prop to update categories after creation or update
+  setTabName, // Optional prop to set the current tab name
 }: CreateUpdateFoodItemProps) => {
   const closeDialog = useRef<HTMLButtonElement>(null);
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
@@ -481,13 +483,15 @@ const CreateUpdateFoodItem = ({
           return updated;
         });
       }
-
+      if(setTabName) {
+        setTabName("all"); // Reset tab name to "all"
+      }
       setAllFoodItems((prev) => {
         if (!prev) return prev; // If allFoodItems is null, return it
         return {
           ...prev,
           foodItems:
-            prev.foodItems.length > 0
+            isEditing && prev.foodItems.length > 0
               ? prev.foodItems.map((item) =>
                   item._id === response.data.data._id
                     ? {
@@ -500,7 +504,7 @@ const CreateUpdateFoodItem = ({
                       }
                     : item
                 )
-              : [response.data.data],
+              : [response.data.data, ...prev.foodItems],
         };
       });
       setTempImages([]);
@@ -1103,7 +1107,7 @@ const CreateUpdateFoodItem = ({
                             placeholder={
                               field.value && field.value?.length > 0
                                 ? "Add another tag"
-                                : "E.g., spicy, vegetarian"
+                                : "E.g., spicy, smoky, cheesy"
                             }
                             className="resize-none pb-4 whitespace-pre-wrap break-all"
                           />

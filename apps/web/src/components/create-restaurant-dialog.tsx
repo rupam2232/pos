@@ -116,8 +116,7 @@ const CreateRestaurantDialog = ({
 
   useEffect(() => {
     checkUsernameUnique();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [slug, checkUsernameUnique]);
 
   const handleImageRemove = async () => {
     setImageErrorMessage("");

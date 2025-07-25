@@ -36,20 +36,23 @@ export const createRestaurant = asyncHandler(async (req, res) => {
     );
   }
 
-  isProduction && await canCreateRestaurant(req.user!, req.subscription!);
+  isProduction && (await canCreateRestaurant(req.user!, req.subscription!));
 
   // Check if the restaurant already exists
   const existingRestaurant = await Restaurant.findOne({
     $or: [
-      { slug: { $regex: slug, $options: "i" } },
-      { restaurantName: { $regex: restaurantName, $options: "i" }, ownerId },
+      { slug },
+      {
+        restaurantName: { $regex: new RegExp(`^${restaurantName}$`, "i") },
+        ownerId: { $ne: ownerId },
+      },
     ],
   });
 
   if (existingRestaurant) {
     throw new ApiError(
       400,
-      `Restaurant with slug "${slug}" or name "${restaurantName}" already exists`
+      `Restaurant with slug ${slug} or name ${restaurantName} already exists`
     );
   }
 
@@ -226,7 +229,7 @@ export const toggleRestaurantOpenStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Restaurant not found or you are not the owner.");
   }
 
-  isProduction && await canToggleOpeningStatus(restaurant);
+  isProduction && (await canToggleOpeningStatus(restaurant));
 
   restaurant.isCurrentlyOpen = !restaurant.isCurrentlyOpen;
   await restaurant.save();
@@ -320,24 +323,48 @@ export const getRestaurantCategories = asyncHandler(async (req, res) => {
   }
   const { slug } = req.params;
   if (req.user!.role !== "owner" && req.user!.role !== "staff") {
-    throw new ApiError(403, "Only owners and staff can view restaurant categories");
+    throw new ApiError(
+      403,
+      "Only owners and staff can view restaurant categories"
+    );
   }
-  const restaurant = await Restaurant.findOne({ slug })
+  const restaurant = await Restaurant.findOne({ slug });
   if (!restaurant) {
     throw new ApiError(404, "Restaurant not found.");
   }
 
-  if (req.user!.role === "staff" && (!restaurant.staffIds || !Array.isArray(restaurant.staffIds) || restaurant.staffIds.length === 0 || !restaurant.staffIds.includes(req.user!.id))) {
-    throw new ApiError(403, "You are not authorized to view this restaurant's categories");
+  if (
+    req.user!.role === "staff" &&
+    (!restaurant.staffIds ||
+      !Array.isArray(restaurant.staffIds) ||
+      restaurant.staffIds.length === 0 ||
+      !restaurant.staffIds.includes(req.user!.id))
+  ) {
+    throw new ApiError(
+      403,
+      "You are not authorized to view this restaurant's categories"
+    );
   }
 
-  if(req.user!.role === "owner" && restaurant.ownerId.toString() !== req.user!.id.toString()) {
-    throw new ApiError(403, "You are not authorized to view this restaurant's categories");
+  if (
+    req.user!.role === "owner" &&
+    restaurant.ownerId.toString() !== req.user!.id.toString()
+  ) {
+    throw new ApiError(
+      403,
+      "You are not authorized to view this restaurant's categories"
+    );
   }
-  
+
   res
     .status(200)
-    .json(new ApiResponse(200, restaurant.categories, "Categories fetched successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        restaurant.categories,
+        "Categories fetched successfully"
+      )
+    );
 });
 
 export const setRestaurantTax = asyncHandler(async (req, res) => {

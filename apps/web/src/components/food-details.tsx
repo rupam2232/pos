@@ -313,6 +313,9 @@ const FoodDetails = ({
                           <Image
                             src={url}
                             alt={`Food Item Image ${index + 1}`}
+                            priority={index < 2} // Load first 2 images with priority
+                            loading={index < 2 ? "eager" : "lazy"}
+                            draggable={false}
                             className="object-cover rounded-xl h-auto w-auto"
                             fill
                           />
@@ -545,7 +548,11 @@ const FoodDetails = ({
                     <p className="inline">Tags:</p>
                     {foodItemDetails.tags && foodItemDetails.tags.length > 0 ? (
                       foodItemDetails.tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="mx-1 my-1">
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="mx-1 my-1"
+                        >
                           {tag}
                         </Badge>
                       ))

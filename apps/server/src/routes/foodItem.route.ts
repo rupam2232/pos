@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   createFoodItem,
   deleteFoodItem,
-  getAllFoodItemsOfRestaurant,
+  getFoodItemsOfRestaurant,
   getFoodItemById,
   toggleFoodItemAvailability,
   updateFoodItem,
@@ -34,7 +34,7 @@ router
     isProduction ? isSubscriptionActive : (req, res, next) => next(),
     createFoodItem
   )
-  .get(getAllFoodItemsOfRestaurant);
+  .get(getFoodItemsOfRestaurant);
 
 router
   .route("/:restaurantSlug/:foodItemId")

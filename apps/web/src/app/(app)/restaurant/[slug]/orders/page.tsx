@@ -260,50 +260,51 @@ const Page = () => {
     <div className="flex flex-1 flex-col p-4 md:gap-6 lg:p-6">
       <Tabs defaultValue="all">
         <ScrollArea className="w-full">
-        <div className="flex items-center justify-between">
-          <TabsList>
-          {[
-            {
-              tab: "all",
-              label: "All",
-            },
-            {
-              tab: "new",
-              label: "New",
-            },
-            {
-              tab: "inProgress",
-              label: "In Progress",
-            },
-            {
-              tab: "ready",
-              label: "Ready",
-            },
-            {
-              tab: "unPaid",
-              label: "Unpaid",
-            },
-            {
-              tab: "completed",
-              label: "Completed",
-            },
-          ].map(({ tab, label }) => (
-            <TabsTrigger
-              key={tab}
-              value={tab}
-              className="font-medium data-[state=active]:font-semibold"
-              onClick={() => setTabName(tab)}
-            >
-              {label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <Input className="w-70"
-        placeholder="Search orders..."
-        type="search"
-        />
-        </div>
-        <ScrollBar orientation="horizontal" />
+          <div className="flex items-center justify-between">
+            <TabsList>
+              {[
+                {
+                  tab: "all",
+                  label: "All",
+                },
+                {
+                  tab: "new",
+                  label: "New",
+                },
+                {
+                  tab: "inProgress",
+                  label: "In Progress",
+                },
+                {
+                  tab: "ready",
+                  label: "Ready",
+                },
+                {
+                  tab: "unPaid",
+                  label: "Unpaid",
+                },
+                {
+                  tab: "completed",
+                  label: "Completed",
+                },
+              ].map(({ tab, label }) => (
+                <TabsTrigger
+                  key={tab}
+                  value={tab}
+                  className="font-medium data-[state=active]:font-semibold data-[state=active]:bg-primary! data-[state=active]:text-primary-foreground! data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200"
+                  onClick={() => setTabName(tab)}
+                >
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <Input
+              className="w-70"
+              placeholder="Search orders..."
+              type="search"
+            />
+          </div>
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
         <TabsContent value="all">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 my-4">
@@ -323,7 +324,7 @@ const Page = () => {
               ))
             ) : !Array.isArray(allOrders?.orders) ||
               allOrders.orders.length === 0 ? (
-              <p>No orders found.</p>
+              <p>No orders found</p>
             ) : (
               allOrders.orders.map((order) => (
                 <OrderCard

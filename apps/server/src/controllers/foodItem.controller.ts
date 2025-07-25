@@ -110,8 +110,8 @@ export const createFoodItem = asyncHandler(async (req, res) => {
 
   if (
     category &&
-    restaurant.categories.length > 0 &&
-    !restaurant.categories.includes(category)
+    (restaurant.categories.length === 0 ||
+      !restaurant.categories.includes(category))
   ) {
     throw new ApiError(
       400,
@@ -159,7 +159,7 @@ export const createFoodItem = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, foodItem, "Food item created successfully"));
 });
 
-export const getAllFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
+export const getFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
   if (!req.params || !req.params.restaurantSlug) {
     throw new ApiError(400, "Restaurant slug is required");
   }
@@ -169,6 +169,14 @@ export const getAllFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
     limit = 10,
     sortBy = "foodName", // Default sort by foodName
     sortType = "asc",
+    tab = "all", // Default tab is 'all'
+    search = "", // Optional search query
+  } = req.query;
+
+  let {
+    category = "", // Optional category filter
+    foodType = "", // Optional food type filter
+    isAvailable = "", // Optional availability filter
   } = req.query;
 
   const pageNumber = parseInt(page.toString());
@@ -186,8 +194,82 @@ export const getAllFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Restaurant not found");
   }
 
+  // Validate sortBy and sortType
+  if (tab !== "all") {
+    switch (tab) {
+      case "available":
+        if (isAvailable && isAvailable !== "true") {
+          throw new ApiError(
+            400,
+            "Invalid availability filter for 'available' tab"
+          );
+        }
+        isAvailable = "true"; // Force availability to true for 'available' tab
+        break;
+      case "unavailable":
+        if (isAvailable && isAvailable !== "false") {
+          throw new ApiError(
+            400,
+            "Invalid availability filter for 'unavailable' tab"
+          );
+        }
+        isAvailable = "false"; // Force availability to false for 'unavailable' tab
+        break;
+      case "veg":
+        if (foodType && foodType !== "veg") {
+          throw new ApiError(400, "Invalid food type filter for 'veg' tab");
+        }
+        foodType = "veg"; // Force food type to 'veg' for 'veg' tab
+        break;
+
+      case "non-veg":
+        if (foodType && foodType !== "non-veg") {
+          throw new ApiError(400, "Invalid food type filter for 'non-veg' tab");
+        }
+        foodType = "non-veg"; // Force food type to 'non-veg' for 'non-veg' tab
+        break;
+
+      default:
+        category = tab; // Use the tab as category filter for custom categories
+        break;
+    }
+  }
+
+  const decodedSearch = decodeURIComponent(search as string).trim();
+
   const foodItemCount = await FoodItem.countDocuments({
     restaurantId: restaurant._id,
+    ...(category ? { category } : {}), // Filter by category if provided
+    ...(foodType ? { foodType } : {}), // Filter by food type if provided
+    ...(isAvailable ? { isAvailable: isAvailable === "true" } : {}), // Filter by availability if provided
+    ...(decodedSearch
+      ? {
+          $or: [
+            { foodName: { $regex: decodedSearch, $options: "i" } }, // Case-insensitive search
+            { category: { $regex: decodedSearch, $options: "i" } },
+            { description: { $regex: decodedSearch, $options: "i" } },
+            { foodType: { $regex: decodedSearch, $options: "i" } },
+            {
+              tags: {
+                $elemMatch: {
+                  $regex: decodedSearch,
+                  $options: "i",
+                },
+              },
+            },
+            {
+              variants: {
+                $elemMatch: {
+                  $or: [
+                    { variantName: { $regex: decodedSearch, $options: "i" } },
+                    { description: { $regex: decodedSearch, $options: "i" } },
+                  ],
+                },
+              },
+            }
+          ],
+        }
+      : {}), // Filter by search query if provided
   });
 
   if (!foodItemCount || foodItemCount === 0) {
@@ -207,6 +289,38 @@ export const getAllFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
   } else {
     const foodItems = await FoodItem.find({
       restaurantId: restaurant._id,
+      ...(category ? { category } : {}), // Filter by category if provided
+      ...(foodType ? { foodType } : {}), // Filter by food type if provided
+      ...(isAvailable ? { isAvailable: isAvailable === "true" } : {}), // Filter by availability if provided
+      
+    ...(decodedSearch
+      ? {
+          $or: [
+            { foodName: { $regex: decodedSearch, $options: "i" } }, // Case-insensitive search
+            { category: { $regex: decodedSearch, $options: "i" } },
+            { description: { $regex: decodedSearch, $options: "i" } },
+            { foodType: { $regex: decodedSearch, $options: "i" } },
+            {
+              tags: {
+                $elemMatch: {
+                  $regex: decodedSearch,
+                  $options: "i",
+                },
+              },
+            },
+            {
+              variants: {
+                $elemMatch: {
+                  $or: [
+                    { variantName: { $regex: decodedSearch, $options: "i" } },
+                    { description: { $regex: decodedSearch, $options: "i" } },
+                  ],
+                },
+              },
+            }
+          ],
+        }
+      : {}), // Filter by search query if provided
     })
       .sort({
         isAvailable: -1, // Sort by availability first (available items first)
