@@ -285,7 +285,7 @@ const TableDetails = ({
       toast.error("Please wait for the current operation to complete");
       return; // Prevent multiple submissions
     }
-    
+
     try {
       setFormLoading(true);
       const response = await axios.delete(
@@ -504,12 +504,9 @@ const TableDetails = ({
           </div>
         )}
         <SheetFooter className="flex flex-row items-center justify-between">
-          <SheetClose asChild ref={sheetCloseRef}>
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
-              Close
-            </Button>
-          </SheetClose>
-          {!isEditing && user?.role === "owner" && !isEditing ? (
+          <SheetClose asChild ref={sheetCloseRef} />
+
+          {!isEditing && user?.role === "owner" && !isEditing && (
             <Button
               type="button"
               className="w-2/4"
@@ -518,33 +515,38 @@ const TableDetails = ({
               <Pen />
               Edit
             </Button>
-          ) : (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  disabled={isLoading || formLoading}
-                  type="button"
-                  className="w-2/4 bg-red-500 hover:bg-red-600 text-white"
-                >
-                  <Trash2 />
-                  Delete Table
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the
-                    table and all associated data.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-500 hover:bg-red-600 text-white" onClick={deleteTable}>Continue</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           )}
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={isLoading || formLoading}
+                type="button"
+                className="w-1/3 bg-red-500 hover:bg-red-600 text-white ml-auto"
+              >
+                <Trash2 />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the
+                  table and all associated data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  onClick={deleteTable}
+                >
+                  Continue
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </SheetFooter>
       </SheetContent>
     </Sheet>

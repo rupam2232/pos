@@ -24,7 +24,7 @@ import type {
   FoodItemDetails,
   FoodVariant,
 } from "@repo/ui/types/FoodItem";
-import { Loader2, X } from "lucide-react";
+import { Loader2, Trash2, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -44,6 +44,17 @@ import Image from "next/image";
 import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 import { Badge } from "@repo/ui/components/badge";
 import CreateUpdateFoodItem from "./create-update-foodItem";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
 
 const FoodDetails = ({
   children,
@@ -262,6 +273,61 @@ const FoodDetails = ({
     }
   };
 
+  const deleteFoodItem = async () => {
+    if (!foodItemDetails || !foodItemDetails._id) {
+      toast.info("Something went wrong. Please refresh the page");
+      return;
+    }
+    if (isLoading || formLoading) {
+      toast.error("Please wait for the current operation to complete");
+      return;
+    } // Prevent multiple submissions
+    const loadingToastId = toast.loading("Deleting food item...");
+    try {
+      setFormLoading(true);
+      const response = await axios.delete(
+        `/food-item/${restaurantSlug}/${foodItemDetails._id}`
+      );
+      if (!response.data.success) {
+        toast.error(response.data.message || "Failed to delete food item");
+        return;
+      }
+      sheetCloseRef.current?.click(); // Close the sheet after deletion
+      setAllFoodItems((prev) => {
+        if (!prev) return prev; // If allFoodItems is null, return it
+        return {
+          ...prev,
+          foodItems: prev.foodItems.filter(
+            (f) => f._id !== foodItemDetails._id
+          ),
+        };
+      });
+      setFoodItemDetails(null);
+      toast.success("Food item deleted successfully!", {
+        id: loadingToastId,
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "An error occurred during food item deletion",
+        {
+          id: loadingToastId,
+        }
+      );
+      console.error(
+        axiosError.response?.data.message ||
+          "An error occurred during food item deletion"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin");
+      }
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   return (
     <Sheet
       onOpenChange={(open) => {
@@ -316,6 +382,7 @@ const FoodDetails = ({
                             priority={index < 2} // Load first 2 images with priority
                             loading={index < 2 ? "eager" : "lazy"}
                             draggable={false}
+                            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                             className="object-cover rounded-xl h-auto w-auto"
                             fill
                           />
@@ -572,19 +639,54 @@ const FoodDetails = ({
           )}
           {!isLoading && (
             <SheetFooter className="flex flex-row items-center justify-between">
-              <SheetClose asChild ref={sheetCloseRef}>
-                <Button variant="outline">Close</Button>
-              </SheetClose>
+              <SheetClose asChild ref={sheetCloseRef} />
+
               {user?.role === "owner" && (
-                <CreateUpdateFoodItem
-                  isEditing={true}
-                  foodItemDetails={foodItemDetails}
-                  formLoading={formLoading}
-                  setFormLoading={setFormLoading}
-                  restaurantSlug={restaurantSlug}
-                  setFoodItemDetails={setFoodItemDetails}
-                  setAllFoodItems={setAllFoodItems}
-                />
+                <>
+                  <CreateUpdateFoodItem
+                    isEditing={true}
+                    foodItemDetails={foodItemDetails}
+                    formLoading={formLoading}
+                    setFormLoading={setFormLoading}
+                    restaurantSlug={restaurantSlug}
+                    setFoodItemDetails={setFoodItemDetails}
+                    setAllFoodItems={setAllFoodItems}
+                  />
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        disabled={isLoading || formLoading}
+                        type="button"
+                        className="w-1/3 bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        <Trash2 />
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Are you absolutely sure?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently
+                          delete the food item and all its associated data.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          disabled={isLoading || formLoading}
+                          className="bg-red-500 hover:bg-red-600 text-white"
+                          onClick={deleteFoodItem}
+                        >
+                          Continue
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               )}
             </SheetFooter>
           )}

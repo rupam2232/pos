@@ -305,9 +305,7 @@ const MenuPage = () => {
                   className={`animate-pulse py-0 gap-0 ${index > 0 ? `delay-${(index + 1) * 100}` : ""}`}
                 >
                   <div className="relative aspect-square">
-                    <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-t-xl">
-                      <IconSalad className="size-8 sm:size-16" />
-                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-t-xl"></div>
                   </div>
                   <CardContent className="p-3">
                     <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
@@ -433,9 +431,7 @@ const MenuPage = () => {
                     className={`animate-pulse py-0 gap-0 ${index > 0 ? `delay-${(index + 1) * 100}` : ""}`}
                   >
                     <div className="relative aspect-square">
-                      <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-t-xl">
-                        <IconSalad className="size-8 sm:size-16" />
-                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-t-xl"></div>
                     </div>
                     <CardContent className="p-3">
                       <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
