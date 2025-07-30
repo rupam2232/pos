@@ -431,6 +431,7 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
     sortBy = "createdAt",
     sortType = "desc",
     status,
+    search = "",
   } = req.query;
 
   const pageNumber = parseInt(page.toString());
@@ -470,6 +471,8 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
     }
   }
 
+  const decodedSearch = decodeURIComponent(search as string).trim();
+
   const orderCount = await Order.countDocuments({
     restaurantId: restaurant._id,
     ...(req.query.isPaid ? { isPaid: req.query.isPaid === "true" } : {}), // Filter by isPaid if provided
@@ -480,6 +483,33 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
           ? { status: { $in: status } }
           : {}
       : {}), // Filter by status if provided, handle both single and array cases
+    ...(decodedSearch
+      ? {
+          $or: [
+            { "table.tableName": { $regex: decodedSearch, $options: "i" } },
+            { "table.qrSlug": { $regex: decodedSearch, $options: "i" } },
+            { customerName: { $regex: decodedSearch, $options: "i" } },
+            { customerPhone: { $regex: decodedSearch, $options: "i" } },
+            { notes: { $regex: decodedSearch, $options: "i" } },
+            {
+              "foodItems.variants.variantName": {
+                $regex: decodedSearch,
+                $options: "i",
+              },
+            },
+            {
+              foodItems: {
+                $elemMatch: {
+                  $or: [
+                    { foodName: { $regex: decodedSearch, $options: "i" } },
+                    { variantName: { $regex: decodedSearch, $options: "i" } },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : {}),
   });
 
   let orders = [];
@@ -496,6 +526,36 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
                 ? { status: { $in: status } }
                 : {}
             : {}), // // Filter by status if provided, handle both single and array casesd
+          ...(decodedSearch
+            ? {
+                $or: [
+                  {
+                    "table.tableName": { $regex: decodedSearch, $options: "i" },
+                  },
+                  { "table.qrSlug": { $regex: decodedSearch, $options: "i" } },
+                  { customerName: { $regex: decodedSearch, $options: "i" } },
+                  { customerPhone: { $regex: decodedSearch, $options: "i" } },
+                  { notes: { $regex: decodedSearch, $options: "i" } },
+                  {
+                    foodItems: {
+                      $elemMatch: {
+                        $or: [
+                          {
+                            foodName: { $regex: decodedSearch, $options: "i" },
+                          },
+                          {
+                            variantName: {
+                              $regex: decodedSearch,
+                              $options: "i",
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              }
+            : {}),
         },
       },
       {

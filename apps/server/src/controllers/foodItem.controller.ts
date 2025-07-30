@@ -248,7 +248,6 @@ export const getFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
             { foodName: { $regex: decodedSearch, $options: "i" } }, // Case-insensitive search
             { category: { $regex: decodedSearch, $options: "i" } },
             { description: { $regex: decodedSearch, $options: "i" } },
-            { foodType: { $regex: decodedSearch, $options: "i" } },
             {
               tags: {
                 $elemMatch: {
@@ -299,7 +298,6 @@ export const getFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
             { foodName: { $regex: decodedSearch, $options: "i" } }, // Case-insensitive search
             { category: { $regex: decodedSearch, $options: "i" } },
             { description: { $regex: decodedSearch, $options: "i" } },
-            { foodType: { $regex: decodedSearch, $options: "i" } },
             {
               tags: {
                 $elemMatch: {

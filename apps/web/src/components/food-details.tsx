@@ -641,7 +641,7 @@ const FoodDetails = ({
             <SheetFooter className="flex flex-row items-center justify-between">
               <SheetClose asChild ref={sheetCloseRef} />
 
-              {user?.role === "owner" && (
+              {(user?.role === "owner" && !foodVariant) && (
                 <>
                   <CreateUpdateFoodItem
                     isEditing={true}
@@ -671,7 +671,7 @@ const FoodDetails = ({
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                           This action cannot be undone. This will permanently
-                          delete the food item and all its associated data.
+                          delete the food item <span className="font-bold">{foodItemDetails?.foodName}</span> and all its associated data.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

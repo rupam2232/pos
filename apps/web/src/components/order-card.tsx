@@ -40,10 +40,12 @@ import { useState } from "react";
 const OrderCard = ({
   order,
   restaurantSlug,
+  ref
   // setOrders,
 }: {
   order: Order;
   restaurantSlug: string;
+  ref?: React.Ref<HTMLDivElement>;
   // setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
 }) => {
   const dispatch = useDispatch();
@@ -147,7 +149,7 @@ const OrderCard = ({
   };
 
   return (
-    <Card className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md">
+    <Card ref={ref} className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md">
       <CardContent className="space-y-2">
         <div className="flex items-center justify-between text-sm font-medium">
           <span>Table: {order.table.tableName}</span>

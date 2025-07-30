@@ -253,24 +253,28 @@ const MenuPage = () => {
                     }
                   }}
                 />
-                {searchInputRef.current &&
-                  searchInputRef.current.value !== "" && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        if (searchInputRef.current) {
-                          searchInputRef.current.value = "";
-                          setSearchInput("");
-                          setTabName("all");
-                        }
-                      }}
-                      className="hover:opacity-100 hover:bg-accent h-6 w-6"
-                    >
-                      <X />
-                    </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (searchInputRef.current) {
+                      searchInputRef.current.value = "";
+                      setSearchInput("");
+                      setTabName("all");
+                    }
+                  }}
+                  className={cn(
+                    "hover:opacity-100 hover:bg-accent h-6 w-6",
+                    searchInputRef.current &&
+                      searchInputRef.current.value !== ""
+                      ? ""
+                      : "invisible"
                   )}
+                >
+                  <X />
+                </Button>
               </div>
 
               {(isPageLoading ||
@@ -444,7 +448,7 @@ const MenuPage = () => {
             <Card className="@container/card">
               <CardFooter className="flex-col gap-4 text-sm flex justify-center">
                 <div className="line-clamp-1 flex gap-2 font-medium text-center text-balance">
-                  No food items found.
+                  No food items found
                 </div>
                 {user?.role === "owner" && tabName === "all" && (
                   <CreateUpdateFoodItem
