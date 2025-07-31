@@ -229,7 +229,7 @@ const Page = () => {
                 <Search className="size-4 shrink-0 opacity-50" />
                 <Input
                   className="w-60 placeholder:text-muted-foreground flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
-                  placeholder="Search food items by name, category, tags..."
+                  placeholder="Search orders by id, table name, food item name..."
                   type="search"
                   onChange={(e) => {
                     debounced(e.target.value);

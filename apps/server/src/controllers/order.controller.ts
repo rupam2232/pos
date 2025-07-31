@@ -471,19 +471,22 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
     }
   }
 
-  const decodedSearch = decodeURIComponent(search as string).trim();
-
-  const orderCount = await Order.countDocuments({
+  const baseMatch: any = {
     restaurantId: restaurant._id,
-    ...(req.query.isPaid ? { isPaid: req.query.isPaid === "true" } : {}), // Filter by isPaid if provided
+    ...(req.query.isPaid ? { isPaid: req.query.isPaid === "true" } : {}),
     ...(status
       ? !Array.isArray(status)
         ? { status }
         : status.length > 0
           ? { status: { $in: status } }
           : {}
-      : {}), // Filter by status if provided, handle both single and array cases
-    ...(decodedSearch
+      : {}),
+  };
+
+  const decodedSearch = decodeURIComponent(search as string).trim();
+
+  const searchMatch =
+    decodedSearch
       ? {
           $or: [
             { "table.tableName": { $regex: decodedSearch, $options: "i" } },
@@ -491,177 +494,112 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
             { customerName: { $regex: decodedSearch, $options: "i" } },
             { customerPhone: { $regex: decodedSearch, $options: "i" } },
             { notes: { $regex: decodedSearch, $options: "i" } },
-            {
-              "foodItems.variants.variantName": {
-                $regex: decodedSearch,
-                $options: "i",
-              },
-            },
-            {
-              foodItems: {
-                $elemMatch: {
-                  $or: [
-                    { foodName: { $regex: decodedSearch, $options: "i" } },
-                    { variantName: { $regex: decodedSearch, $options: "i" } },
-                  ],
-                },
-              },
-            },
+            { "foodItemDetails.foodName": { $regex: decodedSearch, $options: "i" } },
+            { "foodItems.variantName": { $regex: decodedSearch, $options: "i" } },
           ],
         }
-      : {}),
-  });
+      : {};
 
-  let orders = [];
-  if (orderCount > 0) {
-    orders = await Order.aggregate([
-      {
-        $match: {
-          restaurantId: restaurant._id,
-          ...(req.query.isPaid ? { isPaid: req.query.isPaid === "true" } : {}), // Filter by isPaid if provided
-          ...(status
-            ? !Array.isArray(status)
-              ? { status }
-              : status.length > 0
-                ? { status: { $in: status } }
-                : {}
-            : {}), // // Filter by status if provided, handle both single and array casesd
-          ...(decodedSearch
-            ? {
-                $or: [
-                  {
-                    "table.tableName": { $regex: decodedSearch, $options: "i" },
-                  },
-                  { "table.qrSlug": { $regex: decodedSearch, $options: "i" } },
-                  { customerName: { $regex: decodedSearch, $options: "i" } },
-                  { customerPhone: { $regex: decodedSearch, $options: "i" } },
-                  { notes: { $regex: decodedSearch, $options: "i" } },
-                  {
-                    foodItems: {
-                      $elemMatch: {
-                        $or: [
-                          {
-                            foodName: { $regex: decodedSearch, $options: "i" },
-                          },
-                          {
-                            variantName: {
-                              $regex: decodedSearch,
-                              $options: "i",
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              }
-            : {}),
-        },
+const sortStage: Record<string, 1 | -1> = {
+  statusOrder: 1,
+  _id: 1,
+};
+if (sortBy) {
+  sortStage[sortBy.toString()] = sortType === "asc" ? 1 : -1;
+}
+
+  // Main aggregation pipeline for fetching orders
+  const aggregationPipeline = [
+    { $match: baseMatch },
+    {
+      $lookup: {
+        from: "tables",
+        localField: "tableId",
+        foreignField: "_id",
+        as: "table",
+        pipeline: [
+          { $project: { _id: 1, tableName: 1, qrSlug: 1 } },
+        ],
       },
-      {
-        $skip: (pageNumber - 1) * limitNumber, // Skip to the correct page
+    },
+    { $unwind: { path: "$table" } },
+    { $unwind: { path: "$foodItems" } },
+    {
+      $lookup: {
+        from: "fooditems",
+        localField: "foodItems.foodItemId",
+        foreignField: "_id",
+        as: "foodItemDetails",
+        pipeline: [
+          { $project: { _id: 1, foodName: 1, foodType: 1 } },
+        ],
       },
-      {
-        $limit: limitNumber, // Limit the number of results per page
-      },
-      {
-        $lookup: {
-          from: "tables",
-          localField: "tableId",
-          foreignField: "_id",
-          as: "table",
-          pipeline: [
-            {
-              $project: {
-                _id: 1,
-                tableName: 1,
-                qrSlug: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: "$table",
-      },
-      { $unwind: "$foodItems" },
-      // Lookup food item details
-      {
-        $lookup: {
-          from: "fooditems",
-          localField: "foodItems.foodItemId",
-          foreignField: "_id",
-          as: "foodItemDetails",
-          pipeline: [
-            {
-              $project: {
-                _id: 1,
-                foodName: 1,
-                foodType: 1,
-              },
-            },
-          ],
-        },
-      },
-      // Unwind foodItemDetails (should only be one per foodItemId)
-      { $unwind: "$foodItemDetails" },
-      // Group back to order structure, but build foodItems array with merged info
-      {
-        $group: {
-          _id: "$_id",
-          restaurantId: { $first: "$restaurantId" },
-          table: { $first: "$table" },
-          status: { $first: "$status" },
-          totalAmount: { $first: "$totalAmount" },
-          isPaid: { $first: "$isPaid" },
-          externalPlatform: { $first: "$externalPlatform" },
-          createdAt: { $first: "$createdAt" },
-          orderedFoodItems: {
-            $push: {
-              foodItemId: "$foodItems.foodItemId",
-              variantName: "$foodItems.variantName",
-              foodName: "$foodItemDetails.foodName",
-              foodType: "$foodItemDetails.foodType",
-              quantity: "$foodItems.quantity",
-              finalPrice: "$foodItems.finalPrice",
-              // check if the food item is a varinat
-              isVariantOrder: {
-                $cond: [
-                  { $ne: [{ $ifNull: ["$foodItems.variantName", ""] }, ""] },
-                  true,
-                  false,
-                ],
-              },
-            },
-          },
-        },
-      },
-      {
-        $addFields: {
-          statusOrder: {
-            $switch: {
-              branches: [
-                { case: { $eq: ["$status", "pending"] }, then: 1 },
-                { case: { $eq: ["$status", "preparing"] }, then: 2 },
-                { case: { $eq: ["$status", "ready"] }, then: 3 },
-                { case: { $eq: ["$status", "served"] }, then: 4 },
-                { case: { $eq: ["$status", "completed"] }, then: 5 },
-                { case: { $eq: ["$status", "cancelled"] }, then: 6 },
+    },
+    { $unwind: { path: "$foodItemDetails" } },
+    ...(decodedSearch ? [{ $match: searchMatch }] : []),
+    {
+      $group: {
+        _id: "$_id",
+        restaurantId: { $first: "$restaurantId" },
+        table: { $first: "$table" },
+        status: { $first: "$status" },
+        totalAmount: { $first: "$totalAmount" },
+        isPaid: { $first: "$isPaid" },
+        externalPlatform: { $first: "$externalPlatform" },
+        createdAt: { $first: "$createdAt" },
+        orderedFoodItems: {
+          $push: {
+            foodItemId: "$foodItems.foodItemId",
+            variantName: "$foodItems.variantName",
+            foodName: "$foodItemDetails.foodName",
+            foodType: "$foodItemDetails.foodType",
+            quantity: "$foodItems.quantity",
+            finalPrice: "$foodItems.finalPrice",
+            isVariantOrder: {
+              $cond: [
+                { $ne: [{ $ifNull: ["$foodItems.variantName", ""] }, ""] },
+                true,
+                false,
               ],
-              default: 99,
             },
           },
         },
       },
-      {
-        $sort: {
-          statusOrder: 1, // Sort by status to group similar statuses together
-          [sortBy.toString()]: sortType === "asc" ? 1 : -1, // Sort by the specified field and order
-          _id: 1, // Secondary sort by _id to maintain consistent order
+    },
+    {
+      $addFields: {
+        statusOrder: {
+          $switch: {
+            branches: [
+              { case: { $eq: ["$status", "pending"] }, then: 1 },
+              { case: { $eq: ["$status", "preparing"] }, then: 2 },
+              { case: { $eq: ["$status", "ready"] }, then: 3 },
+              { case: { $eq: ["$status", "served"] }, then: 4 },
+              { case: { $eq: ["$status", "completed"] }, then: 5 },
+              { case: { $eq: ["$status", "cancelled"] }, then: 6 },
+            ],
+            default: 99,
+          },
         },
       },
-    ]);
-  }
+    },
+    { $sort: sortStage },
+    { $skip: (pageNumber - 1) * limitNumber },
+    { $limit: limitNumber },
+  ];
+
+  // Count pipeline (up to $group, then count)
+  const groupIndex = aggregationPipeline.findIndex(stage => !!(stage as any).$group);
+  const countPipeline = [
+    ...aggregationPipeline.slice(0, groupIndex),
+    ...(decodedSearch ? [{ $match: searchMatch }] : []),
+    { $group: { _id: "$_id" } },
+    { $count: "total" },
+  ];
+
+  const countResult = await Order.aggregate(countPipeline);
+  const orderCount = countResult[0]?.total || 0;
+  const orders = await Order.aggregate(aggregationPipeline);
 
   if (!orders || orders.length === 0) {
     res.status(200).json(
