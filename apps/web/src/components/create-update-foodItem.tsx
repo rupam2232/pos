@@ -909,13 +909,13 @@ const CreateUpdateFoodItem = ({
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="veg">
-                              <div className="w-min border border-primary p-0.5 bg-background ml-1">
+                              <div className="w-min border border-green-500 bg-white outline outline-white p-0.5 ml-1">
                                 <span className="bg-green-500 w-1.5 h-1.5 block rounded-full"></span>
                               </div>
                               Veg
                             </SelectItem>
                             <SelectItem value="non-veg">
-                              <div className="w-min border border-primary p-0.5 bg-background ml-1">
+                              <div className="w-min border border-red-500 bg-white outline outline-white p-0.5 ml-1">
                                 <span className="bg-red-500 w-1.5 h-1.5 block rounded-full"></span>
                               </div>
                               Non Veg

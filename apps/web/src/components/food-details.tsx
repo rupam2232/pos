@@ -550,7 +550,7 @@ const FoodDetails = ({
                   <div className="flex items-center gap-1">
                     Food Type:{" "}
                     <div
-                      className={`w-min border border-primary p-0.5 bg-background ml-1`}
+                      className={`w-min border ${foodItemDetails.foodType === "veg" ? "border-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 ml-1`}
                     >
                       <span
                         className={`${foodItemDetails.foodType === "veg" ? "bg-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}

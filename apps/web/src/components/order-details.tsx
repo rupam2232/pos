@@ -46,6 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
+import { IconSalad } from "@tabler/icons-react";
 
 const OrderDetails = ({
   children,
@@ -266,127 +267,134 @@ const OrderDetails = ({
 
               <div className="text-sm space-y-1">
                 <ScrollArea className="max-w-full overflow-x-auto">
-                <Table>
-                  <TableHeader className="border-t">
-                    <TableRow>
-                      <TableHead className="text-left">Items</TableHead>
-                      <TableHead className="text-center">Qty</TableHead>
-                      <TableHead className="text-center">Rate</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orderDetails.orderedFoodItems.map((item, index) => (
-                      <TableRow
-                        key={item.foodItemId + index}
-                        className="text-primary/80"
-                      >
-                        <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <div
-                                className={`border border-primary p-0.5 cursor-help`}
-                              >
-                                <span
-                                  className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                                ></span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {item.foodType === "veg"
-                                ? "Veg"
-                                : item.foodType === "non-veg"
-                                  ? "Non Veg"
-                                  : "Vegan"}
-                            </TooltipContent>
-                          </Tooltip>
+                  <Table>
+                    <TableHeader className="border-t">
+                      <TableRow>
+                        <TableHead className="text-left">Items</TableHead>
+                        <TableHead className="text-center">Qty</TableHead>
+                        <TableHead className="text-center">Rate</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orderDetails.orderedFoodItems.map((item, index) => (
+                        <TableRow
+                          key={item.foodItemId + index}
+                          className="text-primary/80"
+                        >
+                          <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <div
+                                  className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
+                                >
+                                  <span
+                                    className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                                  ></span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {item.foodType === "veg"
+                                  ? "Veg"
+                                  : item.foodType === "non-veg"
+                                    ? "Non Veg"
+                                    : "Vegan"}
+                              </TooltipContent>
+                            </Tooltip>
 
-                          <Avatar>
-                            <AvatarImage
-                              src={
-                                item.firstImageUrl
-                                  ? item.firstImageUrl
-                                  : "/images/placeholder.png"
-                              }
-                              alt={item.foodName}
-                              className="w-8 h-8 object-cover rounded-md"
-                            />
-                            <AvatarFallback className="rounded-md">
+                            {item.firstImageUrl ? (
+                              <Avatar>
+                                <AvatarImage
+                                  src={item.firstImageUrl}
+                                  alt={item.foodName}
+                                  className="w-8 h-8 object-cover rounded-md"
+                                  draggable={false}
+                                />
+                                <AvatarFallback className="rounded-md">
+                                  <IconSalad />
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : (
+                              <Avatar className="w-8 h-8">
+                                <AvatarFallback className="rounded-md">
+                                  <IconSalad />
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
+
+                            <span>
                               {item.isVariantOrder
-                                ? item.variantDetails?.variantName[0]?.toUpperCase()
-                                : item.foodName[0]?.toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-
-                          <span>
-                            {item.isVariantOrder
-                              ? item.variantDetails?.variantName
-                              : item.foodName}
-                          </span>
+                                ? item.variantDetails?.variantName
+                                : item.foodName}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {item.quantity}
+                          </TableCell>
+                          <TableCell className="text-center relative">
+                            {item.price !== item.finalPrice && (
+                              <span className="absolute bottom-0 right-0 text-xs line-through">
+                                {item.price.toFixed(2)}
+                              </span>
+                            )}
+                            ₹{item.finalPrice.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ₹{(item.finalPrice * item.quantity).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow>
+                        <TableCell className="text-right">
+                          Total Qty :
                         </TableCell>
                         <TableCell className="text-center">
-                          {item.quantity}
-                        </TableCell>
-                        <TableCell className="text-center relative">
-                          {item.price !== item.finalPrice && (
-                            <span className="absolute bottom-0 right-0 text-xs line-through">
-                              {item.price.toFixed(2)}
-                            </span>
+                          {orderDetails.orderedFoodItems.reduce(
+                            (prv, item) => prv + item.quantity,
+                            0
                           )}
-                          ₹{item.finalPrice.toFixed(2)}
                         </TableCell>
                         <TableCell className="text-right">
-                          ₹{(item.finalPrice * item.quantity).toFixed(2)}
+                          Sub Total :
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{orderDetails.subtotal.toFixed(2)}
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                  <TableFooter>
-                    <TableRow>
-                      <TableCell className="text-right">Total Qty :</TableCell>
-                      <TableCell className="text-center">
-                        {orderDetails.orderedFoodItems.reduce(
-                          (prv, item) => prv + item.quantity,
-                          0
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">Sub Total :</TableCell>
-                      <TableCell className="text-right">
-                        ₹{orderDetails.subtotal.toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow className="bg-muted">
-                      <TableCell colSpan={3} className="text-right">
-                        Total Discount :
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ₹{orderDetails.discountAmount?.toFixed(2) || "0.00"}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-right">
-                        Total Tax :
-                        {orderDetails.restaurant?.isTaxIncludedInPrice && (
-                          <p className="text-xs text-muted-foreground font-normal">
-                            (Included in price)
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ₹{orderDetails.taxAmount?.toFixed(2) || "0.00"}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow className="bg-muted">
-                      <TableCell colSpan={3} className="text-right">
-                        Total Amount :
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ₹{orderDetails.totalAmount?.toFixed(2) || "0.00"}
-                      </TableCell>
-                    </TableRow>
-                  </TableFooter>
-                </Table>
-                        <ScrollBar orientation="horizontal" />
+                      <TableRow className="bg-muted">
+                        <TableCell colSpan={3} className="text-right">
+                          Total Discount :
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{orderDetails.discountAmount?.toFixed(2) || "0.00"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-right">
+                          Total Tax :
+                          {orderDetails.restaurant?.isTaxIncludedInPrice && (
+                            <p className="text-xs text-muted-foreground font-normal">
+                              (Included in price)
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{orderDetails.taxAmount?.toFixed(2) || "0.00"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow className="bg-muted">
+                        <TableCell colSpan={3} className="text-right">
+                          Total Amount :
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{orderDetails.totalAmount?.toFixed(2) || "0.00"}
+                        </TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                  <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </div>
 

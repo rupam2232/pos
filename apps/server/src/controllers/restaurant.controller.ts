@@ -322,38 +322,10 @@ export const getRestaurantCategories = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Restaurant slug is required.");
   }
   const { slug } = req.params;
-  if (req.user!.role !== "owner" && req.user!.role !== "staff") {
-    throw new ApiError(
-      403,
-      "Only owners and staff can view restaurant categories"
-    );
-  }
+
   const restaurant = await Restaurant.findOne({ slug });
   if (!restaurant) {
     throw new ApiError(404, "Restaurant not found.");
-  }
-
-  if (
-    req.user!.role === "staff" &&
-    (!restaurant.staffIds ||
-      !Array.isArray(restaurant.staffIds) ||
-      restaurant.staffIds.length === 0 ||
-      !restaurant.staffIds.includes(req.user!.id))
-  ) {
-    throw new ApiError(
-      403,
-      "You are not authorized to view this restaurant's categories"
-    );
-  }
-
-  if (
-    req.user!.role === "owner" &&
-    restaurant.ownerId.toString() !== req.user!.id.toString()
-  ) {
-    throw new ApiError(
-      403,
-      "You are not authorized to view this restaurant's categories"
-    );
   }
 
   res

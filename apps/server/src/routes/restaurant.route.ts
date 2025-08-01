@@ -65,7 +65,7 @@ router.post(
 );
 router
   .route("/:slug/categories")
-  .get(verifyAuth, getRestaurantCategories)
+  .get(getRestaurantCategories)
   .post(verifyAuth, isProduction ? isSubscriptionActive : (req, res, next) => next(), addRestaurantCategory)
   .patch(verifyAuth, removeRestaurantCategories);
 
