@@ -5,27 +5,14 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
   DrawerTrigger,
 } from "@repo/ui/components/drawer";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@repo/ui/components/sheet";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
 import { signOut } from "@/store/authSlice";
+import { addToCart, editCartItem, removeFromCart } from "@/store/cartSlice";
 import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
@@ -36,7 +23,7 @@ import type {
   FoodItemDetails,
   FoodVariant,
 } from "@repo/ui/types/FoodItem";
-import { Loader2, Trash2, X } from "lucide-react";
+import { Loader2, Minus, Plus, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -53,20 +40,14 @@ import {
   type CarouselApi,
 } from "@repo/ui/components/carousel";
 import Image from "next/image";
-import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Badge } from "@repo/ui/components/badge";
-import CreateUpdateFoodItem from "./create-update-foodItem";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@repo/ui/components/alert-dialog";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
+import { DialogTitle } from "@repo/ui/components/dialog";
 
 const CustomerFoodDetails = ({
   children,
@@ -84,20 +65,18 @@ const CustomerFoodDetails = ({
     useState<FoodItemDetails | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [formLoading, setFormLoading] = useState<boolean>(false);
-  const [isFoodItemAvailable, setIsFoodItemAvailable] =
-    useState<boolean>(false);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [carouselCurrent, setCarouselCurrent] = useState<number>(0);
   const [carouselCount, setCarouselCount] = useState<number>(0);
   const [foodVariant, setFoodVariant] = useState<FoodVariant | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const sheetCloseRef = useRef<HTMLButtonElement>(null);
   const isMobile = useIsMobile();
+  const cartItems = useSelector((state: RootState) => state.cart);
 
   const fetchFoodItemDetails = useCallback(async () => {
     if (!foodItem || !foodItem._id) {
-      console.warn("No food item selected or food item does not have an ID");
       toast.error("Something went wrong. Please refresh the page");
       setFoodItemDetails(null);
       setIsLoading(false);
@@ -108,8 +87,16 @@ const CustomerFoodDetails = ({
       const response = await axios.get(
         `/food-item/${restaurantSlug}/${foodItem._id}`
       );
-      setIsFoodItemAvailable(response.data.data.isAvailable);
       setFoodItemDetails(response.data.data);
+      setAllFoodItems((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          foodItems: prev.foodItems.map((item) =>
+            item._id === foodItem._id ? { ...response.data.data } : item
+          ),
+        };
+      });
     } catch (error) {
       console.error(
         "Failed to fetch food item details. Please try again later:",
@@ -128,7 +115,7 @@ const CustomerFoodDetails = ({
     } finally {
       setIsLoading(false);
     }
-  }, [dispatch, restaurantSlug, router, foodItem]);
+  }, [dispatch, restaurantSlug, router, foodItem, setAllFoodItems]);
 
   useEffect(() => {
     if (!carouselApi) {
@@ -140,69 +127,6 @@ const CustomerFoodDetails = ({
       setCarouselCurrent(carouselApi.selectedScrollSnap() + 1);
     });
   }, [carouselApi]);
-
-  const toggleAvailableStatus = async () => {
-    if (!foodItemDetails) return;
-    if (isLoading || formLoading) {
-      toast.error("Please wait for the current operation to complete");
-      return;
-    } // Prevent multiple submissions
-    try {
-      setFormLoading(true);
-      const response = await axios.patch(
-        `/food-item/${restaurantSlug}/${foodItemDetails._id}/toggle-availability`
-      );
-      if (
-        !response.data.success ||
-        !response.data.data ||
-        response.data.data.isAvailable === undefined
-      ) {
-        toast.error(
-          response.data.message || "Failed to update food item status"
-        );
-        return;
-      }
-      setFoodItemDetails((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          isAvailable: response.data.data.isAvailable ?? prev.isAvailable,
-        };
-      });
-      setAllFoodItems((prev) => {
-        if (!prev) return prev; // If allFoodItems is null, return it
-        return {
-          ...prev,
-          foodItems: prev.foodItems.map((f) =>
-            f._id === foodItemDetails._id
-              ? {
-                  ...f,
-                  isAvailable: response.data.data.isAvailable,
-                }
-              : f
-          ),
-        };
-      });
-      toast.success("Food item status updated successfully!");
-    } catch (error) {
-      const axiosError = error as AxiosError<ApiResponse>;
-      toast.error(
-        axiosError.response?.data.message ||
-          "An error occurred during food item status update"
-      );
-      console.error(
-        axiosError.response?.data.message ||
-          "An error occurred during food item status update"
-      );
-      if (axiosError.response?.status === 401) {
-        dispatch(signOut());
-        router.push("/signin");
-      }
-      setIsFoodItemAvailable((prev) => !prev); // Toggle back the status on error
-    } finally {
-      setFormLoading(false);
-    }
-  };
 
   const toggleVariantAvailability = async () => {
     if (!foodItemDetails || !foodVariant) return;
@@ -286,166 +210,75 @@ const CustomerFoodDetails = ({
     }
   };
 
-  const deleteFoodItem = async () => {
-    if (!foodItemDetails || !foodItemDetails._id) {
-      toast.info("Something went wrong. Please refresh the page");
-      return;
-    }
-    if (isLoading || formLoading) {
-      toast.error("Please wait for the current operation to complete");
-      return;
-    } // Prevent multiple submissions
-    const loadingToastId = toast.loading("Deleting food item...");
-    try {
-      setFormLoading(true);
-      const response = await axios.delete(
-        `/food-item/${restaurantSlug}/${foodItemDetails._id}`
-      );
-      if (!response.data.success) {
-        toast.error(response.data.message || "Failed to delete food item");
-        return;
-      }
-      sheetCloseRef.current?.click(); // Close the sheet after deletion
-      setAllFoodItems((prev) => {
-        if (!prev) return prev; // If allFoodItems is null, return it
-        return {
-          ...prev,
-          foodItems: prev.foodItems.filter(
-            (f) => f._id !== foodItemDetails._id
-          ),
-        };
-      });
-      setFoodItemDetails(null);
-      toast.success("Food item deleted successfully!", {
-        id: loadingToastId,
-      });
-    } catch (error) {
-      const axiosError = error as AxiosError<ApiResponse>;
-      toast.error(
-        axiosError.response?.data.message ||
-          "An error occurred during food item deletion",
-        {
-          id: loadingToastId,
-        }
-      );
-      console.error(
-        axiosError.response?.data.message ||
-          "An error occurred during food item deletion"
-      );
-      if (axiosError.response?.status === 401) {
-        dispatch(signOut());
-        router.push("/signin");
-      }
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
-  if (isMobile) {
-    return (
-      <Drawer>
-        <DrawerTrigger asChild>
-          {children}
-        </DrawerTrigger>
-        <DrawerContent>
-          <DrawerHeader className="text-left">
-            <DrawerTitle>Edit profile</DrawerTitle>
-            <DrawerDescription>
-              Make changes to your profile here. Click save when you&apos;re
-              done.
-            </DrawerDescription>
-          </DrawerHeader>
-          <DrawerFooter className="pt-2">
-            <DrawerClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
   return (
-    <Sheet
+    <Drawer
       onOpenChange={(open) => {
+        setDrawerOpen(open);
         if (open) {
           fetchFoodItemDetails();
         } else {
           setFoodVariant(null);
         }
       }}
+      open={drawerOpen}
+      direction={isMobile ? "bottom" : "right"}
     >
-      <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent className="w-full">
-        <ScrollArea className="h-full py-1">
-          <SheetHeader>
-            <SheetTitle>
-              {foodItemDetails
-                ? `Food Item: ${foodItemDetails.foodName}`
-                : "Food Item Details"}
-            </SheetTitle>
-            <SheetDescription>
-              {foodItemDetails
-                ? `View details and manage food item`
-                : "Select a food item to view its details."}
-            </SheetDescription>
-          </SheetHeader>
+      <DrawerTrigger asChild>{children}</DrawerTrigger>
+      <DrawerContent className="w-full h-full data-[vaul-drawer-direction=bottom]:max-h-[85vh]">
+        <ScrollArea className="h-full pt-3 pb-6 md:py-2">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="animate-spin" />
             </div>
           ) : foodItemDetails ? (
-            <div className="grid flex-1 auto-rows-min space-y-4 px-4 text-sm font-medium">
-              <div>
-                <Carousel
-                  setApi={setCarouselApi}
-                  className="rounded-xl w-full max-w-xs mx-auto"
-                >
-                  <CarouselContent
-                    setCarouselCount={setCarouselCount}
-                    setCarouselCurrent={setCarouselCurrent}
-                    className="aspect-square ml-0"
-                  >
-                    {foodItemDetails.imageUrls &&
-                    foodItemDetails.imageUrls.length > 0 ? (
-                      foodItemDetails.imageUrls.map((url, index) => (
-                        <CarouselItem
-                          key={index}
-                          className="relative rounded-xl"
-                        >
-                          <Image
-                            src={url}
-                            alt={`Food Item Image ${index + 1}`}
-                            priority={index < 2} // Load first 2 images with priority
-                            loading={index < 2 ? "eager" : "lazy"}
-                            draggable={false}
-                            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                            className="object-cover rounded-xl h-auto w-auto"
-                            fill
-                          />
-                        </CarouselItem>
-                      ))
-                    ) : (
-                      <p className="flex items-center mx-auto text-muted-foreground text-xs">
-                        No images available for this food item.
-                      </p>
-                    )}
-                  </CarouselContent>
-                  <CarouselPrevious className="left-2 z-10" />
-                  <CarouselNext className="right-2 z-10" />
-                </Carousel>
-                <p className="text-muted-foreground py-2 text-center text-sm">
-                  {foodItemDetails.imageUrls &&
-                  foodItemDetails.imageUrls.length > 0 ? (
-                    <>
-                      Slide {carouselCurrent} of {carouselCount}
-                    </>
-                  ) : (
-                    <>Slide 0 of 0</>
-                  )}
-                </p>
-              </div>
-              {foodItemDetails.hasVariants &&
+            <div className="grid flex-1 auto-rows-min space-y-3 p-4">
+              <DialogTitle className="sr-only">Food Item Details</DialogTitle>
+              {foodItemDetails.imageUrls &&
+                foodItemDetails.imageUrls.length > 0 && (
+                  <div>
+                    <Carousel
+                      setApi={setCarouselApi}
+                      className="rounded-xl w-full max-w-xs mx-auto"
+                    >
+                      <CarouselContent
+                        setCarouselCount={setCarouselCount}
+                        setCarouselCurrent={setCarouselCurrent}
+                        className="aspect-square ml-0"
+                      >
+                        {foodItemDetails.imageUrls.map((url, index) => (
+                          <CarouselItem
+                            key={index}
+                            className="relative rounded-xl"
+                          >
+                            <Image
+                              src={url}
+                              alt={`Food Item Image ${index + 1}`}
+                              priority={index < 2} // Load first 2 images with priority
+                              loading={index < 2 ? "eager" : "lazy"}
+                              draggable={false}
+                              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                              className="object-cover rounded-xl h-auto w-auto"
+                              fill
+                            />
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="left-2 z-10" />
+                      <CarouselNext className="right-2 z-10" />
+                    </Carousel>
+                    <p className="text-muted-foreground py-2 text-center text-sm">
+                      {foodItemDetails.imageUrls &&
+                      foodItemDetails.imageUrls.length > 0 ? (
+                        <>
+                          Slide {carouselCurrent} of {carouselCount}
+                        </>
+                      ) : (
+                        <>Slide 0 of 0</>
+                      )}
+                    </p>
+                  </div>
+                )}
+              {/* {foodItemDetails.hasVariants &&
                 Array.isArray(foodItemDetails.variants) &&
                 foodItemDetails.variants?.length > 0 && (
                   <div className="mb-0!">
@@ -480,7 +313,7 @@ const CustomerFoodDetails = ({
                       <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                   </div>
-                )}
+                )} */}
               {foodVariant &&
               foodItemDetails.variants?.find(
                 (v) => v._id === foodVariant._id
@@ -559,99 +392,166 @@ const CustomerFoodDetails = ({
                 </>
               ) : (
                 <>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="whitespace-pre-wrap">
-                      Food Name:{" "}
-                      <span className="font-bold">
+                  <div className="flex items-end justify-between gap-2">
+                    <div>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div
+                            className={`border ${foodItemDetails.foodType === "veg" ? "border-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
+                          >
+                            <span
+                              className={`${foodItemDetails.foodType === "veg" ? "bg-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "bg-red-500" : ""} w-1 h-1 block rounded-full`}
+                            ></span>
+                            <span className="sr-only">
+                              {foodItemDetails.foodType === "veg"
+                                ? "Veg"
+                                : foodItemDetails.foodType === "non-veg"
+                                  ? "Non Veg"
+                                  : "Vegan"}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {foodItemDetails.foodType === "veg"
+                            ? "Veg"
+                            : foodItemDetails.foodType === "non-veg"
+                              ? "Non Veg"
+                              : "Vegan"}
+                        </TooltipContent>
+                      </Tooltip>
+                      <p className="whitespace-pre-wrap font-bold text-xl">
                         {foodItemDetails.foodName}
+                      </p>
+                    </div>
+                    {foodItemDetails.isAvailable ? (
+                      cartItems.some(
+                        (item) =>
+                          item.foodId === foodItemDetails._id &&
+                          item.restaurantSlug === restaurantSlug
+                      ) ? (
+                        <div className="flex items-center gap-2 dark:border-zinc-600 border rounded-md">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="text-sm h-8 gap-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const existingItem = cartItems.find(
+                                (item) =>
+                                  item.foodId === foodItemDetails._id &&
+                                  item.restaurantSlug === restaurantSlug
+                              );
+                              if (existingItem && existingItem.quantity > 1) {
+                                dispatch(
+                                  editCartItem({
+                                    foodId: existingItem.foodId,
+                                    quantity: existingItem.quantity - 1,
+                                  })
+                                );
+                              } else {
+                                dispatch(removeFromCart(foodItemDetails._id));
+                              }
+                            }}
+                          >
+                            <Minus />
+                            <span className="sr-only">Remove from cart</span>
+                          </Button>
+                          <span className="text-sm">
+                            {
+                              cartItems.find(
+                                (item) =>
+                                  item.foodId === foodItemDetails._id &&
+                                  item.restaurantSlug === restaurantSlug
+                              )?.quantity
+                            }
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="text-sm h-8 gap-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const existingItem = cartItems.find(
+                                (item) =>
+                                  item.foodId === foodItemDetails._id &&
+                                  item.restaurantSlug === restaurantSlug
+                              );
+                              if (existingItem) {
+                                dispatch(
+                                  editCartItem({
+                                    foodId: existingItem.foodId,
+                                    quantity: existingItem.quantity + 1,
+                                  })
+                                );
+                              } else {
+                                dispatch(
+                                  addToCart({
+                                    foodId: foodItemDetails._id,
+                                    quantity: 1,
+                                    restaurantSlug: restaurantSlug,
+                                  })
+                                );
+                              }
+                            }}
+                          >
+                            <Plus />
+                            <span className="sr-only">Add to cart</span>
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="text-sm h-8 gap-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dispatch(
+                              addToCart({
+                                foodId: foodItemDetails._id,
+                                quantity: 1,
+                                restaurantSlug: restaurantSlug,
+                              })
+                            );
+                          }}
+                        >
+                          <Plus /> Add to Cart
+                        </Button>
+                      )
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="text-sm h-8 gap-0"
+                        disabled
+                      >
+                        Not Available
+                      </Button>
+                    )}
+                  </div>
+                  {typeof foodItemDetails.discountedPrice === "number" &&
+                  !isNaN(foodItemDetails.discountedPrice) ? (
+                    <p className="text-lg font-semibold">
+                      {" "}
+                      ₹{foodItemDetails.discountedPrice.toFixed(2)}
+                      <span className="line-through ml-2 text-xs text-muted-foreground">
+                        ₹{foodItemDetails.price.toFixed(2)}
                       </span>
                     </p>
-                  </div>
-                  <p>
-                    Price:{" "}
-                    <span className="font-bold">
+                  ) : (
+                    <p className="text-lg font-semibold">
                       ₹{foodItemDetails.price.toFixed(2)}
-                    </span>
-                  </p>
-                  <p>
-                    Discounted Price:{" "}
-                    <span
-                      className={`${typeof foodItemDetails.discountedPrice !== "number" || isNaN(foodItemDetails.discountedPrice) ? "text-muted-foreground" : "font-bold"}`}
-                    >
-                      {typeof foodItemDetails.discountedPrice === "number" &&
-                      !isNaN(foodItemDetails.discountedPrice)
-                        ? `₹${foodItemDetails.discountedPrice.toFixed(2)}`
-                        : "No discounted price set"}
-                    </span>
-                  </p>
-                  <div className="flex items-center gap-1">
-                    Food Type:{" "}
-                    <div
-                      className={`w-min border ${foodItemDetails.foodType === "veg" ? "border-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 ml-1`}
-                    >
-                      <span
-                        className={`${foodItemDetails.foodType === "veg" ? "bg-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                      ></span>
-                    </div>
-                    <span className="font-bold">
-                      {foodItemDetails.foodType === "veg"
-                        ? "Veg"
-                        : foodItemDetails.foodType === "non-veg"
-                          ? "Non Veg"
-                          : "Vegan"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    Status:
-                    <Select
-                      value={
-                        isFoodItemAvailable ? "available" : "not available"
-                      }
-                      disabled={!user}
-                      defaultValue={
-                        foodItem.isAvailable ? "available" : "not available"
-                      }
-                      onValueChange={() => {
-                        setIsFoodItemAvailable((prev) => !prev);
-                        toggleAvailableStatus();
-                      }}
-                    >
-                      <SelectTrigger className="text-sm font-medium w-[180px] border-muted-foreground/70">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="available">
-                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                          Available
-                        </SelectItem>
-                        <SelectItem value="not available">
-                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                          Not Available
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="whitespace-pre-wrap">
-                    Description:{" "}
-                    <span
-                      className={`${!foodItemDetails.description ? "text-muted-foreground" : "font-bold"}`}
-                    >
-                      {foodItemDetails.description ||
-                        "No description available"}
-                    </span>
-                  </p>
-                  <p className="whitespace-pre-wrap">
-                    Category:{" "}
-                    <span
-                      className={`${!foodItemDetails.category ? "text-muted-foreground" : "font-bold"}`}
-                    >
-                      {foodItemDetails.category || "No category available"}
-                    </span>
-                  </p>
-                  <div>
-                    <p className="inline">Tags:</p>
-                    {foodItemDetails.tags && foodItemDetails.tags.length > 0 ? (
-                      foodItemDetails.tags.map((tag, index) => (
+                    </p>
+                  )}
+
+                  {foodItemDetails.description && (
+                    <p className="whitespace-pre-wrap text-md text-muted-foreground line-clamp-2">
+                      {foodItemDetails.description}
+                    </p>
+                  )}
+
+                  {foodItemDetails.tags && foodItemDetails.tags.length > 0 && (
+                    <div>
+                      <p className="">Tags:</p>
+                      {foodItemDetails.tags.map((tag, index) => (
                         <Badge
                           key={index}
                           variant="secondary"
@@ -659,13 +559,9 @@ const CustomerFoodDetails = ({
                         >
                           {tag}
                         </Badge>
-                      ))
-                    ) : (
-                      <span className="text-muted-foreground ml-1">
-                        No tags available
-                      </span>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -674,62 +570,21 @@ const CustomerFoodDetails = ({
               <p>No details available for this food item.</p>
             </div>
           )}
-          {!isLoading && (
-            <SheetFooter className="flex flex-row items-center justify-between">
-              <SheetClose asChild ref={sheetCloseRef} />
-
-              {(user?.role === "owner" && !foodVariant) && (
-                <>
-                  <CreateUpdateFoodItem
-                    isEditing={true}
-                    foodItemDetails={foodItemDetails}
-                    formLoading={formLoading}
-                    setFormLoading={setFormLoading}
-                    restaurantSlug={restaurantSlug}
-                    setFoodItemDetails={setFoodItemDetails}
-                    setAllFoodItems={setAllFoodItems}
-                  />
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        disabled={isLoading || formLoading}
-                        type="button"
-                        className="w-1/3 bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        <Trash2 />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Are you absolutely sure?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently
-                          delete the food item <span className="font-bold">{foodItemDetails?.foodName}</span> and all its associated data.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          disabled={isLoading || formLoading}
-                          className="bg-red-500 hover:bg-red-600 text-white"
-                          onClick={deleteFoodItem}
-                        >
-                          Continue
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </>
-              )}
-            </SheetFooter>
-          )}
         </ScrollArea>
-      </SheetContent>
-    </Sheet>
+        <DrawerClose
+          asChild
+          className={cn(
+            "absolute right-1/2 translate-x-1/2 z-10 transition-all duration-200",
+            drawerOpen ? "-top-14 opacity-100" : "-top-0 opacity-0"
+          )}
+        >
+          <Button variant="outline" className="rounded-full px-2.5! py-1.5!">
+            <X />
+            <span className="sr-only">Close</span>
+          </Button>
+        </DrawerClose>
+      </DrawerContent>
+    </Drawer>
   );
 };
 

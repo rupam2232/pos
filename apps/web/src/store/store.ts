@@ -2,6 +2,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer, { UserState } from "./authSlice";
 import restaurantsReducer, { RestaurantsState } from "./restaurantSlice";
+import cartReducer, { CartItem } from "./cartSlice";
 
 type State = {
   auth: {
@@ -9,6 +10,7 @@ type State = {
     user: UserState["user"];
   };
   restaurantsSlice: RestaurantsState;
+  cart: CartItem[];
 };
 
 const preloadedState: State = (() => {
@@ -25,6 +27,7 @@ const preloadedState: State = (() => {
             restaurants: [],
             activeRestaurant: null,
           },
+          cart: [],
         };
   } catch {
     return {
@@ -36,6 +39,7 @@ const preloadedState: State = (() => {
         restaurants: [],
         activeRestaurant: null,
       },
+      cart: [],
     };
   }
 })();
@@ -44,6 +48,7 @@ const store = configureStore({
   reducer: {
     auth: authReducer,
     restaurantsSlice: restaurantsReducer,
+    cart: cartReducer,
   },
   preloadedState,
 });

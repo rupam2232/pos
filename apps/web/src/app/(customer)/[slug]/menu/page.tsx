@@ -4,13 +4,14 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { AllFoodItems } from "@repo/ui/types/FoodItem";
 import { toast } from "sonner";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { signOut } from "@/store/authSlice";
+import { addToCart, editCartItem, removeFromCart } from "@/store/cartSlice";
 import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
-import type { AppDispatch } from "@/store/store";
+import type { AppDispatch, RootState } from "@/store/store";
 import { Card, CardContent, CardFooter } from "@repo/ui/components/card";
 import Image from "next/image";
 import { cn } from "@repo/ui/lib/utils";
@@ -28,7 +29,7 @@ import {
 } from "@repo/ui/components/tabs";
 import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 import { Input } from "@repo/ui/components/input";
-import { Plus, Search, X } from "lucide-react";
+import { Minus, Plus, Search, X } from "lucide-react";
 import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@repo/ui/components/button";
 import CustomerFoodDetails from "@/components/customer-food-details";
@@ -52,6 +53,7 @@ const MenuPage = () => {
   const observer = useRef<IntersectionObserver>(null);
   const debounced = useDebounceCallback(setSearchInput, 300);
   const currentPage = tabPages[tabName] || 1;
+  const cartItems = useSelector((state: RootState) => state.cart);
 
   const fetchFoodItems = useCallback(async () => {
     if (!slug) {
@@ -219,64 +221,63 @@ const MenuPage = () => {
                 </TabsTrigger>
               ))}
             </TabsList>
-              <div
-                className="flex items-center gap-2 *:flex flex-wrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent mr-1"
-                onClick={() => {
-                  if (searchInputRef.current) {
-                    searchInputRef.current.focus();
+            <div
+              className="flex items-center gap-2 *:flex flex-wrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent mr-1"
+              onClick={() => {
+                if (searchInputRef.current) {
+                  searchInputRef.current.focus();
+                }
+              }}
+            >
+              <Search className="size-4 shrink-0 opacity-50" />
+              <Input
+                className="w-60 placeholder:text-muted-foreground flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
+                placeholder="Search food items by name, category, tags..."
+                type="search"
+                onChange={(e) => {
+                  debounced(e.target.value);
+                  if (e.target.value.trim() === "") {
+                    setTabName("all");
+                    setSearchInput("");
+                  } else {
+                    setTabName("search");
                   }
                 }}
-              >
-                <Search className="size-4 shrink-0 opacity-50" />
-                <Input
-                  className="w-60 placeholder:text-muted-foreground flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
-                  placeholder="Search food items by name, category, tags..."
-                  type="search"
-                  onChange={(e) => {
-                    debounced(e.target.value);
-                    if (e.target.value.trim() === "") {
-                      setTabName("all");
-                      setSearchInput("");
-                    } else {
-                      setTabName("search");
+                ref={searchInputRef}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (searchInput.trim() === "") {
+                      toast.error("Search input cannot be empty");
+                      return;
                     }
-                  }}
-                  ref={searchInputRef}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (searchInput.trim() === "") {
-                        toast.error("Search input cannot be empty");
-                        return;
-                      }
-                      setTabName("search");
-                      fetchFoodItems();
-                    }
-                  }}
-                />
+                    setTabName("search");
+                    fetchFoodItems();
+                  }
+                }}
+              />
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    if (searchInputRef.current) {
-                      searchInputRef.current.value = "";
-                      setSearchInput("");
-                      setTabName("all");
-                    }
-                  }}
-                  className={cn(
-                    "hover:opacity-100 hover:bg-accent h-6 w-6",
-                    searchInputRef.current &&
-                      searchInputRef.current.value !== ""
-                      ? ""
-                      : "invisible"
-                  )}
-                >
-                  <X />
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (searchInputRef.current) {
+                    searchInputRef.current.value = "";
+                    setSearchInput("");
+                    setTabName("all");
+                  }
+                }}
+                className={cn(
+                  "hover:opacity-100 hover:bg-accent h-6 w-6",
+                  searchInputRef.current && searchInputRef.current.value !== ""
+                    ? ""
+                    : "invisible"
+                )}
+              >
+                <X />
+              </Button>
+            </div>
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
@@ -309,14 +310,17 @@ const MenuPage = () => {
                   setAllFoodItems={setAllFoodItems}
                   restaurantSlug={slug}
                 >
-                <Card
-                ref={
-                  index === allFoodItems.foodItems.length - 1
-                  ? lastElementRef
-                  : null
-                }
-                className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md cursor-pointer group py-0 gap-0 relative"
-                >
+                  <Card
+                    ref={
+                      index === allFoodItems.foodItems.length - 1
+                        ? lastElementRef
+                        : null
+                    }
+                    className={cn(
+                      "overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md cursor-pointer group py-0 gap-0 relative",
+                      !foodItem.isAvailable && "grayscale opacity-80"
+                    )}
+                  >
                     <div className={"absolute top-2 right-2 z-10"}>
                       {/* <Tooltip>
                         <TooltipTrigger>
@@ -367,7 +371,9 @@ const MenuPage = () => {
                       </Tooltip>
                     </div>
                     <div className="relative aspect-square">
-                      {foodItem.imageUrls && foodItem.imageUrls.length > 0 && foodItem.imageUrls[0] ? (
+                      {foodItem.imageUrls &&
+                      foodItem.imageUrls.length > 0 &&
+                      foodItem.imageUrls[0] ? (
                         <Image
                           src={foodItem.imageUrls[0]}
                           alt={foodItem.foodName}
@@ -385,37 +391,132 @@ const MenuPage = () => {
                       )}
                     </div>
                     <CardContent className="p-3">
-                        <div className="space-y-1">
+                      <div className="space-y-1">
                         <h3 className="font-semibold line-clamp-1">
                           {foodItem.foodName}
                         </h3>
-                      {/* <div className="flex items-center justify-between mt-1 flex-wrap gap-2"> */}
                         {typeof foodItem.discountedPrice === "number" &&
                         !isNaN(foodItem.discountedPrice) ? (
-                          <p className="text-sm font-normal">
+                          <p className="text-sm font-medium">
                             {" "}
                             ₹{foodItem.discountedPrice.toFixed(2)}
-                            <span className="line-through ml-2 text-xs text-muted-foreground">
+                            <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
                               ₹{foodItem.price.toFixed(2)}
                             </span>
                           </p>
                         ) : (
-                          <p className="text-sm font-normal">
+                          <p className="text-sm font-medium">
                             ₹{foodItem.price.toFixed(2)}
                           </p>
                         )}
-                        {/* </div> */}
-                        <Button
-                          variant="outline"
-                          className="text-sm h-8 gap-0 w-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle add to cart logic here
-                            toast.success(`${foodItem.foodName} added to cart`);
-                          }}
-                        >
-                         <Plus/> Add to Cart
-                        </Button>
+                        {foodItem.isAvailable ? (
+                          cartItems.some(
+                            (item) =>
+                              item.foodId === foodItem._id &&
+                              item.restaurantSlug === slug
+                          ) ? (
+                            <div className="flex items-center justify-between gap-2 dark:border-zinc-600 border rounded-md w-full">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="text-sm h-8 gap-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const existingItem = cartItems.find(
+                                    (item) =>
+                                      item.foodId === foodItem._id &&
+                                      item.restaurantSlug === slug
+                                  );
+                                  if (
+                                    existingItem &&
+                                    existingItem.quantity > 1
+                                  ) {
+                                    dispatch(
+                                      editCartItem({
+                                        foodId: existingItem.foodId,
+                                        quantity: existingItem.quantity - 1,
+                                      })
+                                    );
+                                  } else {
+                                    dispatch(removeFromCart(foodItem._id));
+                                  }
+                                }}
+                              >
+                                <Minus />
+                                <span className="sr-only">
+                                  Remove from cart
+                                </span>
+                              </Button>
+                              <span className="text-sm">
+                                {
+                                  cartItems.find(
+                                    (item) =>
+                                      item.foodId === foodItem._id &&
+                                      item.restaurantSlug === slug
+                                  )?.quantity
+                                }
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="text-sm h-8 gap-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const existingItem = cartItems.find(
+                                    (item) =>
+                                      item.foodId === foodItem._id &&
+                                      item.restaurantSlug === slug
+                                  );
+                                  if (existingItem) {
+                                    dispatch(
+                                      editCartItem({
+                                        foodId: existingItem.foodId,
+                                        quantity: existingItem.quantity + 1,
+                                      })
+                                    );
+                                  } else {
+                                    dispatch(
+                                      addToCart({
+                                        foodId: foodItem._id,
+                                        quantity: 1,
+                                        restaurantSlug: slug,
+                                      })
+                                    );
+                                  }
+                                }}
+                              >
+                                <Plus />
+                                <span className="sr-only">Add to cart</span>
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="text-sm h-8 gap-0 w-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch(
+                                  addToCart({
+                                    foodId: foodItem._id,
+                                    quantity: 1,
+                                    restaurantSlug: slug,
+                                  })
+                                );
+                              }}
+                            >
+                              <Plus /> Add to Cart
+                            </Button>
+                          )
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="text-sm h-8 gap-0 w-full"
+                            disabled
+                          >
+                            Not Available
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
