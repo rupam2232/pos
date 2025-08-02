@@ -60,6 +60,8 @@ const MenuPage = () => {
       toast.error("Restaurant slug is required to fetch food items");
       return;
     }
+    if (tabName === "search" && searchInput.trim() === "") return;
+
     try {
       if (currentPage === 1) {
         setIsPageLoading(true);
@@ -163,6 +165,7 @@ const MenuPage = () => {
   );
 
   useEffect(() => {
+    setIsPageLoading(true);
     setAllFoodItems(null);
     setTabPages((prev) => ({
       ...prev,
@@ -236,6 +239,7 @@ const MenuPage = () => {
                     debounced(e.target.value);
                     if (e.target.value.trim() === "") {
                       setTabName("all");
+                      setSearchInput("");
                     } else {
                       setTabName("search");
                     }

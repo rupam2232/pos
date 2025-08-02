@@ -328,8 +328,8 @@ export const getFoodItemsOfRestaurant = asyncHandler(async (req, res) => {
       .skip((pageNumber - 1) * limitNumber) // Pagination logic
       .limit(limitNumber) // Limit the number of results
       .select(
-        "-restaurantId -__v -tags -description -category -variants -hasVariants"
-      ); // Exclude restaurantId and __v fields;
+        "-restaurantId -__v -tags -category -variants"
+      ); // Exclude unnecessary fields;
 
     const totalPages = Math.ceil(foodItemCount / limitNumber);
 

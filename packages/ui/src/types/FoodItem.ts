@@ -15,13 +15,13 @@ export interface FoodItem {
   imageUrls?: string[]; // Optional array of image URLs
   foodType: "veg" | "non-veg"; // Type of the food (veg or non-veg)
   isAvailable: boolean; // Whether the item is currently available
+  description?: string; // Optional description of the food item
+  hasVariants: boolean; // Whether this item has variants
   createdAt: Date; // Timestamp when the document was first created (set automatically, never changes)
 }
 
 export interface FoodItemDetails extends FoodItem {
-  hasVariants: boolean; // Whether this item has variants
   variants?: FoodVariant[]; // Array of variants (if any)
-  description?: string; // Optional description of the food item
   tags?: string[]; // Optional tags for search/filtering (e.g., "Spicy", "Veg")
   category?: string; // Optional category (e.g., "Indian", "Snacks")
   restaurantDetails: {
