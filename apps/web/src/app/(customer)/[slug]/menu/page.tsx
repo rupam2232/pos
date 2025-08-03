@@ -33,6 +33,7 @@ import { Minus, Plus, Search, X } from "lucide-react";
 import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@repo/ui/components/button";
 import CustomerFoodDetails from "@/components/customer-food-details";
+import Link from "next/link";
 
 const MenuPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -303,6 +304,13 @@ const MenuPage = () => {
             Array.isArray(allFoodItems.foodItems) &&
             allFoodItems.foodItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+              <Link
+                href={`/${slug}/checkout`}
+                scroll={false}
+                passHref
+              >
+                Checkout
+              </Link>
               {allFoodItems.foodItems.map((foodItem, index) => (
                 <CustomerFoodDetails
                   key={foodItem._id}
