@@ -197,20 +197,6 @@ const MenuPage = () => {
               >
                 All
               </TabsTrigger>
-              <TabsTrigger
-                value="available"
-                className="font-medium data-[state=active]:font-semibold data-[state=active]:bg-primary! data-[state=active]:text-primary-foreground! data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200"
-                onClick={() => setTabName("available")}
-              >
-                Available
-              </TabsTrigger>
-              <TabsTrigger
-                value="unavailable"
-                className="font-medium data-[state=active]:font-semibold data-[state=active]:bg-primary! data-[state=active]:text-primary-foreground! data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200"
-                onClick={() => setTabName("unavailable")}
-              >
-                Unavailable
-              </TabsTrigger>
               {restaurantCategories.map((tab, label) => (
                 <TabsTrigger
                   key={label}
@@ -304,11 +290,7 @@ const MenuPage = () => {
             Array.isArray(allFoodItems.foodItems) &&
             allFoodItems.foodItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-              <Link
-                href={`/${slug}/checkout`}
-                scroll={false}
-                passHref
-              >
+              <Link href={`/${slug}/checkout`} scroll={false} passHref>
                 Checkout
               </Link>
               {allFoodItems.foodItems.map((foodItem, index) => (
@@ -329,28 +311,6 @@ const MenuPage = () => {
                       !foodItem.isAvailable && "grayscale opacity-80"
                     )}
                   >
-                    <div className={"absolute top-2 right-2 z-10"}>
-                      {/* <Tooltip>
-                        <TooltipTrigger>
-                        <span
-                            className={cn(
-                              "block w-2 h-2 rounded-full",
-                              foodItem.isAvailable
-                                ? "bg-green-500"
-                                : "bg-red-500"
-                            )}
-                          ></span>
-                          <span className="sr-only">
-                            {foodItem.isAvailable
-                              ? "Available"
-                              : "Not Available"}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {foodItem.isAvailable ? "Available" : "Not Available"}
-                        </TooltipContent>
-                      </Tooltip> */}
-                    </div>
                     <div className="absolute top-2 left-2 z-10">
                       <Tooltip>
                         <TooltipTrigger>
@@ -487,6 +447,14 @@ const MenuPage = () => {
                                       addToCart({
                                         foodId: foodItem._id,
                                         quantity: 1,
+                                        foodName: foodItem.foodName,
+                                        price: foodItem.price,
+                                        discountedPrice:
+                                          foodItem.discountedPrice,
+                                        imageUrl: foodItem.imageUrls?.[0],
+                                        foodType: foodItem.foodType,
+                                        isAvailable: foodItem.isAvailable,
+                                        description: foodItem.description,
                                         restaurantSlug: slug,
                                       })
                                     );
@@ -508,6 +476,13 @@ const MenuPage = () => {
                                   addToCart({
                                     foodId: foodItem._id,
                                     quantity: 1,
+                                    foodName: foodItem.foodName,
+                                    price: foodItem.price,
+                                    discountedPrice: foodItem.discountedPrice,
+                                    imageUrl: foodItem.imageUrls?.[0],
+                                    foodType: foodItem.foodType,
+                                    isAvailable: foodItem.isAvailable,
+                                    description: foodItem.description,
                                     restaurantSlug: slug,
                                   })
                                 );

@@ -4,6 +4,13 @@ export interface CartItem {
   foodId: string;
   variantName?: string;
   quantity: number;
+  foodName: string; // Name of the food item
+  price: number; // Base price of the food item
+  discountedPrice?: number; // Optional final price after discount
+  imageUrl?: string; // Optional array of image URLs
+  foodType: "veg" | "non-veg"; // Type of the food (veg or non-veg)
+  isAvailable: boolean; // Whether the item is currently available
+  description?: string; // Optional description of the food item
   restaurantSlug: string;
 }
 

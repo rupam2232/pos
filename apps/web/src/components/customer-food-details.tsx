@@ -5,6 +5,7 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerTitle,
   DrawerTrigger,
 } from "@repo/ui/components/drawer";
 import { useCallback, useEffect, useState } from "react";
@@ -47,7 +48,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
-import { DialogTitle } from "@repo/ui/components/dialog";
 
 const CustomerFoodDetails = ({
   children,
@@ -232,7 +232,7 @@ const CustomerFoodDetails = ({
             </div>
           ) : foodItemDetails ? (
             <div className="grid flex-1 auto-rows-min space-y-3 p-4">
-              <DialogTitle className="sr-only">Food Item Details</DialogTitle>
+              <DrawerTitle className="sr-only">Food Item Details</DrawerTitle>
               {foodItemDetails.imageUrls &&
                 foodItemDetails.imageUrls.length > 0 && (
                   <div>
@@ -488,7 +488,15 @@ const CustomerFoodDetails = ({
                                   addToCart({
                                     foodId: foodItemDetails._id,
                                     quantity: 1,
-                                    restaurantSlug: restaurantSlug,
+                                    foodName: foodItemDetails.foodName,
+                                    price: foodItemDetails.price,
+                                    discountedPrice:
+                                      foodItemDetails.discountedPrice,
+                                    imageUrl: foodItemDetails.imageUrls?.[0],
+                                    foodType: foodItemDetails.foodType,
+                                    isAvailable: foodItemDetails.isAvailable,
+                                    description: foodItemDetails.description,
+                                    restaurantSlug,
                                   })
                                 );
                               }
@@ -509,7 +517,15 @@ const CustomerFoodDetails = ({
                               addToCart({
                                 foodId: foodItemDetails._id,
                                 quantity: 1,
-                                restaurantSlug: restaurantSlug,
+                                foodName: foodItemDetails.foodName,
+                                price: foodItemDetails.price,
+                                discountedPrice:
+                                  foodItemDetails.discountedPrice,
+                                imageUrl: foodItemDetails.imageUrls?.[0],
+                                foodType: foodItemDetails.foodType,
+                                isAvailable: foodItemDetails.isAvailable,
+                                description: foodItemDetails.description,
+                                restaurantSlug,
                               })
                             );
                           }}
