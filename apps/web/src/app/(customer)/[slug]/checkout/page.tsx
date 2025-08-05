@@ -60,7 +60,7 @@ const CheckoutPage = () => {
         >
           ← Back to Menu
         </Link>
-        <h1 className="text-3xl font-bold text-neutral-900">Checkout</h1>
+        <h1 className="text-3xl font-bold">Checkout</h1>
       </div>
       {restaurantCartItems.length === 0 ? (
         <Card>
