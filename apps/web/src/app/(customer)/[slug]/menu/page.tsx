@@ -4,14 +4,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { AllFoodItems } from "@repo/ui/types/FoodItem";
 import { toast } from "sonner";
-import { useDispatch, useSelector } from "react-redux";
-import { signOut } from "@/store/authSlice";
-import { addToCart, editCartItem, removeFromCart } from "@/store/cartSlice";
-import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
-import type { AppDispatch, RootState } from "@/store/store";
 import { Card, CardContent, CardFooter } from "@repo/ui/components/card";
 import Image from "next/image";
 import { cn } from "@repo/ui/lib/utils";
@@ -34,6 +29,7 @@ import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@repo/ui/components/button";
 import CustomerFoodDetails from "@/components/customer-food-details";
 import Link from "next/link";
+import { useCart } from "@/hooks/useCart";
 
 const MenuPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -49,12 +45,10 @@ const MenuPage = () => {
   });
   const [searchInput, setSearchInput] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const dispatch = useDispatch<AppDispatch>();
-  const router = useRouter();
   const observer = useRef<IntersectionObserver>(null);
   const debounced = useDebounceCallback(setSearchInput, 300);
   const currentPage = tabPages[tabName] || 1;
-  const cartItems = useSelector((state: RootState) => state.cart);
+  const { cartItems, syncCart, addItem, removeItem, editItem } = useCart(slug);
 
   const fetchFoodItems = useCallback(async () => {
     if (!slug) {
@@ -97,16 +91,12 @@ const MenuPage = () => {
         axiosError.response?.data.message ||
           "Failed to fetch all food items. Please try again later"
       );
-      if (axiosError.response?.status === 401) {
-        dispatch(signOut());
-        router.push("/signin");
-      }
       setAllFoodItems(null);
     } finally {
       setIsPageChanging(false);
       setIsPageLoading(false);
     }
-  }, [slug, router, dispatch, tabName, currentPage, searchInput]);
+  }, [slug, tabName, currentPage, searchInput]);
 
   const fetchRestaurantCategories = useCallback(async () => {
     if (!slug) {
@@ -126,13 +116,16 @@ const MenuPage = () => {
         axiosError.response?.data.message ||
           "Failed to fetch all categories. Please try again later"
       );
-      if (axiosError.response?.status === 401) {
-        dispatch(signOut());
-        router.push("/signin");
-      }
       setRestaurantCategories([]);
     }
-  }, [slug, router, dispatch]);
+  }, [slug]);
+
+  useEffect(() => {
+    if (slug) {
+      syncCart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   useEffect(() => {
     fetchRestaurantCategories();
@@ -379,9 +372,7 @@ const MenuPage = () => {
                         )}
                         {foodItem.isAvailable ? (
                           cartItems.some(
-                            (item) =>
-                              item.foodId === foodItem._id &&
-                              item.restaurantSlug === slug
+                            (item) => item.foodId === foodItem._id
                           ) ? (
                             <div className="flex items-center justify-between gap-2 dark:border-zinc-600 border rounded-md w-full">
                               <Button
@@ -391,22 +382,18 @@ const MenuPage = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const existingItem = cartItems.find(
-                                    (item) =>
-                                      item.foodId === foodItem._id &&
-                                      item.restaurantSlug === slug
+                                    (item) => item.foodId === foodItem._id
                                   );
                                   if (
                                     existingItem &&
                                     existingItem.quantity > 1
                                   ) {
-                                    dispatch(
-                                      editCartItem({
-                                        foodId: existingItem.foodId,
-                                        quantity: existingItem.quantity - 1,
-                                      })
-                                    );
+                                    editItem({
+                                      ...existingItem,
+                                      quantity: existingItem.quantity - 1,
+                                    });
                                   } else {
-                                    dispatch(removeFromCart(foodItem._id));
+                                    removeItem(existingItem!);
                                   }
                                 }}
                               >
@@ -418,9 +405,7 @@ const MenuPage = () => {
                               <span className="text-sm">
                                 {
                                   cartItems.find(
-                                    (item) =>
-                                      item.foodId === foodItem._id &&
-                                      item.restaurantSlug === slug
+                                    (item) => item.foodId === foodItem._id
                                   )?.quantity
                                 }
                               </span>
@@ -431,33 +416,26 @@ const MenuPage = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const existingItem = cartItems.find(
-                                    (item) =>
-                                      item.foodId === foodItem._id &&
-                                      item.restaurantSlug === slug
+                                    (item) => item.foodId === foodItem._id
                                   );
                                   if (existingItem) {
-                                    dispatch(
-                                      editCartItem({
-                                        foodId: existingItem.foodId,
-                                        quantity: existingItem.quantity + 1,
-                                      })
-                                    );
+                                    editItem({
+                                      ...existingItem,
+                                      quantity: existingItem.quantity + 1,
+                                    });
                                   } else {
-                                    dispatch(
-                                      addToCart({
-                                        foodId: foodItem._id,
-                                        quantity: 1,
-                                        foodName: foodItem.foodName,
-                                        price: foodItem.price,
-                                        discountedPrice:
-                                          foodItem.discountedPrice,
-                                        imageUrl: foodItem.imageUrls?.[0],
-                                        foodType: foodItem.foodType,
-                                        isAvailable: foodItem.isAvailable,
-                                        description: foodItem.description,
-                                        restaurantSlug: slug,
-                                      })
-                                    );
+                                    addItem({
+                                      foodId: foodItem._id,
+                                      quantity: 1,
+                                      foodName: foodItem.foodName,
+                                      price: foodItem.price,
+                                      discountedPrice: foodItem.discountedPrice,
+                                      imageUrl: foodItem.imageUrls?.[0],
+                                      foodType: foodItem.foodType,
+                                      isAvailable: foodItem.isAvailable,
+                                      description: foodItem.description,
+                                      restaurantSlug: slug,
+                                    });
                                   }
                                 }}
                               >
@@ -472,20 +450,18 @@ const MenuPage = () => {
                               className="text-sm h-8 gap-0 w-full"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                dispatch(
-                                  addToCart({
-                                    foodId: foodItem._id,
-                                    quantity: 1,
-                                    foodName: foodItem.foodName,
-                                    price: foodItem.price,
-                                    discountedPrice: foodItem.discountedPrice,
-                                    imageUrl: foodItem.imageUrls?.[0],
-                                    foodType: foodItem.foodType,
-                                    isAvailable: foodItem.isAvailable,
-                                    description: foodItem.description,
-                                    restaurantSlug: slug,
-                                  })
-                                );
+                                addItem({
+                                  foodId: foodItem._id,
+                                  quantity: 1,
+                                  foodName: foodItem.foodName,
+                                  price: foodItem.price,
+                                  discountedPrice: foodItem.discountedPrice,
+                                  imageUrl: foodItem.imageUrls?.[0],
+                                  foodType: foodItem.foodType,
+                                  isAvailable: foodItem.isAvailable,
+                                  description: foodItem.description,
+                                  restaurantSlug: slug,
+                                });
                               }}
                             >
                               <Plus /> Add to Cart

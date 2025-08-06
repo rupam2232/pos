@@ -8,53 +8,59 @@ import {
   DrawerTrigger,
 } from "@repo/ui/components/drawer";
 import { useParams, useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
-import { editCartItem, removeFromCart } from "@/store/cartSlice";
-import type { AppDispatch, RootState } from "@/store/store";
 import { CreditCard, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@repo/ui/components/button";
 import { IconSalad } from "@tabler/icons-react";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { cn } from "@repo/ui/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useCart } from "@/hooks/useCart";
 
 const CheckoutModalPage = () => {
   const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
-  const cartItems = useSelector((state: RootState) => state.cart);
   const { slug: restaurantSlug } = useParams<{ slug: string }>();
   const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
-  
-  const restaurantCartItems = cartItems.filter(
-    (item) => item.restaurantSlug === restaurantSlug
-  );
-  // const restaurantCartItemCount = restaurantCartItems.reduce(
-  //   (count, item) => count + item.quantity,
-  //   0
-  // );
+  const { syncCart, cartItems, removeItem, editItem } = useCart(restaurantSlug);
+  const [taxDetails, setTaxDetails] = useState<{
+    isTaxIncludedInPrice: boolean;
+    taxLabel: string;
+    taxRate: number;
+  }>();
 
-  const restaurantCartItemSubtotal = restaurantCartItems.reduce(
-    (total, item) => {
-      if (
-        typeof item.discountedPrice === "number" &&
-        !isNaN(item.discountedPrice)
-      ) {
-        return total + item.discountedPrice * item.quantity;
-      }
-      return total + item.price * item.quantity;
-    },
-    0
-  );
+  useEffect(() => {
+    if (restaurantSlug) {
+      syncCart().then((e) => {
+        setTaxDetails(e.payload?.taxDetails);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantSlug]);
 
-  const preDiscountedPrice = restaurantCartItems.some(
+  const restaurantCartItemSubtotal = cartItems.reduce((total, item) => {
+    if (
+      typeof item.discountedPrice === "number" &&
+      !isNaN(item.discountedPrice)
+    ) {
+      return total + item.discountedPrice * item.quantity;
+    }
+    return total + item.price * item.quantity;
+  }, 0);
+
+  const preDiscountedPrice = cartItems.some(
     (item) =>
       typeof item.discountedPrice === "number" && !isNaN(item.discountedPrice)
   )
-    ? restaurantCartItems.reduce((total, item) => {
+    ? cartItems.reduce((total, item) => {
         return total + item.price * item.quantity;
       }, 0)
     : null;
+
+  const toPay =
+    restaurantCartItemSubtotal +
+    (taxDetails && !taxDetails.isTaxIncludedInPrice
+      ? restaurantCartItemSubtotal * taxDetails.taxRate
+      : 0);
 
   return (
     <Drawer
@@ -74,7 +80,7 @@ const CheckoutModalPage = () => {
           </DrawerTitle>
           <ScrollArea className="h-full pb-6 md:py-2">
             <div className="px-6">
-              {restaurantCartItems.length === 0 ? (
+              {cartItems.length === 0 ? (
                 <div className="text-center py-8">
                   <ShoppingBag className="w-12 h-12 mx-auto mb-4" />
                   <p className="text-lg font-bold">Your cart is empty</p>
@@ -84,7 +90,7 @@ const CheckoutModalPage = () => {
                 </div>
               ) : (
                 <div>
-                  {restaurantCartItems.map((item) => (
+                  {cartItems.map((item) => (
                     <div
                       key={item.foodId}
                       className="flex items-center space-x-4 pt-2 pb-4 border-b last:border-b-0 last:pb-0 relative"
@@ -150,14 +156,12 @@ const CheckoutModalPage = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (item.quantity > 1) {
-                                dispatch(
-                                  editCartItem({
-                                    foodId: item.foodId,
-                                    quantity: item.quantity - 1,
-                                  })
-                                );
+                                editItem({
+                                  ...item,
+                                  quantity: item.quantity - 1,
+                                });
                               } else {
-                                dispatch(removeFromCart(item.foodId));
+                                removeItem(item);
                               }
                             }}
                             className="w-8 h-8"
@@ -173,12 +177,10 @@ const CheckoutModalPage = () => {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              dispatch(
-                                editCartItem({
-                                  foodId: item.foodId,
-                                  quantity: item.quantity + 1,
-                                })
-                              );
+                              editItem({
+                                ...item,
+                                quantity: item.quantity + 1,
+                              });
                             }}
                             className="w-8 h-8"
                           >
@@ -205,7 +207,7 @@ const CheckoutModalPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => dispatch(removeFromCart(item.foodId))}
+                          onClick={() => removeItem(item)}
                           className="text-red-500 hover:text-red-700 transition-colors"
                         >
                           <Trash2 />
@@ -215,7 +217,7 @@ const CheckoutModalPage = () => {
                   ))}
                   <div className="py-6 border-t mb-40">
                     <div className="space-y-2 mb-4">
-                      <h3 className="text-lg font-semibold">Bill Details</h3>
+                      <h3 className="text-lg font-semibold">Bill Summary</h3>
                       <div className="flex justify-between text-sm">
                         <span>Sub Total</span>
                         <div className="flex items-center space-x-2">
@@ -227,16 +229,21 @@ const CheckoutModalPage = () => {
                           <span>₹{restaurantCartItemSubtotal.toFixed(2)}</span>
                         </div>
                       </div>
-                      {/* <div className="flex justify-between text-sm">
-                        <span>Tax</span>
-                        <span>
-                          ₹{(restaurantCartItemSubtotal * 0.1).toFixed(2)}
-                        </span>
-                      </div> */}
+                      {taxDetails && !taxDetails.isTaxIncludedInPrice && (
+                        <div className="flex justify-between text-sm">
+                          <span>{taxDetails.taxLabel}</span>
+                          <span>
+                            ₹
+                            {(
+                              restaurantCartItemSubtotal * taxDetails.taxRate
+                            ).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
                       <hr />
                       <div className="flex justify-between font-bold text-lg">
                         <span>To Pay</span>
-                        <span>₹{restaurantCartItemSubtotal.toFixed(2)}</span>
+                        <span>₹{toPay.toFixed(2)}</span>
                       </div>
                     </div>
 
