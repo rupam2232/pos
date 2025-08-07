@@ -39,8 +39,7 @@ const CheckoutModalPage = () => {
 
   const restaurantCartItemSubtotal = cartItems.reduce((total, item) => {
     if (
-      typeof item.discountedPrice === "number" &&
-      !isNaN(item.discountedPrice)
+      typeof item.discountedPrice === "number"
     ) {
       return total + item.discountedPrice * item.quantity;
     }
@@ -49,7 +48,7 @@ const CheckoutModalPage = () => {
 
   const preDiscountedPrice = cartItems.some(
     (item) =>
-      typeof item.discountedPrice === "number" && !isNaN(item.discountedPrice)
+      typeof item.discountedPrice === "number"
   )
     ? cartItems.reduce((total, item) => {
         return total + item.price * item.quantity;
@@ -92,7 +91,7 @@ const CheckoutModalPage = () => {
                 <div>
                   {cartItems.map((item) => (
                     <div
-                      key={item.foodId}
+                      key={item.foodId + (item.variantName || "")}
                       className="flex items-center space-x-4 pt-2 pb-4 border-b last:border-b-0 last:pb-0 relative"
                     >
                       {item.imageUrl ? (
@@ -128,14 +127,13 @@ const CheckoutModalPage = () => {
                                   : "Vegan"}
                             </span>
                           </div>
-                          <h4 className="font-medium line-clamp-1">
+                          <h4 className="font-medium line-clamp-3">
                             {item.foodName}{" "}
                             {item.variantName && `(${item.variantName})`}
                           </h4>
                         </div>
 
-                        {typeof item.discountedPrice === "number" &&
-                        !isNaN(item.discountedPrice) ? (
+                        {typeof item.discountedPrice === "number" ? (
                           <p className="text-sm font-medium">
                             {" "}
                             ₹{item.discountedPrice.toFixed(2)}
@@ -191,8 +189,7 @@ const CheckoutModalPage = () => {
                       </div>
 
                       <div className="text-right">
-                        {typeof item.discountedPrice === "number" &&
-                        !isNaN(item.discountedPrice) ? (
+                        {typeof item.discountedPrice === "number" ? (
                           <p className="text-sm font-medium flex flex-col items-end">
                             <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
                               ₹{(item.price * item.quantity).toFixed(2)}

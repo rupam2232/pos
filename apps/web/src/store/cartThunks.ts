@@ -63,7 +63,7 @@ export const editCartItemInBackend = createAsyncThunk(
   "cart/editCartItemInBackend",
   async (item: CartItem, thunkAPI) => {
     const { foodId, restaurantSlug, variantName, quantity } = item;
-    thunkAPI.dispatch(editCartItem({ foodId, quantity }));
+    thunkAPI.dispatch(editCartItem({ foodId, quantity, variantName }));
     try {
         await axios.patch(`/cart/${restaurantSlug}/${foodId}`, {
           variantName,

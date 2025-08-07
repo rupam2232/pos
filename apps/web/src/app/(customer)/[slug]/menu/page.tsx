@@ -44,6 +44,8 @@ const MenuPage = () => {
     all: 1,
   });
   const [searchInput, setSearchInput] = useState<string>("");
+  const [showEditDrawer, setShowEditDrawer] = useState<boolean>(false);
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const observer = useRef<IntersectionObserver>(null);
   const debounced = useDebounceCallback(setSearchInput, 300);
@@ -292,6 +294,9 @@ const MenuPage = () => {
                   foodItem={foodItem}
                   setAllFoodItems={setAllFoodItems}
                   restaurantSlug={slug}
+                  showEditDrawer={showEditDrawer}
+                  setDrawerOpen={setDrawerOpen}
+                  drawerOpen={drawerOpen}
                 >
                   <Card
                     ref={
@@ -303,6 +308,9 @@ const MenuPage = () => {
                       "overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md cursor-pointer group py-0 gap-0 relative",
                       !foodItem.isAvailable && "grayscale opacity-80"
                     )}
+                    onClick={() => {
+                      setShowEditDrawer(false);
+                    }}
                   >
                     <div className="absolute top-2 left-2 z-10">
                       <Tooltip>
@@ -356,8 +364,7 @@ const MenuPage = () => {
                         <h3 className="font-semibold line-clamp-1">
                           {foodItem.foodName}
                         </h3>
-                        {typeof foodItem.discountedPrice === "number" &&
-                        !isNaN(foodItem.discountedPrice) ? (
+                        {typeof foodItem.discountedPrice === "number" ? (
                           <p className="text-sm font-medium">
                             {" "}
                             ₹{foodItem.discountedPrice.toFixed(2)}
@@ -384,16 +391,22 @@ const MenuPage = () => {
                                   const existingItem = cartItems.find(
                                     (item) => item.foodId === foodItem._id
                                   );
-                                  if (
-                                    existingItem &&
-                                    existingItem.quantity > 1
-                                  ) {
-                                    editItem({
-                                      ...existingItem,
-                                      quantity: existingItem.quantity - 1,
-                                    });
+                                  if (existingItem && foodItem.hasVariants) {
+                                    setShowEditDrawer(true);
+                                    setDrawerOpen(true);
                                   } else {
-                                    removeItem(existingItem!);
+                                    setShowEditDrawer(false);
+                                    if (
+                                      existingItem &&
+                                      existingItem.quantity > 1
+                                    ) {
+                                      editItem({
+                                        ...existingItem,
+                                        quantity: existingItem.quantity - 1,
+                                      });
+                                    } else {
+                                      removeItem(existingItem!);
+                                    }
                                   }
                                 }}
                               >
@@ -404,9 +417,9 @@ const MenuPage = () => {
                               </Button>
                               <span className="text-sm">
                                 {
-                                  cartItems.find(
+                                  cartItems.filter(
                                     (item) => item.foodId === foodItem._id
-                                  )?.quantity
+                                  ).reduce((acc, item) => acc + item.quantity, 0)
                                 }
                               </span>
                               <Button
@@ -414,28 +427,35 @@ const MenuPage = () => {
                                 variant="ghost"
                                 className="text-sm h-8 gap-0"
                                 onClick={(e) => {
-                                  e.stopPropagation();
+                                    e.stopPropagation();
                                   const existingItem = cartItems.find(
                                     (item) => item.foodId === foodItem._id
                                   );
-                                  if (existingItem) {
-                                    editItem({
-                                      ...existingItem,
-                                      quantity: existingItem.quantity + 1,
-                                    });
+                                  if (existingItem && foodItem.hasVariants) {
+                                    setShowEditDrawer(true);
+                                    setDrawerOpen(true);
                                   } else {
-                                    addItem({
-                                      foodId: foodItem._id,
-                                      quantity: 1,
-                                      foodName: foodItem.foodName,
-                                      price: foodItem.price,
-                                      discountedPrice: foodItem.discountedPrice,
-                                      imageUrl: foodItem.imageUrls?.[0],
-                                      foodType: foodItem.foodType,
-                                      isAvailable: foodItem.isAvailable,
-                                      description: foodItem.description,
-                                      restaurantSlug: slug,
-                                    });
+                                    setShowEditDrawer(false);
+                                    if (existingItem) {
+                                      editItem({
+                                        ...existingItem,
+                                        quantity: existingItem.quantity + 1,
+                                      });
+                                    } else {
+                                      addItem({
+                                        foodId: foodItem._id,
+                                        quantity: 1,
+                                        foodName: foodItem.foodName,
+                                        price: foodItem.price,
+                                        discountedPrice:
+                                          foodItem.discountedPrice,
+                                        imageUrl: foodItem.imageUrls?.[0],
+                                        foodType: foodItem.foodType,
+                                        isAvailable: foodItem.isAvailable,
+                                        description: foodItem.description,
+                                        restaurantSlug: slug,
+                                      });
+                                    }
                                   }
                                 }}
                               >
@@ -450,6 +470,10 @@ const MenuPage = () => {
                               className="text-sm h-8 gap-0 w-full"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if(foodItem.hasVariants){
+                                  setDrawerOpen(true)
+                                  setShowEditDrawer(false)
+                                } else {
                                 addItem({
                                   foodId: foodItem._id,
                                   quantity: 1,
@@ -462,6 +486,7 @@ const MenuPage = () => {
                                   description: foodItem.description,
                                   restaurantSlug: slug,
                                 });
+                                }
                               }}
                             >
                               <Plus /> Add to Cart
@@ -475,6 +500,11 @@ const MenuPage = () => {
                           >
                             Not Available
                           </Button>
+                        )}
+                        {foodItem.hasVariants && (
+                          <p className="text-xs text-muted-foreground text-center">
+                            Variants available
+                          </p>
                         )}
                       </div>
                     </CardContent>

@@ -31,7 +31,8 @@ const cartSlice = createSlice({
       action: PayloadAction<{ foodId: string; quantity: number; variantName?: string }>
     ) => {
       const { foodId, quantity, variantName } = action.payload;
-      const existingItem = state.find((item) => item.foodId === foodId && (item.variantName === variantName || item.variantName === null));
+      const existingItem = state.find((item) => item.foodId === foodId && (variantName ? item.variantName === variantName : (item.variantName === null || item.variantName === undefined)));
+
       if (existingItem) {
         existingItem.quantity = quantity;
       }
