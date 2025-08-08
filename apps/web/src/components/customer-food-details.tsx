@@ -47,7 +47,6 @@ import {
 import { Separator } from "@repo/ui/components/separator";
 
 const CustomerFoodDetails = ({
-  children,
   foodItem,
   setAllFoodItems,
   restaurantSlug,
@@ -55,7 +54,6 @@ const CustomerFoodDetails = ({
   drawerOpen,
   setDrawerOpen,
 }: {
-  children: React.ReactNode;
   foodItem: FoodItem;
   setAllFoodItems: React.Dispatch<React.SetStateAction<AllFoodItems | null>>;
   restaurantSlug: string;
@@ -186,13 +184,24 @@ const CustomerFoodDetails = ({
       : foodItemDetails.discountedPrice
     : foodItem.discountedPrice;
 
+  useEffect(() => {
+    if (drawerOpen && !showEditDrawer) {
+      setFoodItemDetails(null);
+      setIsLoading(true);
+      fetchFoodItemDetails();
+      setItemCount(1);
+      setVariantName("default");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerOpen, foodItem._id]);
+
   if (showEditDrawer) {
     const cartItemsFiltered = cartItems.filter(
       (item) => item.foodId === foodItem._id
     );
     return (
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DrawerTrigger asChild>{children}</DrawerTrigger>
+        <DrawerTrigger className="hidden">Open</DrawerTrigger>
         <DrawerContent className="w-full h-full data-[vaul-drawer-direction=bottom]:max-h-[85vh]">
           <div className="w-full md:mx-auto md:w-2xl lg:w-3xl h-full">
             <ScrollArea className="h-full pt-3 pb-6 md:py-2">
@@ -207,7 +216,8 @@ const CustomerFoodDetails = ({
                           className="flex justify-between items-start gap-x-4"
                         >
                           <div>
-                            <div className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 w-min`}
+                            <div
+                              className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 w-min`}
                             >
                               <span
                                 className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1 h-1 block rounded-full`}
@@ -256,7 +266,7 @@ const CustomerFoodDetails = ({
                                     });
                                   } else {
                                     removeItem(item);
-                                    if(cartItemsFiltered.length <= 1) {
+                                    if (cartItemsFiltered.length <= 1) {
                                       setDrawerOpen(false);
                                     }
                                   }
@@ -304,6 +314,18 @@ const CustomerFoodDetails = ({
               </div>
             </ScrollArea>
           </div>
+        <DrawerClose
+          asChild
+          className={cn(
+            "absolute right-1/2 translate-x-1/2 z-10 transition-all duration-200",
+            drawerOpen ? "-top-14 opacity-100" : "-top-0 opacity-0"
+          )}
+        >
+          <Button variant="outline" className="rounded-full px-2.5! py-1.5!">
+            <X />
+            <span className="sr-only">Close</span>
+          </Button>
+        </DrawerClose>
         </DrawerContent>
       </Drawer>
     );
@@ -320,17 +342,17 @@ const CustomerFoodDetails = ({
       }}
       open={drawerOpen}
     >
-      <DrawerTrigger asChild>{children}</DrawerTrigger>
+      <DrawerTrigger className="hidden">Open</DrawerTrigger>
       <DrawerContent className="w-full h-full data-[vaul-drawer-direction=bottom]:max-h-[85vh]">
         <div className="w-full md:mx-auto md:w-2xl lg:w-3xl h-full">
-          <ScrollArea className="h-full pt-3 pb-6 md:py-2">
+          <ScrollArea className="h-full pt-3 max-h-[80%]">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="animate-spin" />
               </div>
             ) : foodItemDetails ? (
               <>
-                <div className="space-y-3 p-4 mb-14 md:mb-20">
+                <div className="space-y-3 p-4 pt-0">
                   <DrawerTitle className="sr-only">
                     Food Item Details
                   </DrawerTitle>
@@ -547,69 +569,6 @@ const CustomerFoodDetails = ({
                     </Card>
                   )}
                 </div>
-                <div className="fixed bottom-0 w-full md:w-2xl lg:w-3xl p-3 backdrop-blur-2xl bg-muted/50">
-                  {foodItemDetails.isAvailable ? (
-                    <div className="flex justify-between">
-                      <div className="flex items-center gap-2 dark:border-zinc-600 border rounded-md w-min">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="text-sm h-8 gap-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setItemCount((prev) => Math.max(prev - 1, 1));
-                          }}
-                        >
-                          <Minus />
-                          <span className="sr-only">Remove from cart</span>
-                        </Button>
-                        <span className="text-sm">
-                          {itemCount}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="text-sm h-8 gap-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setItemCount((prev) => prev + 1);
-                          }}
-                        >
-                          <Plus />
-                          <span className="sr-only">Add to cart</span>
-                        </Button>
-                      </div>
-                      <Button
-                        className="w-3/6 md:w-2/5 whitespace-pre-wrap flex-wrap h-auto gap-y-0 px-2"
-                        onClick={handleAddItem}
-                      >
-                        Add Item
-                        {typeof itemDiscountedPrice === "number" ? (
-                          <>
-                            <span className="text-xs line-through text-muted-foreground items-baseline">
-                              ₹{((itemPrice ?? 1) * itemCount).toFixed(2)}
-                            </span>
-                            <span className="text-sm font-semibold">
-                              ₹{(itemDiscountedPrice * itemCount).toFixed(2)}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-sm font-semibold">
-                            ₹{((itemPrice ?? 1) * itemCount).toFixed(2)}
-                          </span>
-                        )}
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="text-sm h-8 gap-0"
-                      disabled
-                    >
-                      Not Available
-                    </Button>
-                  )}
-                </div>
               </>
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -617,6 +576,71 @@ const CustomerFoodDetails = ({
               </div>
             )}
           </ScrollArea>
+          {!isLoading && (
+            <Card className="w-full md:w-2xl lg:w-3xl p-3 backdrop-blur-2xl bg-muted/50">
+              <CardDescription>
+                {foodItemDetails && foodItemDetails.isAvailable ? (
+                  <div className="flex justify-between">
+                    <div className="flex items-center gap-2 dark:border-zinc-600 border rounded-md w-min">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-sm h-8 gap-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setItemCount((prev) => Math.max(prev - 1, 1));
+                        }}
+                      >
+                        <Minus />
+                        <span className="sr-only">Remove from cart</span>
+                      </Button>
+                      <span className="text-sm">{itemCount}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-sm h-8 gap-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setItemCount((prev) => prev + 1);
+                        }}
+                      >
+                        <Plus />
+                        <span className="sr-only">Add to cart</span>
+                      </Button>
+                    </div>
+                    <Button
+                      className="w-3/6 md:w-2/5 whitespace-pre-wrap flex-wrap h-auto gap-y-0 px-2"
+                      onClick={handleAddItem}
+                    >
+                      Add Item
+                      {typeof itemDiscountedPrice === "number" ? (
+                        <>
+                          <span className="text-xs line-through text-muted-foreground items-baseline">
+                            ₹{((itemPrice ?? 1) * itemCount).toFixed(2)}
+                          </span>
+                          <span className="text-sm font-semibold">
+                            ₹{(itemDiscountedPrice * itemCount).toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm font-semibold">
+                          ₹{((itemPrice ?? 1) * itemCount).toFixed(2)}
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="text-sm h-8 gap-0"
+                    disabled
+                  >
+                    Not Available
+                  </Button>
+                )}
+              </CardDescription>
+            </Card>
+          )}
         </div>
         <DrawerClose
           asChild

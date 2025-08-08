@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { AllFoodItems } from "@repo/ui/types/FoodItem";
+import { AllFoodItems, FoodItem } from "@repo/ui/types/FoodItem";
 import { toast } from "sonner";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
@@ -46,6 +46,9 @@ const MenuPage = () => {
   const [searchInput, setSearchInput] = useState<string>("");
   const [showEditDrawer, setShowEditDrawer] = useState<boolean>(false);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+  const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(
+    null
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
   const observer = useRef<IntersectionObserver>(null);
   const debounced = useDebounceCallback(setSearchInput, 300);
@@ -289,191 +292,183 @@ const MenuPage = () => {
                 Checkout
               </Link>
               {allFoodItems.foodItems.map((foodItem, index) => (
-                <CustomerFoodDetails
+                <Card
                   key={foodItem._id}
-                  foodItem={foodItem}
-                  setAllFoodItems={setAllFoodItems}
-                  restaurantSlug={slug}
-                  showEditDrawer={showEditDrawer}
-                  setDrawerOpen={setDrawerOpen}
-                  drawerOpen={drawerOpen}
+                  ref={
+                    index === allFoodItems.foodItems.length - 1
+                      ? lastElementRef
+                      : null
+                  }
+                  className={cn(
+                    "overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md cursor-pointer group py-0 gap-0 relative",
+                    !foodItem.isAvailable && "grayscale opacity-80"
+                  )}
+                  onClick={() => {
+                    setSelectedFoodItem(foodItem);
+                    setShowEditDrawer(false);
+                    setDrawerOpen(true);
+                  }}
                 >
-                  <Card
-                    ref={
-                      index === allFoodItems.foodItems.length - 1
-                        ? lastElementRef
-                        : null
-                    }
-                    className={cn(
-                      "overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md cursor-pointer group py-0 gap-0 relative",
-                      !foodItem.isAvailable && "grayscale opacity-80"
-                    )}
-                    onClick={() => {
-                      setShowEditDrawer(false);
-                    }}
-                  >
-                    <div className="absolute top-2 left-2 z-10">
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <div
-                            className={`border ${foodItem.foodType === "veg" ? "border-green-500" : ""} ${foodItem.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
-                          >
-                            <span
-                              className={`${foodItem.foodType === "veg" ? "bg-green-500" : ""} ${foodItem.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                            ></span>
-                            <span className="sr-only">
-                              {foodItem.foodType === "veg"
-                                ? "Veg"
-                                : foodItem.foodType === "non-veg"
-                                  ? "Non Veg"
-                                  : "Vegan"}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {foodItem.foodType === "veg"
-                            ? "Veg"
-                            : foodItem.foodType === "non-veg"
-                              ? "Non Veg"
-                              : "Vegan"}
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <div className="relative aspect-square">
-                      {foodItem.imageUrls &&
-                      foodItem.imageUrls.length > 0 &&
-                      foodItem.imageUrls[0] ? (
-                        <Image
-                          src={foodItem.imageUrls[0]}
-                          alt={foodItem.foodName}
-                          fill
-                          priority={index < 3} // Load first 3 images with priority
-                          loading={index < 3 ? "eager" : "lazy"}
-                          draggable={false}
-                          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                          className="object-cover transition-all duration-200 group-hover:scale-101"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                          <IconSalad className="size-8 sm:size-16" />
+                  <div className="absolute top-2 left-2 z-10">
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <div
+                          className={`border ${foodItem.foodType === "veg" ? "border-green-500" : ""} ${foodItem.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
+                        >
+                          <span
+                            className={`${foodItem.foodType === "veg" ? "bg-green-500" : ""} ${foodItem.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                          ></span>
+                          <span className="sr-only">
+                            {foodItem.foodType === "veg"
+                              ? "Veg"
+                              : foodItem.foodType === "non-veg"
+                                ? "Non Veg"
+                                : "Vegan"}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                    <CardContent className="p-3">
-                      <div className="space-y-1">
-                        <h3 className="font-semibold line-clamp-1">
-                          {foodItem.foodName}
-                        </h3>
-                        {typeof foodItem.discountedPrice === "number" ? (
-                          <p className="text-sm font-medium">
-                            {" "}
-                            ₹{foodItem.discountedPrice.toFixed(2)}
-                            <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
-                              ₹{foodItem.price.toFixed(2)}
-                            </span>
-                          </p>
-                        ) : (
-                          <p className="text-sm font-medium">
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {foodItem.foodType === "veg"
+                          ? "Veg"
+                          : foodItem.foodType === "non-veg"
+                            ? "Non Veg"
+                            : "Vegan"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="relative aspect-square">
+                    {foodItem.imageUrls &&
+                    foodItem.imageUrls.length > 0 &&
+                    foodItem.imageUrls[0] ? (
+                      <Image
+                        src={foodItem.imageUrls[0]}
+                        alt={foodItem.foodName}
+                        fill
+                        priority={index < 3} // Load first 3 images with priority
+                        loading={index < 3 ? "eager" : "lazy"}
+                        draggable={false}
+                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                        className="object-cover transition-all duration-200 group-hover:scale-101"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                        <IconSalad className="size-8 sm:size-16" />
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-3 relative">
+                    <div className="space-y-1">
+                      <h3 className="font-semibold line-clamp-1">
+                        {foodItem.foodName}
+                      </h3>
+                      {typeof foodItem.discountedPrice === "number" ? (
+                        <p className="text-sm font-medium">
+                          {" "}
+                          ₹{foodItem.discountedPrice.toFixed(2)}
+                          <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
                             ₹{foodItem.price.toFixed(2)}
-                          </p>
-                        )}
-                        {foodItem.isAvailable ? (
-                          cartItems.some(
-                            (item) => item.foodId === foodItem._id
-                          ) ? (
-                            <div className="flex items-center justify-between gap-2 dark:border-zinc-600 border rounded-md w-full">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                className="text-sm h-8 gap-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const existingItem = cartItems.find(
-                                    (item) => item.foodId === foodItem._id
-                                  );
-                                  if (existingItem && foodItem.hasVariants) {
-                                    setShowEditDrawer(true);
-                                    setDrawerOpen(true);
-                                  } else {
-                                    setShowEditDrawer(false);
-                                    if (
-                                      existingItem &&
-                                      existingItem.quantity > 1
-                                    ) {
-                                      editItem({
-                                        ...existingItem,
-                                        quantity: existingItem.quantity - 1,
-                                      });
-                                    } else {
-                                      removeItem(existingItem!);
-                                    }
-                                  }
-                                }}
-                              >
-                                <Minus />
-                                <span className="sr-only">
-                                  Remove from cart
-                                </span>
-                              </Button>
-                              <span className="text-sm">
-                                {
-                                  cartItems.filter(
-                                    (item) => item.foodId === foodItem._id
-                                  ).reduce((acc, item) => acc + item.quantity, 0)
-                                }
-                              </span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                className="text-sm h-8 gap-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                  const existingItem = cartItems.find(
-                                    (item) => item.foodId === foodItem._id
-                                  );
-                                  if (existingItem && foodItem.hasVariants) {
-                                    setShowEditDrawer(true);
-                                    setDrawerOpen(true);
-                                  } else {
-                                    setShowEditDrawer(false);
-                                    if (existingItem) {
-                                      editItem({
-                                        ...existingItem,
-                                        quantity: existingItem.quantity + 1,
-                                      });
-                                    } else {
-                                      addItem({
-                                        foodId: foodItem._id,
-                                        quantity: 1,
-                                        foodName: foodItem.foodName,
-                                        price: foodItem.price,
-                                        discountedPrice:
-                                          foodItem.discountedPrice,
-                                        imageUrl: foodItem.imageUrls?.[0],
-                                        foodType: foodItem.foodType,
-                                        isAvailable: foodItem.isAvailable,
-                                        description: foodItem.description,
-                                        restaurantSlug: slug,
-                                      });
-                                    }
-                                  }
-                                }}
-                              >
-                                <Plus />
-                                <span className="sr-only">Add to cart</span>
-                              </Button>
-                            </div>
-                          ) : (
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-sm font-medium">
+                          ₹{foodItem.price.toFixed(2)}
+                        </p>
+                      )}
+                      {foodItem.isAvailable ? (
+                        cartItems.some(
+                          (item) => item.foodId === foodItem._id
+                        ) ? (
+                          <div className="flex items-center justify-between gap-2 dark:border-zinc-600 border rounded-md w-full">
                             <Button
                               type="button"
-                              variant="outline"
-                              className="text-sm h-8 gap-0 w-full"
+                              variant="ghost"
+                              className="text-sm h-8 gap-0"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if(foodItem.hasVariants){
-                                  setDrawerOpen(true)
-                                  setShowEditDrawer(false)
+                                const existingItem = cartItems.find(
+                                  (item) => item.foodId === foodItem._id
+                                );
+                                if (existingItem && foodItem.hasVariants) {
+                                  setSelectedFoodItem(foodItem);
+                                  setShowEditDrawer(true);
+                                  setDrawerOpen(true);
                                 } else {
+                                  setShowEditDrawer(false);
+                                  if (
+                                    existingItem &&
+                                    existingItem.quantity > 1
+                                  ) {
+                                    editItem({
+                                      ...existingItem,
+                                      quantity: existingItem.quantity - 1,
+                                    });
+                                  } else {
+                                    removeItem(existingItem!);
+                                  }
+                                }
+                              }}
+                            >
+                              <Minus />
+                              <span className="sr-only">Remove from cart</span>
+                            </Button>
+                            <span className="text-sm">
+                              {cartItems
+                                .filter((item) => item.foodId === foodItem._id)
+                                .reduce((acc, item) => acc + item.quantity, 0)}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="text-sm h-8 gap-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const existingItem = cartItems.find(
+                                  (item) => item.foodId === foodItem._id
+                                );
+                                if (existingItem && foodItem.hasVariants) {
+                                  setSelectedFoodItem(foodItem);
+                                  setShowEditDrawer(true);
+                                  setDrawerOpen(true);
+                                } else {
+                                  setShowEditDrawer(false);
+                                  if (existingItem) {
+                                    editItem({
+                                      ...existingItem,
+                                      quantity: existingItem.quantity + 1,
+                                    });
+                                  } else {
+                                    addItem({
+                                      foodId: foodItem._id,
+                                      quantity: 1,
+                                      foodName: foodItem.foodName,
+                                      price: foodItem.price,
+                                      discountedPrice: foodItem.discountedPrice,
+                                      imageUrl: foodItem.imageUrls?.[0],
+                                      foodType: foodItem.foodType,
+                                      isAvailable: foodItem.isAvailable,
+                                      description: foodItem.description,
+                                      restaurantSlug: slug,
+                                    });
+                                  }
+                                }
+                              }}
+                            >
+                              <Plus />
+                              <span className="sr-only">Add to cart</span>
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="text-sm h-8 gap-0 w-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (foodItem.hasVariants) {
+                                setSelectedFoodItem(foodItem);
+                                setShowEditDrawer(false);
+                                setDrawerOpen(true);
+                              } else {
                                 addItem({
                                   foodId: foodItem._id,
                                   quantity: 1,
@@ -486,31 +481,42 @@ const MenuPage = () => {
                                   description: foodItem.description,
                                   restaurantSlug: slug,
                                 });
-                                }
-                              }}
-                            >
-                              <Plus /> Add to Cart
-                            </Button>
-                          )
-                        ) : (
-                          <Button
-                            variant="outline"
-                            className="text-sm h-8 gap-0 w-full"
-                            disabled
+                              }
+                            }}
                           >
-                            Not Available
+                            <Plus /> Add to Cart
                           </Button>
-                        )}
-                        {foodItem.hasVariants && (
-                          <p className="text-xs text-muted-foreground text-center">
-                            Variants available
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </CustomerFoodDetails>
+                        )
+                      ) : (
+                        <Button
+                          variant="outline"
+                          className="text-sm h-8 gap-0 w-full"
+                          disabled
+                        >
+                          Not Available
+                        </Button>
+                      )}
+                      {foodItem.hasVariants && (
+                        <p className="text-[10px] text-muted-foreground text-center absolute bottom-0 left-1/2 -translate-x-1/2">
+                          *Variants available
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
+
+              {selectedFoodItem && (
+                <CustomerFoodDetails
+                  foodItem={selectedFoodItem}
+                  setAllFoodItems={setAllFoodItems}
+                  restaurantSlug={slug}
+                  showEditDrawer={showEditDrawer}
+                  setDrawerOpen={setDrawerOpen}
+                  drawerOpen={drawerOpen}
+                />
+              )}
+
               {(isPageChanging || allFoodItems.totalPages !== currentPage) &&
                 Array.from({ length: 6 }).map((_, index) => (
                   <Card
