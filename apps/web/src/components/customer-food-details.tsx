@@ -17,7 +17,7 @@ import type {
   AllFoodItems,
   FoodItemDetails,
 } from "@repo/ui/types/FoodItem";
-import { Loader2, Minus, Plus, X } from "lucide-react";
+import { Loader2, Minus, Plus, Trash2, X } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -69,7 +69,7 @@ const CustomerFoodDetails = ({
   const [carouselCount, setCarouselCount] = useState<number>(0);
   const [variantName, setVariantName] = useState<string>("default");
   const [itemCount, setItemCount] = useState<number>(1);
-  const { cartItems, addItem, removeItem, editItem } = useCart(restaurantSlug);
+  const { cartItems, addItem, removeItem, editItem, syncCart } = useCart(restaurantSlug);
 
   const fetchFoodItemDetails = useCallback(async () => {
     if (!foodItem || !foodItem._id) {
@@ -195,10 +195,18 @@ const CustomerFoodDetails = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawerOpen, foodItem._id]);
 
+    useEffect(() => {
+      if(showEditDrawer){
+        syncCart();
+      }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showEditDrawer])
+
   if (showEditDrawer) {
     const cartItemsFiltered = cartItems.filter(
       (item) => item.foodId === foodItem._id
     );
+
     return (
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerTrigger className="hidden">Open</DrawerTrigger>
@@ -252,60 +260,77 @@ const CustomerFoodDetails = ({
                               {item.description}
                             </p>
                           </div>
-                          <div>
-                            <div className="flex items-center space-x-2 mt-2 dark:border-zinc-600 border rounded-md w-min">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (item.quantity > 1) {
+                          {item.isAvailable ? (
+                            <div>
+                              <div className="flex items-center space-x-2 mt-2 dark:border-zinc-600 border rounded-md w-min">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (item.quantity > 1) {
+                                      editItem({
+                                        ...item,
+                                        quantity: item.quantity - 1,
+                                      });
+                                    } else {
+                                      removeItem(item);
+                                      if (cartItemsFiltered.length <= 1) {
+                                        setDrawerOpen(false);
+                                      }
+                                    }
+                                  }}
+                                  className="w-8 h-8"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                  <span className="sr-only">
+                                    Remove from cart
+                                  </span>
+                                </Button>
+                                <span className="text-sm font-medium w-8 text-center">
+                                  {item.quantity}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     editItem({
                                       ...item,
-                                      quantity: item.quantity - 1,
+                                      quantity: item.quantity + 1,
                                     });
-                                  } else {
-                                    removeItem(item);
-                                    if (cartItemsFiltered.length <= 1) {
-                                      setDrawerOpen(false);
-                                    }
-                                  }
-                                }}
-                                className="w-8 h-8"
-                              >
-                                <Minus className="w-3 h-3" />
-                                <span className="sr-only">
-                                  Remove from cart
-                                </span>
-                              </Button>
-                              <span className="text-sm font-medium w-8 text-center">
-                                {item.quantity}
-                              </span>
+                                  }}
+                                  className="w-8 h-8"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span className="sr-only">Add to cart</span>
+                                </Button>
+                              </div>
+                              <p className="font-medium text-center">
+                                ₹
+                                {typeof item.discountedPrice === "number"
+                                  ? (
+                                      item.discountedPrice * item.quantity
+                                    ).toFixed(2)
+                                  : (item.price * item.quantity).toFixed(2)}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center px-3">
+                              <p className="text-sm text-muted-foreground font-medium">
+                                Unavailable
+                              </p>
+
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  editItem({
-                                    ...item,
-                                    quantity: item.quantity + 1,
-                                  });
-                                }}
-                                className="w-8 h-8"
+                                onClick={() => removeItem(item)}
+                                className="text-red-500 hover:text-red-700 transition-colors"
                               >
-                                <Plus className="w-3 h-3" />
-                                <span className="sr-only">Add to cart</span>
+                                <Trash2 />
                               </Button>
                             </div>
-                            <p className="font-medium text-center">
-                              ₹
-                              {typeof item.discountedPrice === "number"
-                                ? (
-                                    item.discountedPrice * item.quantity
-                                  ).toFixed(2)
-                                : (item.price * item.quantity).toFixed(2)}
-                            </p>
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -314,18 +339,18 @@ const CustomerFoodDetails = ({
               </div>
             </ScrollArea>
           </div>
-        <DrawerClose
-          asChild
-          className={cn(
-            "absolute right-1/2 translate-x-1/2 z-10 transition-all duration-200",
-            drawerOpen ? "-top-14 opacity-100" : "-top-0 opacity-0"
-          )}
-        >
-          <Button variant="outline" className="rounded-full px-2.5! py-1.5!">
-            <X />
-            <span className="sr-only">Close</span>
-          </Button>
-        </DrawerClose>
+          <DrawerClose
+            asChild
+            className={cn(
+              "absolute right-1/2 translate-x-1/2 z-10 transition-all duration-200",
+              drawerOpen ? "-top-14 opacity-100" : "-top-0 opacity-0"
+            )}
+          >
+            <Button variant="outline" className="rounded-full px-2.5! py-1.5!">
+              <X />
+              <span className="sr-only">Close</span>
+            </Button>
+          </DrawerClose>
         </DrawerContent>
       </Drawer>
     );
@@ -579,7 +604,14 @@ const CustomerFoodDetails = ({
           {!isLoading && (
             <Card className="w-full md:w-2xl lg:w-3xl p-3 backdrop-blur-2xl bg-muted/50">
               <CardDescription>
-                {foodItemDetails && foodItemDetails.isAvailable ? (
+                {foodItemDetails &&
+                (variantName === "default"
+                  ? foodItemDetails.isAvailable
+                  : foodItemDetails.variants?.some(
+                      (variant) =>
+                        variant.variantName === variantName &&
+                        variant.isAvailable
+                    )) ? (
                   <div className="flex justify-between">
                     <div className="flex items-center gap-2 dark:border-zinc-600 border rounded-md w-min">
                       <Button

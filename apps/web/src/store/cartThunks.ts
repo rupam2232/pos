@@ -10,6 +10,7 @@ import type { CartItem } from "./cartSlice";
 import { toast } from "sonner";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { AxiosError } from "axios";
+import { RootState } from "./store";
 
 // Fetch and merge backend cart for a restaurant
 export const syncCartWithBackend = createAsyncThunk(
@@ -30,7 +31,9 @@ export const addCartItemToBackend = createAsyncThunk(
     try {
       await axios.post(`/cart/${item.restaurantSlug}`, item);
     } catch (error) {
-      dispatch(removeFromCart({ foodId: item.foodId, variantName: item.variantName }));
+      dispatch(
+        removeFromCart({ foodId: item.foodId, variantName: item.variantName })
+      );
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message || "Failed to add item to cart"
@@ -50,7 +53,7 @@ export const removeCartItemFromBackend = createAsyncThunk(
         data: { variantName, quantity },
       });
     } catch (error) {
-        thunkAPI.dispatch(addToCart(item)); // Re-add item to Redux state
+      thunkAPI.dispatch(addToCart(item)); // Re-add item to Redux state
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message || "Failed to remove item from cart"
@@ -63,12 +66,14 @@ export const editCartItemInBackend = createAsyncThunk(
   "cart/editCartItemInBackend",
   async (item: CartItem, thunkAPI) => {
     const { foodId, restaurantSlug, variantName, quantity } = item;
+    const originalItem = thunkAPI.getState() as RootState;
+
     thunkAPI.dispatch(editCartItem({ foodId, quantity, variantName }));
     try {
-        await axios.patch(`/cart/${restaurantSlug}/${foodId}`, {
-          variantName,
-          quantity,
-        });
+      await axios.patch(`/cart/${restaurantSlug}/${foodId}`, {
+        variantName,
+        quantity,
+      });
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
@@ -76,7 +81,15 @@ export const editCartItemInBackend = createAsyncThunk(
       );
       // Revert the change in Redux state
       thunkAPI.dispatch(
-        editCartItem({ foodId, quantity: item.quantity, variantName }) // Revert to original quantity
+        editCartItem({
+          foodId,
+          quantity:
+            originalItem?.cart?.find(
+              (item) =>
+                item.foodId === foodId && item.variantName === variantName
+            )?.quantity || item.quantity,
+          variantName,
+        }) // Revert to original quantity
       );
     }
   }

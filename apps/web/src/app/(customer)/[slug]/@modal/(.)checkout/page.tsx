@@ -16,6 +16,7 @@ import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { cn } from "@repo/ui/lib/utils";
 import { useEffect, useState } from "react";
 import { useCart } from "@/hooks/useCart";
+import { fetchRestaurantDetails } from "@/utils/fetchRestaurantDetails";
 
 const CheckoutModalPage = () => {
   const router = useRouter();
@@ -37,18 +38,33 @@ const CheckoutModalPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantSlug]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const previousTitle = document.title;
+
+    if (drawerOpen) {
+      fetchRestaurantDetails(restaurantSlug).then((restaurant) => {
+        if (isMounted) {
+          document.title = `Checkout | ${restaurant.restaurantName}`;
+        }
+      });
+    }
+
+    return () => {
+      document.title = previousTitle;
+      isMounted = false;
+    };
+  }, [restaurantSlug, drawerOpen]);
+
   const restaurantCartItemSubtotal = cartItems.reduce((total, item) => {
-    if (
-      typeof item.discountedPrice === "number"
-    ) {
+    if (typeof item.discountedPrice === "number") {
       return total + item.discountedPrice * item.quantity;
     }
     return total + item.price * item.quantity;
   }, 0);
 
   const preDiscountedPrice = cartItems.some(
-    (item) =>
-      typeof item.discountedPrice === "number"
+    (item) => typeof item.discountedPrice === "number"
   )
     ? cartItems.reduce((total, item) => {
         return total + item.price * item.quantity;
@@ -103,15 +119,34 @@ const CheckoutModalPage = () => {
                           sizes="(max-width: 640px) 100px, (min-width: 641px) 150px"
                           priority
                           alt={item.foodName}
-                          className="w-16 h-16 object-cover rounded-lg"
+                          className={cn(
+                            "w-16 h-16 object-cover rounded-lg",
+                            item.isAvailable
+                              ? "opacity-100"
+                              : "opacity-80 grayscale"
+                          )}
                         />
                       ) : (
-                        <div className="flex items-center justify-center bg-muted w-16 h-16 rounded-lg">
+                        <div
+                          className={cn(
+                            "flex items-center justify-center bg-muted w-16 h-16 rounded-lg",
+                            item.isAvailable
+                              ? "opacity-100"
+                              : "opacity-80 grayscale"
+                          )}
+                        >
                           <IconSalad className="size-5" />
                         </div>
                       )}
 
-                      <div className="flex-1 min-w-0">
+                      <div
+                        className={cn(
+                          "flex-1 min-w-0",
+                          item.isAvailable
+                            ? "opacity-100"
+                            : "opacity-80 grayscale"
+                        )}
+                      >
                         <div className="flex items-center space-x-2">
                           <div
                             className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5`}
@@ -151,6 +186,7 @@ const CheckoutModalPage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            disabled={item.isAvailable === false}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (item.quantity > 1) {
@@ -173,6 +209,7 @@ const CheckoutModalPage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            disabled={item.isAvailable === false}
                             onClick={(e) => {
                               e.stopPropagation();
                               editItem({
@@ -189,7 +226,9 @@ const CheckoutModalPage = () => {
                       </div>
 
                       <div className="text-right">
-                        {typeof item.discountedPrice === "number" ? (
+                        {item.isAvailable === false ? (
+                          <p className="text-sm font-medium">Unavailable</p>
+                        ) : typeof item.discountedPrice === "number" ? (
                           <p className="text-sm font-medium flex flex-col items-end">
                             <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
                               ₹{(item.price * item.quantity).toFixed(2)}
@@ -205,13 +244,14 @@ const CheckoutModalPage = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => removeItem(item)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
+                          className="text-red-500 hover:text-red-700 transition-colors opacity-100! grayscale-0! z-20"
                         >
                           <Trash2 />
                         </Button>
                       </div>
                     </div>
                   ))}
+
                   <div className="py-6 border-t mb-40">
                     <div className="space-y-2 mb-4">
                       <h3 className="text-lg font-semibold">Bill Summary</h3>

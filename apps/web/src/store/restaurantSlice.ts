@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { RestaurantMinimalInfo } from "@repo/ui/types/Restaurant";
 
 export interface RestaurantsState {
   restaurants: {
@@ -6,12 +7,7 @@ export interface RestaurantsState {
     restaurantName: string;
     slug: string;
   }[];
-  activeRestaurant?: {
-    _id: string;
-    restaurantName: string;
-    slug: string;
-    logoUrl?: string;
-  } | null;
+  activeRestaurant?: RestaurantMinimalInfo | null;
 }
 
 const initialState: RestaurantsState = {
@@ -31,7 +27,11 @@ const restaurantsSlice = createSlice({
     },
     addRestaurant(
       state,
-      action: PayloadAction<{ _id: string; restaurantName: string; slug: string }>
+      action: PayloadAction<{
+        _id: string;
+        restaurantName: string;
+        slug: string;
+      }>
     ) {
       state.restaurants.push(action.payload);
     },

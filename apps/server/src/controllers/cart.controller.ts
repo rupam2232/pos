@@ -57,7 +57,7 @@ export const addToCart = asyncHandler(async (req, res) => {
 
   if (!foodItem) {
     throw new ApiError(404, "Food item not found");
-  } else if (!foodItem.isAvailable) {
+  } else if (!foodItem.isAvailable && !variantName) {
     throw new ApiError(400, "Food item is not available");
   } else if (!foodItem.hasVariants && variantName) {
     throw new ApiError(400, "Variant name is not allowed for this food item");
@@ -68,6 +68,13 @@ export const addToCart = asyncHandler(async (req, res) => {
       !foodItem.variants.some((variant) => variant.variantName === variantName))
   ) {
     throw new ApiError(400, "Invalid variant name for this food item");
+  } else if (
+    variantName &&
+    foodItem.variants.some(
+      (variant) => variant.variantName === variantName && !variant.isAvailable
+    )
+  ) {
+    throw new ApiError(400, "Food item is not available");
   }
 
   let cart = null;
@@ -210,6 +217,44 @@ export const updateCartItem = asyncHandler(async (req, res) => {
 
   if (itemIndex === -1) {
     throw new ApiError(404, "Item not found in cart");
+  }
+
+  const restaurant = await Restaurant.findOne({ slug: restaurantSlug });
+
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found");
+  }
+
+  if (!restaurant.isCurrentlyOpen) {
+    throw new ApiError(400, "Restaurant is currently closed");
+  }
+
+  // Check if the food item exists in the restaurant's menu
+  const foodItem = await FoodItem.findOne({
+    _id: foodId,
+    restaurantId: restaurant._id,
+  });
+
+  if (!foodItem) {
+    throw new ApiError(404, "Food item not found");
+  } else if (!foodItem.isAvailable && !variantName) {
+    throw new ApiError(400, "Food item is not available");
+  } else if (!foodItem.hasVariants && variantName) {
+    throw new ApiError(400, "Variant name is not allowed for this food item");
+  } else if (
+    foodItem.hasVariants &&
+    variantName &&
+    (!foodItem.variants ||
+      !foodItem.variants.some((variant) => variant.variantName === variantName))
+  ) {
+    throw new ApiError(400, "Invalid variant name for this food item");
+  } else if (
+    variantName &&
+    foodItem.variants.some(
+      (variant) => variant.variantName === variantName && !variant.isAvailable
+    )
+  ) {
+    throw new ApiError(400, "Food item is not available");
   }
 
   cart.items[itemIndex].quantity = quantity;
@@ -355,7 +400,35 @@ export const getCartItems = asyncHandler(async (req, res) => {
               "$foodDetails.discountedPrice",
             ],
           },
-          "items.isAvailable": "$foodDetails.isAvailable",
+          "items.isAvailable": {
+            $cond: [
+              {
+                $and: [
+                  { $gt: [{ $size: "$foodDetails.variants" }, 0] },
+                  { $ifNull: ["$items.variantName", false] },
+                ],
+              },
+              {
+                $let: {
+                  vars: {
+                    variant: {
+                      $arrayElemAt: [
+                        "$foodDetails.variants",
+                        {
+                          $indexOfArray: [
+                            "$foodDetails.variants.variantName",
+                            "$items.variantName",
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                  in: "$$variant.isAvailable",
+                },
+              },
+              "$foodDetails.isAvailable",
+            ],
+          },
           "items.description": {
             $cond: [
               {
