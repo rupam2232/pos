@@ -63,7 +63,7 @@ const CheckoutClientPage = () => {
         >
           ← Back to Menu
         </Link>
-        <h1 className="text-3xl font-bold">Checkout</h1>
+        <h1 className="text-3xl font-bold">Cart</h1>
       </div>
       {cartItems.length === 0 ? (
         <Card>

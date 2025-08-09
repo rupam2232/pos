@@ -45,7 +45,7 @@ const CheckoutModalPage = () => {
     if (drawerOpen) {
       fetchRestaurantDetails(restaurantSlug).then((restaurant) => {
         if (isMounted) {
-          document.title = `Checkout | ${restaurant.restaurantName}`;
+          document.title = `Cart | ${restaurant.restaurantName}`;
         }
       });
     }
@@ -87,11 +87,11 @@ const CheckoutModalPage = () => {
         }
       }}
     >
-      <DrawerTrigger>Checkout</DrawerTrigger>
+      <DrawerTrigger>Cart</DrawerTrigger>
       <DrawerContent className="w-full h-full data-[vaul-drawer-direction=bottom]:max-h-[85vh]">
         <div className="w-full md:mx-auto md:w-2xl lg:w-3xl h-full">
           <DrawerTitle className="px-6 pb-2 border-b text-lg">
-            Checkout
+            Cart
           </DrawerTitle>
           <ScrollArea className="h-full pb-6 md:py-2">
             <div className="px-6">

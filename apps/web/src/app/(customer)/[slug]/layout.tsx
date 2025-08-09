@@ -18,6 +18,13 @@ export default async function RootLayout({
 }>) {
   const { slug } = await params;
   const restaurant = await fetchRestaurantDetails(slug);
+  if (!restaurant) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p className="text-lg text-gray-500">Restaurant not found.</p>
+      </div>
+    );
+  }
   return (
     <>
       <RestaurantHeader restaurant={restaurant} />

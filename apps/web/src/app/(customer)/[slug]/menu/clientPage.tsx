@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { AllFoodItems, FoodItem } from "@repo/ui/types/FoodItem";
 import { toast } from "sonner";
 import type { AxiosError } from "axios";
@@ -24,12 +24,13 @@ import {
 } from "@repo/ui/components/tabs";
 import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 import { Input } from "@repo/ui/components/input";
-import { Minus, Plus, Search, X } from "lucide-react";
+import { Loader2, Minus, Plus, Search, X } from "lucide-react";
 import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@repo/ui/components/button";
 import CustomerFoodDetails from "@/components/customer-food-details";
 import Link from "next/link";
 import { useCart } from "@/hooks/useCart";
+import { Table } from "@repo/ui/types/Table";
 
 const MenuClientPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -54,6 +55,10 @@ const MenuClientPage = () => {
   const debounced = useDebounceCallback(setSearchInput, 300);
   const currentPage = tabPages[tabName] || 1;
   const { cartItems, syncCart, addItem, removeItem, editItem } = useCart(slug);
+  const searchParams = useSearchParams();
+  const tableId = searchParams.get("tableId");
+  const [isTableDataLoading, setIsTableDataLoading] = useState<boolean>(true);
+  const [tableDetails, setTableDetails] = useState<Table | null>(null);
 
   const fetchFoodItems = useCallback(async () => {
     if (!slug) {
@@ -125,20 +130,52 @@ const MenuClientPage = () => {
     }
   }, [slug]);
 
+  const fetchTableDetails = useCallback(async () => {
+    if (!tableId) {
+      toast.error("Table ID is required to fetch table details");
+      setIsTableDataLoading(false);
+      setTableDetails(null);
+      return;
+    }
+    setIsTableDataLoading(true);
+    try {
+      const response = await axios.get(`/table/${slug}/${tableId}`);
+      setTableDetails(response.data.data);
+    } catch (error) {
+      console.error(
+        "Failed to fetch table details. Please try again later:",
+        error
+      );
+      const axiosError = error as AxiosError<ApiResponse>;
+      console.error(axiosError.response?.data.message || axiosError.message);
+      toast.error(
+        axiosError.response?.data.message ||
+          "Failed to fetch table details. Please try again later"
+      );
+    } finally {
+      setIsTableDataLoading(false);
+    }
+  }, [tableId, slug]);
+
   useEffect(() => {
     if (slug) {
       syncCart();
     }
+    fetchTableDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [slug, fetchTableDetails]);
 
   useEffect(() => {
-    fetchRestaurantCategories();
-  }, [fetchRestaurantCategories]);
+    if (tableDetails) {
+      fetchFoodItems();
+    }
+  }, [fetchFoodItems, tableDetails]);
 
   useEffect(() => {
-    fetchFoodItems();
-  }, [fetchFoodItems]);
+    if (tableDetails) {
+      fetchRestaurantCategories();
+    }
+  }, [fetchRestaurantCategories, tableDetails]);
 
   const lastElementRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -172,8 +209,38 @@ const MenuClientPage = () => {
     }));
   }, [tabName]);
 
+  if (isTableDataLoading) {
+    return (
+      <div className="p-4 text-center">
+        <Loader2 className="animate-spin mx-auto" />
+        <p>Please wait while we load the table data...</p>
+      </div>
+    );
+  }
+
+  if (!tableDetails) {
+    return (
+      <div className="p-4 text-center text-balance">
+        Sorry, we couldn&apos;t find your table details. Please refresh the page
+        or scan the QR code again.
+      </div>
+    );
+  }
+
+  if (tableDetails.isOccupied) {
+    return (
+      <div className="p-4 text-center text-balance">
+        Table is currently occupied. Please try again later. Or contact
+        restaurant staff for assistance.
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
+      <Link href={`/${slug}/cart/?tableId=${tableId}`} scroll={false} passHref>
+        Cart
+      </Link>
       <Tabs
         defaultValue="all"
         value={tabName}
@@ -233,7 +300,6 @@ const MenuClientPage = () => {
                   if (e.key === "Enter") {
                     e.preventDefault();
                     if (searchInput.trim() === "") {
-                      toast.error("Search input cannot be empty");
                       return;
                     }
                     setTabName("search");
@@ -288,9 +354,6 @@ const MenuClientPage = () => {
             Array.isArray(allFoodItems.foodItems) &&
             allFoodItems.foodItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-              <Link href={`/${slug}/checkout`} scroll={false} passHref>
-                Checkout
-              </Link>
               {allFoodItems.foodItems.map((foodItem, index) => (
                 <Card
                   key={foodItem._id}
@@ -301,7 +364,9 @@ const MenuClientPage = () => {
                   }
                   className={cn(
                     "overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md cursor-pointer group py-0 gap-0 relative",
-                    (!foodItem.isAvailable && !foodItem.hasVariants) && "grayscale opacity-80"
+                    !foodItem.isAvailable &&
+                      !foodItem.hasVariants &&
+                      "grayscale opacity-80"
                   )}
                   onClick={() => {
                     setSelectedFoodItem(foodItem);

@@ -9,9 +9,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const restaurant = await fetchRestaurantDetails(slug);
+  if (!restaurant) {
+    return {
+      title: "Restaurant not found",
+      description: "The requested restaurant could not be found.",
+    };
+  }
   return {
-    title: `Checkout | ${restaurant.restaurantName}`,
-    description: "Checkout your order.",
+    title: `Cart | ${restaurant.restaurantName}`,
+    description: "Review your cart before confirming your order.",
     icons: [
       {
         rel: "icon",
