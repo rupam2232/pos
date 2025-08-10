@@ -131,7 +131,7 @@ export const getRestaurantBySlug = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Restaurant slug is required.");
   }
 
-  const restaurant = await Restaurant.findOne({ slug });
+  const restaurant = await Restaurant.findOne({ slug }).select("-staffIds -ownerId -__v -updatedAt");
   if (!restaurant) {
     throw new ApiError(404, "Restaurant not found.");
   }

@@ -142,12 +142,12 @@ const MenuClientPage = () => {
       const response = await axios.get(`/table/${slug}/${tableId}`);
       setTableDetails(response.data.data);
     } catch (error) {
-      console.error(
-        "Failed to fetch table details. Please try again later:",
-        error
-      );
       const axiosError = error as AxiosError<ApiResponse>;
       console.error(axiosError.response?.data.message || axiosError.message);
+      console.error(
+        "Failed to fetch table details. Please try again later:",
+        axiosError.response?.data.message || axiosError.message
+      );
       toast.error(
         axiosError.response?.data.message ||
           "Failed to fetch table details. Please try again later"
@@ -237,11 +237,9 @@ const MenuClientPage = () => {
   }
 
   return (
-    <div className="p-4">
-      <Link href={`/${slug}/cart/?tableId=${tableId}`} scroll={false} passHref>
-        Cart
-      </Link>
+    <div className="p-4 relative">
       <Tabs
+      className="mb-24"
         defaultValue="all"
         value={tabName}
         onValueChange={(value) => {
@@ -609,6 +607,13 @@ const MenuClientPage = () => {
           )}
         </TabsContent>
       </Tabs>
+      {(cartItems && cartItems.length > 0) && (
+        <div className="fixed bottom-2 w-full md:w-1/3 right-0 rounded-md bg-primary text-background z-30">
+          <Link href={`/${slug}/cart/?tableId=${tableId}`} scroll={false} passHref className="flex items-center justify-center p-4 font-semibold">
+            View Cart ({cartItems.reduce((acc, item) => acc + item.quantity, 0)})
+          </Link>
+        </div>
+      )}
     </div>
   );
 };

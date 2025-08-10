@@ -13,8 +13,8 @@ import { startSession } from "mongoose";
 
 export const createOrder = asyncHandler(async (req, res, next) => {
   const session = await startSession();
-  session.startTransaction();
   try {
+    session.startTransaction();
     if (!req.params.restaurantSlug || !req.params.tableQrSlug) {
       throw new ApiError(400, "Restaurant slug and table QR slug are required");
     }
@@ -68,7 +68,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
         if (isFoodItemValid.hasVariants === false) {
           throw new ApiError(
             400,
-            `Food item ${foodItem._id} does not have variants`
+            `${foodItem.foodName} does not have variants`
           );
         }
         const isVariantValid = isFoodItemValid.variants.some(
@@ -77,7 +77,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
         if (!isVariantValid) {
           throw new ApiError(
             400,
-            `Variant ${foodItem.variantName} for food item ${foodItem._id} is not valid`
+            `Variant ${foodItem.variantName} for food item ${foodItem.foodName} is not valid`
           );
         }
         // Ensure the variant is available
@@ -87,14 +87,14 @@ export const createOrder = asyncHandler(async (req, res, next) => {
         if (!variant || variant.isAvailable === false) {
           throw new ApiError(
             400,
-            `Variant ${foodItem.variantName} for food item ${foodItem._id} is not available`
+            `Variant ${foodItem.variantName} for food item ${foodItem.foodName} is not available`
           );
         }
       }
       foodItems.push({
         foodItemId: isFoodItemValid._id,
-        variantName: foodItem.variantName || null, // Ensure variantName is included if provided
-        quantity: foodItem.quantity || 1, // Default to 1 if quantity is not provided
+        variantName: foodItem.variantName ?? null, // Ensure variantName is included if provided
+        quantity: foodItem.quantity ?? 1, // Default to 1 if quantity is not provided
         price: foodItem.variantName
           ? isFoodItemValid.variants.filter(
               (variant) => variant.variantName === foodItem.variantName
@@ -103,11 +103,11 @@ export const createOrder = asyncHandler(async (req, res, next) => {
         finalPrice: foodItem.variantName
           ? isFoodItemValid.variants.filter(
               (variant) => variant.variantName === foodItem.variantName
-            )[0].discountedPrice ||
+            )[0].discountedPrice ??
             isFoodItemValid.variants.filter(
               (variant) => variant.variantName === foodItem.variantName
             )[0].price
-          : isFoodItemValid.discountedPrice || isFoodItemValid.price,
+          : isFoodItemValid.discountedPrice ?? isFoodItemValid.price,
       });
     }
 
@@ -174,30 +174,29 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       ],
       { session }
     );
-
-    const payment = await Payment.create(
-      [
-        {
-          orderId: order[0]._id,
-          method: paymentMethod,
-          status: "pending", // Initial status for new payments
-          subtotal,
-          totalAmount,
-          discountAmount,
-          taxAmount,
-          tipAmount: 0, // Assuming no tip for now, can be updated later
-        },
-      ],
-      { session }
-    );
-
+    
     // Update the table to mark it as occupied and link the current order
     table.isOccupied = true;
     table.currentOrderId = order[0]._id as Types.ObjectId; // Link the current order to the table
     await table.save({ validateBeforeSave: false, session });
-
+    
     // If the payment method is online, we can initiate the payment process here
     if (paymentMethod === "online") {
+      const payment = await Payment.create(
+        [
+          {
+            orderId: order[0]._id,
+            method: paymentMethod,
+            status: "pending", // Initial status for new payments
+            subtotal,
+            totalAmount,
+            discountAmount,
+            taxAmount,
+            tipAmount: 0, // Assuming no tip for now, can be updated later
+          },
+        ],
+        { session }
+      );
       // Razorpay integration to create a payment order
       const paymentResponse = await razorpay.orders.create({
         amount: payment[0].totalAmount * 100, // Amount in paise
@@ -225,25 +224,22 @@ export const createOrder = asyncHandler(async (req, res, next) => {
         .json(
           new ApiResponse(
             201,
-            { order, paymentData: paymentResponse },
+            { order: order[0], paymentData: paymentResponse },
             "Order created successfully"
           )
         );
     } else {
-      // If payment method is cash, create the payment record without payment gateway
-      const paymentData = await payment[0].save({ session });
-      order[0].paymentAttempts = order[0].paymentAttempts || []; // Ensure paymentAttempts is an array
-      order[0].paymentAttempts.push(paymentData._id as Types.ObjectId); // Add the payment ID to the order's payment attempts
-      await order[0].save({ session });
       // For cash payments
       await session.commitTransaction();
       session.endSession();
       res
         .status(201)
-        .json(new ApiResponse(201, { order }, "Order created successfully"));
+        .json(new ApiResponse(201, { order: order[0] }, "Order created successfully"));
     }
   } catch (error) {
-    await session.abortTransaction();
+    if(session.inTransaction()){
+      await session.abortTransaction();
+    }
     session.endSession();
     next(error); // asyncHandler will catch and forward this error
   }
@@ -909,8 +905,8 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
 export const updateOrder = asyncHandler(async (req, res, next) => {
   const session = await startSession();
-  session.startTransaction();
   try {
+    session.startTransaction();
     if (!req.params.orderId || !req.params.restaurantSlug) {
       throw new ApiError(400, "Order ID and restaurant slug are required");
     }
@@ -1077,7 +1073,9 @@ export const updateOrder = asyncHandler(async (req, res, next) => {
       .status(200)
       .json(new ApiResponse(200, order, "Order updated successfully"));
   } catch (error) {
-    await session.abortTransaction();
+    if(session.inTransaction()){
+      await session.abortTransaction();
+    }
     session.endSession();
     next(error); // asyncHandler will catch and forward this error
   }

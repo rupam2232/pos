@@ -7,7 +7,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@repo/ui/components/drawer";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { CreditCard, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@repo/ui/components/button";
@@ -17,10 +17,17 @@ import { cn } from "@repo/ui/lib/utils";
 import { useEffect, useState } from "react";
 import { useCart } from "@/hooks/useCart";
 import { fetchRestaurantDetails } from "@/utils/fetchRestaurantDetails";
+import { Textarea } from "@repo/ui/components/textarea";
+import axios from "@/utils/axiosInstance";
+import { toast } from "sonner";
+import { AxiosError } from "axios";
+import { ApiResponse } from "@repo/ui/types/ApiResponse";
 
 const CheckoutModalPage = () => {
   const router = useRouter();
   const { slug: restaurantSlug } = useParams<{ slug: string }>();
+  const searchParams = useSearchParams();
+  const tableId = searchParams.get("tableId");
   const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
   const { syncCart, cartItems, removeItem, editItem } = useCart(restaurantSlug);
   const [taxDetails, setTaxDetails] = useState<{
@@ -28,6 +35,7 @@ const CheckoutModalPage = () => {
     taxLabel: string;
     taxRate: number;
   }>();
+  const [notes, setNotes] = useState<string>("");
 
   useEffect(() => {
     if (restaurantSlug) {
@@ -77,6 +85,31 @@ const CheckoutModalPage = () => {
       ? restaurantCartItemSubtotal * taxDetails.taxRate
       : 0);
 
+  const confirmOrder = async () => {
+    const toastId = toast.loading("Placing order...");
+    try {
+      const response = await axios.post(`/order/${restaurantSlug}/${tableId}`, {
+        foodItems: cartItems.map((item) => ({
+          _id: item.foodId,
+          quantity: item.quantity,
+          variantName: item.variantName || undefined,
+        })),
+        notes: notes,
+        paymentMethod: "cash"
+      });
+      toast.success(response.data.message || "Order placed successfully!", {
+        id: toastId
+      });
+      // router.back();
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      console.error(axiosError.response?.data.message || axiosError.message);
+      toast.error(axiosError.response?.data.message || "Failed to place order. Please try again.", {
+        id: toastId
+      });
+    }
+  };
+
   return (
     <Drawer
       open={drawerOpen}
@@ -90,9 +123,7 @@ const CheckoutModalPage = () => {
       <DrawerTrigger>Cart</DrawerTrigger>
       <DrawerContent className="w-full h-full data-[vaul-drawer-direction=bottom]:max-h-[85vh]">
         <div className="w-full md:mx-auto md:w-2xl lg:w-3xl h-full">
-          <DrawerTitle className="px-6 pb-2 border-b text-lg">
-            Cart
-          </DrawerTitle>
+          <DrawerTitle className="px-6 pb-2 border-b text-lg">Cart</DrawerTitle>
           <ScrollArea className="h-full pb-6 md:py-2">
             <div className="px-6">
               {cartItems.length === 0 ? (
@@ -252,6 +283,13 @@ const CheckoutModalPage = () => {
                     </div>
                   ))}
 
+                  <Textarea
+                    className="my-4 border rounded-md bg-muted resize-none text-wrap whitespace-pre-wrap min-h-11 max-h-40"
+                    placeholder="Add special instructions..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+
                   <div className="py-6 border-t mb-40">
                     <div className="space-y-2 mb-4">
                       <h3 className="text-lg font-semibold">Bill Summary</h3>
@@ -285,9 +323,16 @@ const CheckoutModalPage = () => {
                     </div>
 
                     <DrawerFooter className="flex flex-col gap-2 absolute bottom-14 left-0 right-0 p-4 border-t backdrop-blur-lg bg-background/40">
-                      <Button className="w-full transition-colors">
+                      <Button
+                        className="w-full transition-colors"
+                        disabled={
+                          cartItems.length === 0 ||
+                          cartItems.some((item) => item.isAvailable === false)
+                        }
+                        onClick={confirmOrder}
+                      >
                         <CreditCard className="w-4 h-4 mr-2" />
-                        Proceed to Checkout
+                        Confirm Order
                       </Button>
 
                       <DrawerClose asChild>

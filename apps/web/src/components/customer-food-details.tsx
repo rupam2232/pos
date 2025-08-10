@@ -144,11 +144,12 @@ const CustomerFoodDetails = ({
       }
     } else {
       const existingItem = cartItems.find(
-        (item) => item.foodId === foodItemDetails._id
+        (item) => item.foodId === foodItemDetails._id && (item.variantName === null || item.variantName === undefined)
       );
       if (existingItem) {
         editItem({
           ...existingItem,
+          variantName: undefined,
           quantity: existingItem.quantity + itemCount,
         });
       } else {

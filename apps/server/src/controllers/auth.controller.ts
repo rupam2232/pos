@@ -28,8 +28,8 @@ export const signup = async (
   }
   // Start a MongoDB session for transaction
   const session = await startSession();
-  session.startTransaction();
   try {
+    session.startTransaction();
     // Validate input
     if (!req?.body?.email || !req?.body?.password || !req?.body?.fullName) {
       throw new ApiError(
@@ -175,7 +175,9 @@ export const signup = async (
       );
   } catch (err) {
     // Rollback transaction on error
-    await session.abortTransaction();
+    if(session.inTransaction()){
+      await session.abortTransaction();
+    }
     session.endSession();
     next(err);
   }
@@ -189,8 +191,8 @@ export const signin = async (
 ) => {
   // Start a MongoDB session for transaction
   const session = await startSession();
-  session.startTransaction();
   try {
+    session.startTransaction();
     // Validate required fields in request body
     if (!req?.body?.email || !req?.body?.password) {
       throw new ApiError(
@@ -310,7 +312,9 @@ export const signin = async (
       );
   } catch (err) {
     // Rollback transaction on error
-    await session.abortTransaction();
+    if(session.inTransaction()){
+      await session.abortTransaction();
+    }
     session.endSession();
     next(err);
   }
@@ -324,8 +328,8 @@ export const google = async (
 ) => {
   // Start a MongoDB session for transaction
   const session = await startSession();
-  session.startTransaction();
   try {
+    session.startTransaction();
     // Verify Google ID token from request
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
     // Check if ID token is provided
@@ -602,7 +606,9 @@ export const google = async (
     }
   } catch (err) {
     // Rollback transaction on error
-    await session.abortTransaction();
+    if(session.inTransaction()){
+      await session.abortTransaction();
+    }
     session.endSession();
     next(err);
   }

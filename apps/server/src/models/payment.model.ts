@@ -99,7 +99,6 @@ const paymentSchema: Schema<Payment> = new Schema(
     paymentGateway: {
       type: String,
       enum: ["Razorpay"],
-      default: "Cash",
       immutable(doc) {
         return doc.method === "paid" || doc.method === "failed";
       },

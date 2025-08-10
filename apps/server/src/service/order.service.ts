@@ -3,6 +3,9 @@ import { ApiError } from "../utils/ApiError.js";
 import type { Restaurant as RestaurantType } from "../models/restaurant.models.js";
 
 export const canRestaurantRecieveOrders = async (restaurant: RestaurantType) => {
+const isDevelopment = process.env?.NODE_ENV === "development";
+if (isDevelopment) return;
+
 const subscription = await Subscription.findOne({
   userId: restaurant.ownerId,
 });

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { CreditCard, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@repo/ui/components/button";
@@ -14,15 +14,23 @@ import {
 } from "@repo/ui/components/card";
 import { useCart } from "@/hooks/useCart";
 import { cn } from "@repo/ui/lib/utils";
+import { Textarea } from "@repo/ui/components/textarea";
+import { toast } from "sonner";
+import axios from "@/utils/axiosInstance";
+import { AxiosError } from "axios";
+import { ApiResponse } from "@repo/ui/types/ApiResponse";
 
 const CheckoutClientPage = () => {
   const { slug: restaurantSlug } = useParams<{ slug: string }>();
+  const searchParams = useSearchParams();
+  const tableId = searchParams.get("tableId");
   const { cartItems, syncCart, removeItem, editItem } = useCart(restaurantSlug);
   const [taxDetails, setTaxDetails] = useState<{
     isTaxIncludedInPrice: boolean;
     taxLabel: string;
     taxRate: number;
   }>();
+  const [notes, setNotes] = useState<string>("");
 
   useEffect(() => {
     if (restaurantSlug) {
@@ -54,11 +62,40 @@ const CheckoutClientPage = () => {
       ? restaurantCartItemSubtotal * taxDetails.taxRate
       : 0);
 
+  const confirmOrder = async () => {
+    const toastId = toast.loading("Placing order...");
+    try {
+      const response = await axios.post(`/order/${restaurantSlug}/${tableId}`, {
+        foodItems: cartItems.map((item) => ({
+          _id: item.foodId,
+          quantity: item.quantity,
+          variantName: item.variantName || undefined,
+        })),
+        notes: notes,
+        paymentMethod: "cash",
+      });
+      toast.success(response.data.message || "Order placed successfully!", {
+        id: toastId,
+      });
+      // router.back();
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      console.error(axiosError.response?.data.message || axiosError.message);
+      toast.error(
+        axiosError.response?.data.message ||
+          "Failed to place order. Please try again.",
+        {
+          id: toastId,
+        }
+      );
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="mb-6">
         <Link
-          href={`/${restaurantSlug}/menu`}
+          href={`/${restaurantSlug}/menu?tableId=${tableId}`}
           className="text-primary hover:text-primary/80 mb-4 inline-block"
         >
           ← Back to Menu
@@ -74,7 +111,7 @@ const CheckoutClientPage = () => {
               <p className="text-muted-foreground mb-6">
                 Add some delicious items from {restaurantSlug}&apos;s menu
               </p>
-              <Link href={`/${restaurantSlug}/menu`}>
+              <Link href={`/${restaurantSlug}/menu?tableId=${tableId}`}>
                 <Button className="bg-primary hover:bg-primary/90">
                   Browse Menu
                 </Button>
@@ -230,6 +267,13 @@ const CheckoutClientPage = () => {
             </CardContent>
           </Card>
 
+          <Textarea
+            className="my-4 border rounded-md bg-muted resize-none text-wrap whitespace-pre-wrap min-h-11 max-h-40"
+            placeholder="Add special instructions..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+
           <Card className="mb-28 gap-4">
             <CardHeader>
               <CardTitle>Bill Summary</CardTitle>
@@ -268,9 +312,16 @@ const CheckoutClientPage = () => {
           </Card>
 
           <div className="flex flex-col gap-2 fixed bottom-0 left-0 right-0 p-4 border-t backdrop-blur-lg bg-background/40 max-w-2xl mx-auto">
-            <Button className="w-full transition-colors">
+            <Button
+              className="w-full transition-colors"
+              disabled={
+                cartItems.length === 0 ||
+                cartItems.some((item) => item.isAvailable === false)
+              }
+              onClick={confirmOrder}
+            >
               <CreditCard className="w-4 h-4 mr-2" />
-              Proceed to Checkout
+              Confirm Order
             </Button>
             <Link href={`/${restaurantSlug}/menu`}>
               <Button variant="outline" className="w-full">
