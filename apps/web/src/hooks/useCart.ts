@@ -5,6 +5,7 @@ import {
   addCartItemToBackend,
   removeCartItemFromBackend,
   editCartItemInBackend,
+  clearCartFromBackend
 } from "@/store/cartThunks";
 import type { CartItem } from "@/store/cartSlice";
 import { useMemo } from "react";
@@ -22,6 +23,7 @@ export function useCart(restaurantSlug: string) {
   const removeItem = (item: CartItem) =>
     dispatch(removeCartItemFromBackend(item));
   const editItem = (item: CartItem) => dispatch(editCartItemInBackend(item));
+  const clearCart = () => dispatch(clearCartFromBackend(restaurantSlug));
 
   return {
     cartItems,
@@ -29,5 +31,6 @@ export function useCart(restaurantSlug: string) {
     addItem,
     removeItem,
     editItem,
+    clearCart,
   };
 }

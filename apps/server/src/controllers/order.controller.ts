@@ -101,13 +101,13 @@ export const createOrder = asyncHandler(async (req, res, next) => {
             )[0].price
           : isFoodItemValid.price,
         finalPrice: foodItem.variantName
-          ? isFoodItemValid.variants.filter(
+          ? (isFoodItemValid.variants.filter(
               (variant) => variant.variantName === foodItem.variantName
             )[0].discountedPrice ??
             isFoodItemValid.variants.filter(
               (variant) => variant.variantName === foodItem.variantName
-            )[0].price
-          : isFoodItemValid.discountedPrice ?? isFoodItemValid.price,
+            )[0].price)
+          : (isFoodItemValid.discountedPrice ?? isFoodItemValid.price),
       });
     }
 
@@ -174,12 +174,12 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       ],
       { session }
     );
-    
+
     // Update the table to mark it as occupied and link the current order
     table.isOccupied = true;
     table.currentOrderId = order[0]._id as Types.ObjectId; // Link the current order to the table
     await table.save({ validateBeforeSave: false, session });
-    
+
     // If the payment method is online, we can initiate the payment process here
     if (paymentMethod === "online") {
       const payment = await Payment.create(
@@ -234,10 +234,16 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       session.endSession();
       res
         .status(201)
-        .json(new ApiResponse(201, { order: order[0] }, "Order created successfully"));
+        .json(
+          new ApiResponse(
+            201,
+            { order: order[0] },
+            "Order created successfully"
+          )
+        );
     }
   } catch (error) {
-    if(session.inTransaction()){
+    if (session.inTransaction()) {
       await session.abortTransaction();
     }
     session.endSession();
@@ -416,6 +422,107 @@ export const getOrderById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, order[0], "Order retrieved successfully"));
 });
 
+export const getOrdersByIds = asyncHandler(async (req, res) => {
+  if (!req.query) {
+    throw new ApiError(400, "Query parameters are required");
+  }
+
+  const { restaurantSlug, orderIds } = req.query;
+
+  if (!restaurantSlug || !orderIds) {
+    throw new ApiError(400, "restaurantSlug and orderIds are required");
+  }
+
+  if (req.query.limit && isNaN(Number(req.query.limit))) {
+    throw new ApiError(400, "Invalid limit parameter");
+  }
+
+  if (
+    req.query.limit &&
+    (Number(req.query.limit) <= 0 || Number(req.query.limit) > 20)
+  ) {
+    throw new ApiError(400, "Limit must be between 1 and 20");
+  }
+
+  // orderIds can be a comma-separated string or an array
+  const idsArray = Array.isArray(orderIds)
+    ? orderIds
+    : typeof orderIds === "string"
+      ? orderIds
+          .split(",")
+          .slice(0, Number(req.query.limit) || 10)
+          .map((id: string) => id.trim())
+      : [];
+
+  // Validate ObjectIds
+  const validIds = idsArray
+    .filter((id): id is string => typeof id === "string")
+    .filter((id) => isValidObjectId(id));
+
+  if (validIds.length === 0 || validIds.length !== idsArray.length) {
+    throw new ApiError(400, "Invalid order IDs provided");
+  }
+
+  const restaurant = await Restaurant.findOne({ slug: restaurantSlug });
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found");
+  }
+
+  // Query orders by _id and restaurantId
+  const orders = await Order.aggregate([
+    {
+      $match: {
+        _id: { $in: validIds.map((id) => new Types.ObjectId(id)) },
+        restaurantId: restaurant._id,
+      },
+    },
+    { $unwind: { path: "$foodItems" } },
+    {
+      $lookup: {
+        from: "fooditems",
+        localField: "foodItems.foodItemId",
+        foreignField: "_id",
+        as: "foodItemDetails",
+        pipeline: [{ $project: { _id: 1, foodName: 1, foodType: 1 } }],
+      },
+    },
+    { $unwind: { path: "$foodItemDetails" } },
+    {
+      $group: {
+        _id: "$_id",
+        restaurantId: { $first: "$restaurantId" },
+        status: { $first: "$status" },
+        totalAmount: { $first: "$totalAmount" },
+        isPaid: { $first: "$isPaid" },
+        externalPlatform: { $first: "$externalPlatform" },
+        createdAt: { $first: "$createdAt" },
+        orderedFoodItems: {
+          $push: {
+            foodItemId: "$foodItems.foodItemId",
+            variantName: "$foodItems.variantName",
+            foodName: "$foodItemDetails.foodName",
+            foodType: "$foodItemDetails.foodType",
+            quantity: "$foodItems.quantity",
+            finalPrice: "$foodItems.finalPrice",
+            isVariantOrder: {
+              $cond: [
+                { $ne: [{ $ifNull: ["$foodItems.variantName", ""] }, ""] },
+                true,
+                false,
+              ],
+            },
+          },
+        },
+      },
+    },
+    { $sort: { createdAt: -1 } },
+  ]);
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, orders, "Orders retrieved successfully"));
+});
+
 export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
   if (!req.params.restaurantSlug) {
     throw new ApiError(400, "Restaurant slug is required");
@@ -481,28 +588,32 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
 
   const decodedSearch = decodeURIComponent(search as string).trim();
 
-  const searchMatch =
-    decodedSearch
-      ? {
-          $or: [
-            { "table.tableName": { $regex: decodedSearch, $options: "i" } },
-            { "table.qrSlug": { $regex: decodedSearch, $options: "i" } },
-            { customerName: { $regex: decodedSearch, $options: "i" } },
-            { customerPhone: { $regex: decodedSearch, $options: "i" } },
-            { notes: { $regex: decodedSearch, $options: "i" } },
-            { "foodItemDetails.foodName": { $regex: decodedSearch, $options: "i" } },
-            { "foodItems.variantName": { $regex: decodedSearch, $options: "i" } },
-          ],
-        }
-      : {};
+  const searchMatch = decodedSearch
+    ? {
+        $or: [
+          { "table.tableName": { $regex: decodedSearch, $options: "i" } },
+          { "table.qrSlug": { $regex: decodedSearch, $options: "i" } },
+          { customerName: { $regex: decodedSearch, $options: "i" } },
+          { customerPhone: { $regex: decodedSearch, $options: "i" } },
+          { notes: { $regex: decodedSearch, $options: "i" } },
+          {
+            "foodItemDetails.foodName": {
+              $regex: decodedSearch,
+              $options: "i",
+            },
+          },
+          { "foodItems.variantName": { $regex: decodedSearch, $options: "i" } },
+        ],
+      }
+    : {};
 
-const sortStage: Record<string, 1 | -1> = {
-  statusOrder: 1,
-  _id: 1,
-};
-if (sortBy) {
-  sortStage[sortBy.toString()] = sortType === "asc" ? 1 : -1;
-}
+  const sortStage: Record<string, 1 | -1> = {
+    statusOrder: 1,
+    _id: 1,
+  };
+  if (sortBy) {
+    sortStage[sortBy.toString()] = sortType === "asc" ? 1 : -1;
+  }
 
   // Main aggregation pipeline for fetching orders
   const aggregationPipeline = [
@@ -513,9 +624,7 @@ if (sortBy) {
         localField: "tableId",
         foreignField: "_id",
         as: "table",
-        pipeline: [
-          { $project: { _id: 1, tableName: 1, qrSlug: 1 } },
-        ],
+        pipeline: [{ $project: { _id: 1, tableName: 1, qrSlug: 1 } }],
       },
     },
     { $unwind: { path: "$table" } },
@@ -526,9 +635,7 @@ if (sortBy) {
         localField: "foodItems.foodItemId",
         foreignField: "_id",
         as: "foodItemDetails",
-        pipeline: [
-          { $project: { _id: 1, foodName: 1, foodType: 1 } },
-        ],
+        pipeline: [{ $project: { _id: 1, foodName: 1, foodType: 1 } }],
       },
     },
     { $unwind: { path: "$foodItemDetails" } },
@@ -585,7 +692,9 @@ if (sortBy) {
   ];
 
   // Count pipeline (up to $group, then count)
-  const groupIndex = aggregationPipeline.findIndex(stage => !!(stage as any).$group);
+  const groupIndex = aggregationPipeline.findIndex(
+    (stage) => !!(stage as any).$group
+  );
   const countPipeline = [
     ...aggregationPipeline.slice(0, groupIndex),
     ...(decodedSearch ? [{ $match: searchMatch }] : []),
@@ -1073,7 +1182,7 @@ export const updateOrder = asyncHandler(async (req, res, next) => {
       .status(200)
       .json(new ApiResponse(200, order, "Order updated successfully"));
   } catch (error) {
-    if(session.inTransaction()){
+    if (session.inTransaction()) {
       await session.abortTransaction();
     }
     session.endSession();

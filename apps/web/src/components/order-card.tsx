@@ -263,7 +263,7 @@ const OrderCard = ({
               <TableRow>
                 <TableHead className="text-left">Items</TableHead>
                 <TableHead className="text-center">Qty</TableHead>
-                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

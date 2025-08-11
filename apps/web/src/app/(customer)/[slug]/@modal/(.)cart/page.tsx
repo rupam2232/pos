@@ -8,7 +8,7 @@ import {
   DrawerTrigger,
 } from "@repo/ui/components/drawer";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { CreditCard, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@repo/ui/components/button";
 import { IconSalad } from "@tabler/icons-react";
@@ -22,6 +22,9 @@ import axios from "@/utils/axiosInstance";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { addOrder } from "@/store/orderHistorySlice";
 
 const CheckoutModalPage = () => {
   const router = useRouter();
@@ -29,13 +32,15 @@ const CheckoutModalPage = () => {
   const searchParams = useSearchParams();
   const tableId = searchParams.get("tableId");
   const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
-  const { syncCart, cartItems, removeItem, editItem } = useCart(restaurantSlug);
+  const { syncCart, cartItems, removeItem, editItem, clearCart } =
+    useCart(restaurantSlug);
   const [taxDetails, setTaxDetails] = useState<{
     isTaxIncludedInPrice: boolean;
     taxLabel: string;
     taxRate: number;
   }>();
   const [notes, setNotes] = useState<string>("");
+  const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     if (restaurantSlug) {
@@ -95,18 +100,30 @@ const CheckoutModalPage = () => {
           variantName: item.variantName || undefined,
         })),
         notes: notes,
-        paymentMethod: "cash"
+        paymentMethod: "cash",
       });
       toast.success(response.data.message || "Order placed successfully!", {
-        id: toastId
+        id: toastId,
       });
-      // router.back();
+      dispatch(
+        addOrder({
+          restaurantSlug: restaurantSlug,
+          orderId: response.data.data.order._id,
+        })
+      );
+      clearCart();
+      router.replace(`/${restaurantSlug}/my-orders`);
+      setDrawerOpen(false);
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       console.error(axiosError.response?.data.message || axiosError.message);
-      toast.error(axiosError.response?.data.message || "Failed to place order. Please try again.", {
-        id: toastId
-      });
+      toast.error(
+        axiosError.response?.data.message ||
+          "Failed to place order. Please try again.",
+        {
+          id: toastId,
+        }
+      );
     }
   };
 
@@ -120,7 +137,7 @@ const CheckoutModalPage = () => {
         }
       }}
     >
-      <DrawerTrigger>Cart</DrawerTrigger>
+      <DrawerTrigger className="hidden">Cart</DrawerTrigger>
       <DrawerContent className="w-full h-full data-[vaul-drawer-direction=bottom]:max-h-[85vh]">
         <div className="w-full md:mx-auto md:w-2xl lg:w-3xl h-full">
           <DrawerTitle className="px-6 pb-2 border-b text-lg">Cart</DrawerTitle>
@@ -331,7 +348,6 @@ const CheckoutModalPage = () => {
                         }
                         onClick={confirmOrder}
                       >
-                        <CreditCard className="w-4 h-4 mr-2" />
                         Confirm Order
                       </Button>
 

@@ -166,13 +166,13 @@ const MenuClientPage = () => {
   }, [slug, fetchTableDetails]);
 
   useEffect(() => {
-    if (tableDetails) {
+    if (tableDetails && tableDetails.isOccupied === false) {
       fetchFoodItems();
     }
   }, [fetchFoodItems, tableDetails]);
 
   useEffect(() => {
-    if (tableDetails) {
+    if (tableDetails && tableDetails.isOccupied === false) {
       fetchRestaurantCategories();
     }
   }, [fetchRestaurantCategories, tableDetails]);
@@ -230,7 +230,7 @@ const MenuClientPage = () => {
   if (tableDetails.isOccupied) {
     return (
       <div className="p-4 text-center text-balance">
-        Table is currently occupied. Please try again later. Or contact
+        This table is currently occupied. Please try again later. Or contact
         restaurant staff for assistance.
       </div>
     );

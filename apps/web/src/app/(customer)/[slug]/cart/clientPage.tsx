@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-import { CreditCard, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@repo/ui/components/button";
 import { IconSalad } from "@tabler/icons-react";
@@ -19,18 +19,23 @@ import { toast } from "sonner";
 import axios from "@/utils/axiosInstance";
 import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/store/store";
+import { addOrder } from "@/store/orderHistorySlice";
 
 const CheckoutClientPage = () => {
   const { slug: restaurantSlug } = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
   const tableId = searchParams.get("tableId");
-  const { cartItems, syncCart, removeItem, editItem } = useCart(restaurantSlug);
+  const { cartItems, syncCart, removeItem, editItem, clearCart } = useCart(restaurantSlug);
   const [taxDetails, setTaxDetails] = useState<{
     isTaxIncludedInPrice: boolean;
     taxLabel: string;
     taxRate: number;
   }>();
   const [notes, setNotes] = useState<string>("");
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
   useEffect(() => {
     if (restaurantSlug) {
@@ -77,7 +82,14 @@ const CheckoutClientPage = () => {
       toast.success(response.data.message || "Order placed successfully!", {
         id: toastId,
       });
-      // router.back();
+      dispatch(
+        addOrder({
+          restaurantSlug: restaurantSlug,
+          orderId: response.data.data.order._id,
+        })
+      );
+      clearCart();
+      router.replace(`/${restaurantSlug}/my-orders`);
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       console.error(axiosError.response?.data.message || axiosError.message);
@@ -320,7 +332,6 @@ const CheckoutClientPage = () => {
               }
               onClick={confirmOrder}
             >
-              <CreditCard className="w-4 h-4 mr-2" />
               Confirm Order
             </Button>
             <Link href={`/${restaurantSlug}/menu`}>

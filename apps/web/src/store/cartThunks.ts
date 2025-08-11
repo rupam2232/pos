@@ -5,6 +5,7 @@ import {
   addToCart,
   removeFromCart,
   editCartItem,
+  clearCart
 } from "./cartSlice";
 import type { CartItem } from "./cartSlice";
 import { toast } from "sonner";
@@ -90,6 +91,22 @@ export const editCartItemInBackend = createAsyncThunk(
             )?.quantity || item.quantity,
           variantName,
         }) // Revert to original quantity
+      );
+    }
+  }
+);
+
+export const clearCartFromBackend = createAsyncThunk(
+  "cart/clearCart",
+  async (restaurantSlug: string, { dispatch }) => {
+    try {
+      await axios.delete(`/cart/${restaurantSlug}`);
+      dispatch(clearCart());
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      console.error("Error clearing cart:", axiosError.response?.data);
+      toast.error(
+        axiosError.response?.data.message || "Failed to clear cart"
       );
     }
   }
