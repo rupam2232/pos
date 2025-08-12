@@ -10,16 +10,22 @@ let io: Server | null = null;
 export function setupSocketIO(server: http.Server) {
   io = new Server(server, {
     cors: {
-      origin:
-        process.env.CORS_ORIGIN?.split(",").map((origin) => origin.trim()) ||
-        "*", // Allow all origins if not specified
+      origin: process.env.CORS_ORIGIN?.split(",").map((origin) =>
+        origin.trim()
+      ), // Allow all origins if not specified
       methods: ["GET", "POST"],
       credentials: true, // Allow cookies and credentials in CORS requests
     },
   });
 
   io.on("connection", (socket) => {
+    console.log("Socket.IO connection handler attached");
     console.log("A user connected:", socket.id);
+    // console.log(socket.handshake.headers.cookie?.split(";").map((cookie) => cookie.trim()));
+    const cookies = socket.handshake.headers.cookie?.split(";").map((cookie) => cookie.trim());
+    const accessToken = cookies?.find((cookie) => cookie.startsWith("accessToken="))?.split("=")[1];
+    const activeRestaurantId = cookies?.find((cookie) => cookie.startsWith("activeRestaurantId="))?.split("=")[1];
+    console.log(accessToken)
 
     socket.on("authenticate", async (accessToken, activeRestaurantId) => {
       try {
@@ -79,6 +85,10 @@ export function setupSocketIO(server: http.Server) {
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
     });
+  });
+
+  io.on("error", (err) => {
+    console.error("Socket.IO server error:", err);
   });
 
   return io;

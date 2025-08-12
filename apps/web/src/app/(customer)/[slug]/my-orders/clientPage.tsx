@@ -12,7 +12,7 @@ import { Order } from "@repo/ui/types/Order";
 // import OrderCard from "@/components/order-card";
 import { Card, CardContent, CardHeader } from "@repo/ui/components/card";
 import { Loader2 } from "lucide-react";
-import { Badge } from "@repo/ui/components/badge";
+// import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 
 const MyOrdersClientPage = () => {
