@@ -93,7 +93,7 @@ const MyOrdersClientPage = () => {
             <span>•</span>
             <span className={order.isPaid ? "text-green-600" : "text-red-600"}>{order.isPaid ? "Paid" : "Unpaid"}</span>
           </div>
-          <div className="text-lg font-semibold text-foreground">₹{(order.totalAmount / 100).toFixed(2)}</div>
+          <div className="text-lg font-semibold text-foreground">₹{(order.totalAmount).toFixed(2)}</div>
         </div>
 
         <div className="flex items-center justify-between">

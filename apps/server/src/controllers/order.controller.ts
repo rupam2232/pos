@@ -10,6 +10,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { razorpay } from "../utils/razorpay.js";
 import { Payment } from "../models/payment.model.js";
 import { startSession } from "mongoose";
+import { io } from "../socket/index.js";
 
 export const createOrder = asyncHandler(async (req, res, next) => {
   const session = await startSession();
@@ -219,6 +220,8 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       await order[0].save({ session });
       await session.commitTransaction();
       session.endSession();
+      io?.to(`restaurant_${restaurant._id}_staff`).emit("newOrder", {order: order[0], message: "A new order has been placed"});
+      io?.to(`restaurant_${restaurant._id}_owner`).emit("newOrder", {order: order[0], message: "A new order has been placed"});
       res
         .status(201)
         .json(
@@ -232,6 +235,8 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       // For cash payments
       await session.commitTransaction();
       session.endSession();
+      io?.to(`restaurant_${restaurant._id}_staff`).emit("newOrder", {order: order[0], message: "A new order has been placed"});
+      io?.to(`restaurant_${restaurant._id}_owner`).emit("newOrder", {order: order[0], message: "A new order has been placed"});
       res
         .status(201)
         .json(
@@ -607,13 +612,13 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
       }
     : {};
 
-  const sortStage: Record<string, 1 | -1> = {
-    statusOrder: 1,
-    _id: 1,
-  };
+  const sortStage: Record<string, 1 | -1> = {};
   if (sortBy) {
     sortStage[sortBy.toString()] = sortType === "asc" ? 1 : -1;
   }
+
+  sortStage.statusOrder = 1;
+  sortStage._id = 1;
 
   // Main aggregation pipeline for fetching orders
   const aggregationPipeline = [

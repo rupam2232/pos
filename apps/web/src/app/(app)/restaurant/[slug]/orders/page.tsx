@@ -23,6 +23,7 @@ import { Search, X } from "lucide-react";
 import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
+import { useSocket } from "@/context/SocketContext";
 
 const Page = () => {
   const params = useParams<{ slug: string }>();
@@ -41,6 +42,7 @@ const Page = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchInput, setSearchInput] = useState<string>("");
   const debounced = useDebounceCallback(setSearchInput, 300);
+    const socket = useSocket();
 
   const fetchOrders = useCallback(async () => {
     if (!slug) {
@@ -165,6 +167,19 @@ const Page = () => {
     },
     [allOrders, currentPage, tabName, isPageChanging]
   );
+
+  useEffect(() => {
+    socket?.on("newOrder", (data) => {
+      console.log("New order received:", data);
+      fetchOrders();
+    });
+
+    return () => {
+      socket?.off("newOrder");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket]);
+
 
   useEffect(() => {
     fetchOrders();

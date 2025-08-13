@@ -12,23 +12,27 @@ export function setupSocketIO(server: http.Server) {
     cors: {
       origin: process.env.CORS_ORIGIN?.split(",").map((origin) =>
         origin.trim()
-      ), // Allow all origins if not specified
+      ),
       methods: ["GET", "POST"],
       credentials: true, // Allow cookies and credentials in CORS requests
     },
   });
 
   io.on("connection", (socket) => {
-    console.log("Socket.IO connection handler attached");
     console.log("A user connected:", socket.id);
-    // console.log(socket.handshake.headers.cookie?.split(";").map((cookie) => cookie.trim()));
-    const cookies = socket.handshake.headers.cookie?.split(";").map((cookie) => cookie.trim());
-    const accessToken = cookies?.find((cookie) => cookie.startsWith("accessToken="))?.split("=")[1];
-    const activeRestaurantId = cookies?.find((cookie) => cookie.startsWith("activeRestaurantId="))?.split("=")[1];
-    console.log(accessToken)
+    const cookies = socket.handshake.headers.cookie
+      ?.split(";")
+      .map((cookie) => cookie.trim());
+    const accessToken = cookies
+      ?.find((cookie) => cookie.startsWith("accessToken="))
+      ?.split("=")[1];
+    socket.data.accessToken = accessToken;
 
-    socket.on("authenticate", async (accessToken, activeRestaurantId) => {
+    socket.on("authenticate", async (activeRestaurantId) => {
       try {
+        if (!accessToken) {
+          return socket.disconnect();
+        }
         const decoded = jwt.verify(
           accessToken,
           process.env.ACCESS_TOKEN_SECRET as string
