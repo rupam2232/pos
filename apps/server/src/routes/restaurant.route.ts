@@ -13,6 +13,7 @@ import {
   updateRestaurantDetails,
   updateRestaurantLogo,
   getRestaurantCategories,
+  getStaffDashboardStats,
 } from "../controllers/restaurant.controller.js";
 import { rateLimit } from "express-rate-limit";
 import { ApiError } from "../utils/ApiError.js";
@@ -70,6 +71,8 @@ router
   .patch(verifyAuth, removeRestaurantCategories);
 
 router.post("/:slug/tax", verifyAuth, setRestaurantTax);
+
+router.get("/:slug/staff-dashboard-stats", verifyAuth, getStaffDashboardStats);
 
 router.get("/:slug/is-unique-slug", verifyAuth, checkUniqueRestaurantSlug);
 

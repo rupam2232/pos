@@ -12,6 +12,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { restaurantCreatedTemplate } from "../utils/emailTemplates.js";
 import sendEmail from "../utils/sendEmail.js";
+import { Order } from "../models/order.model.js";
+import { Table } from "../models/table.model.js";
 const isProduction = process.env?.NODE_ENV === "production";
 
 export const createRestaurant = asyncHandler(async (req, res) => {
@@ -131,7 +133,9 @@ export const getRestaurantBySlug = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Restaurant slug is required.");
   }
 
-  const restaurant = await Restaurant.findOne({ slug }).select("-staffIds -ownerId -__v -updatedAt");
+  const restaurant = await Restaurant.findOne({ slug }).select(
+    "-staffIds -ownerId -__v -updatedAt"
+  );
   if (!restaurant) {
     throw new ApiError(404, "Restaurant not found.");
   }
@@ -481,4 +485,145 @@ export const updateRestaurantLogo = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(200, restaurant, "Restaurant logo updated successfully")
     );
+});
+
+export const getStaffDashboardStats = asyncHandler(async (req, res) => {
+  if (!req.params || !req.params.slug) {
+    throw new ApiError(400, "Restaurant slug is required");
+  }
+  const { slug } = req.params;
+
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  const yesterdayStart = new Date();
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  yesterdayStart.setHours(0, 0, 0, 0);
+  const yesterdayEnd = new Date();
+  yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+  yesterdayEnd.setHours(23, 59, 59, 999);
+
+  const restaurant = await Restaurant.findOne({ slug });
+
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found");
+  }
+
+  if (req.user!.role === "owner") {
+    if (restaurant.ownerId.toString() !== req.user!.id) {
+      throw new ApiError(403, "You can't access this data");
+    }
+  } else if (req.user!.role === "staff") {
+    if (!restaurant.staffIds || restaurant.staffIds.length === 0) {
+      throw new ApiError(403, "You can't access this data");
+    } else if (
+      !restaurant.staffIds.map((id) => id.toString()).includes(req.user!.id)
+    ) {
+      throw new ApiError(403, "You can't access this data");
+    }
+  }
+
+  const [
+    newOrders,
+    inProgressOrders,
+    tableStats,
+    todayTotalOrders,
+    yesterdayTotalOrdersAgg,
+  ] = await Promise.all([
+    Order.countDocuments({
+      restaurantId: restaurant._id,
+      status: "pending",
+      createdAt: { $gte: start, $lte: end },
+    }),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          status: "preparing",
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+        },
+      },
+    ]),
+    Table.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          occupiedTableCount: {
+            $sum: { $cond: [{ $eq: ["$isOccupied", true] }, 1, 0] },
+          },
+          freeTableCount: {
+            $sum: { $cond: [{ $eq: ["$isOccupied", false] }, 1, 0] },
+          },
+        },
+      },
+    ]),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+        },
+      },
+    ]),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          createdAt: { $gte: yesterdayStart, $lte: yesterdayEnd },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+        },
+      },
+    ]),
+  ]);
+
+  const todayTotal = todayTotalOrders[0]?.total || 0;
+  const yesterdayTotal = yesterdayTotalOrdersAgg[0]?.total || 0;
+
+  let totalOrderChangePercent = null;
+  if (yesterdayTotal === 0 && todayTotal > 0) {
+    totalOrderChangePercent = 100;
+  } else if (yesterdayTotal === 0 && todayTotal === 0) {
+    totalOrderChangePercent = 0;
+  } else {
+    totalOrderChangePercent = ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
+  }
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        newOrders,
+        inProgressOrders: inProgressOrders[0]?.total || 0,
+        occupiedTables: tableStats[0]?.occupiedTableCount || 0,
+        freeTables: tableStats[0]?.freeTableCount || 0,
+        todayTotalOrders: todayTotal,
+        totalOrderChangePercent,
+      },
+      "Dashboard stats retrieved successfully"
+    )
+  );
 });

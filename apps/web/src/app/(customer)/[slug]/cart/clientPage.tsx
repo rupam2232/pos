@@ -108,7 +108,7 @@ const CheckoutClientPage = () => {
       <div className="mb-6">
         <Link
           href={`/${restaurantSlug}/menu?tableId=${tableId}`}
-          className="text-primary hover:text-primary/80 mb-4 inline-block"
+          className="hover:text-foreground/80 mb-4 inline-block"
         >
           ← Back to Menu
         </Link>

@@ -325,7 +325,7 @@ const CreateRestaurantDialog = ({
                             </Avatar>
                             <Button
                               type="button"
-                              className="bg-black/50 text-primary/50 group-hover:text-primary hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
+                              className="bg-black/50 text-foreground/50 group-hover:text-foreground hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
                               onClick={handleImageRemove}
                               aria-label="Remove Logo"
                             >
@@ -354,7 +354,7 @@ const CreateRestaurantDialog = ({
                     <input {...getInputProps()} name="logoUrl" />
                     <Button
                       type="button"
-                      className="bg-transparent hover:bg-transparent text-primary/50 group-hover:text-primary"
+                      className="bg-transparent hover:bg-transparent text-foreground/50 group-hover:text-foreground shadow-none"
                     >
                       <ImagePlusIcon />
                       Select Logo

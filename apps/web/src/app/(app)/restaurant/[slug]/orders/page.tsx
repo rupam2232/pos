@@ -238,7 +238,7 @@ const Page = () => {
             </TabsList>
             <div className="flex items-center mr-1">
               <div
-                className="flex items-center gap-2 *:flex flex-wrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent"
+                className="flex items-center gap-2 *:flex flex-wrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent"
                 onClick={() => {
                   if (searchInputRef.current) {
                     searchInputRef.current.focus();
@@ -247,8 +247,8 @@ const Page = () => {
               >
                 <Search className="size-4 shrink-0 opacity-50" />
                 <Input
-                  className="w-60 placeholder:text-muted-foreground flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
-                  placeholder="Search orders by id, table name, food item name..."
+                  className="w-60 placeholder:text-muted-foreground placeholder:truncate flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
+                  placeholder="Search orders by ID, table name, food item name..."
                   type="search"
                   onChange={(e) => {
                     debounced(e.target.value);

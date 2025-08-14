@@ -220,8 +220,14 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       await order[0].save({ session });
       await session.commitTransaction();
       session.endSession();
-      io?.to(`restaurant_${restaurant._id}_staff`).emit("newOrder", {order: order[0], message: "A new order has been placed"});
-      io?.to(`restaurant_${restaurant._id}_owner`).emit("newOrder", {order: order[0], message: "A new order has been placed"});
+      io?.to(`restaurant_${restaurant._id}_staff`).emit("newOrder", {
+        order: order[0],
+        message: "A new order has been placed",
+      });
+      io?.to(`restaurant_${restaurant._id}_owner`).emit("newOrder", {
+        order: order[0],
+        message: "A new order has been placed",
+      });
       res
         .status(201)
         .json(
@@ -235,8 +241,14 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       // For cash payments
       await session.commitTransaction();
       session.endSession();
-      io?.to(`restaurant_${restaurant._id}_staff`).emit("newOrder", {order: order[0], message: "A new order has been placed"});
-      io?.to(`restaurant_${restaurant._id}_owner`).emit("newOrder", {order: order[0], message: "A new order has been placed"});
+      io?.to(`restaurant_${restaurant._id}_staff`).emit("newOrder", {
+        order: order[0],
+        message: "A new order has been placed",
+      });
+      io?.to(`restaurant_${restaurant._id}_owner`).emit("newOrder", {
+        order: order[0],
+        message: "A new order has been placed",
+      });
       res
         .status(201)
         .json(
@@ -590,6 +602,46 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
           : {}
       : {}),
   };
+
+  let fromDate: Date | undefined;
+  let toDate: Date | undefined;
+
+if (req.query.date === "today") {
+  fromDate = new Date();
+  fromDate.setHours(0, 0, 0, 0);
+  toDate = new Date();
+  toDate.setHours(23, 59, 59, 999);
+} else if (req.query.date === "yesterday") {
+  fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - 1);
+  fromDate.setHours(0, 0, 0, 0);
+  toDate = new Date();
+  toDate.setDate(toDate.getDate() - 1);
+  toDate.setHours(23, 59, 59, 999);
+} else if (req.query.date && typeof req.query.date === "string") {
+  // If a specific date is provided (e.g. 2025-08-15)
+  fromDate = new Date(req.query.date);
+  fromDate.setHours(0, 0, 0, 0);
+  toDate = new Date(req.query.date);
+  toDate.setHours(23, 59, 59, 999);
+} else {
+  // Standard from/to logic
+  if (req.query.from) {
+    fromDate = new Date(req.query.from as string);
+    fromDate.setHours(0, 0, 0, 0);
+  }
+  if (req.query.to) {
+    toDate = new Date(req.query.to as string);
+    toDate.setHours(23, 59, 59, 999);
+  }
+}
+
+  // Only add createdAt filter if at least one date is provided
+  if (fromDate || toDate) {
+    baseMatch.createdAt = {};
+    if (fromDate) baseMatch.createdAt.$gte = fromDate;
+    if (toDate) baseMatch.createdAt.$lte = toDate;
+  }
 
   const decodedSearch = decodeURIComponent(search as string).trim();
 

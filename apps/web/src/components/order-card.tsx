@@ -40,7 +40,7 @@ import { useState } from "react";
 const OrderCard = ({
   order,
   restaurantSlug,
-  ref
+  ref,
   // setOrders,
 }: {
   order: Order;
@@ -149,176 +149,185 @@ const OrderCard = ({
   };
 
   return (
-    <Card ref={ref} className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md">
-      <CardContent className="space-y-2">
-        <div className="flex items-center justify-between text-sm font-medium">
-          <span>Table: {order.table.tableName}</span>
+    <Card
+      ref={ref}
+      className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md"
+    >
+      <CardContent className="flex flex-col justify-between h-full">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm font-medium">
+            <span>Table: {order.table.tableName}</span>
 
-          <div className="relative">
-            {availableNextStatuses.length > 0 &&
-            availableNextStatuses[0]?.status !== "cancelled" ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge
-                        variant="default"
-                        className={`cursor-pointer ${
-                          orderStatusIcons.find(
-                            (icon) => icon.status === status
-                          )?.color || ""
-                        }`}
-                      >
-                        {orderStatusIcons.find((icon) => icon.status === status)
-                          ?.icon || "❓"}
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Click to Change Order Status
-                    </TooltipContent>
-                  </Tooltip>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {availableNextStatuses.map((status) => {
-                    return (
-                      <DropdownMenuItem
-                        key={status.status}
-                        className="cursor-pointer"
-                        onClick={() => {
-                          handleUpdateStatus(status.status);
-                        }}
-                      >
-                        {status.icon}{" "}
-                        {status.actionLabel ||
-                          status.status.charAt(0).toUpperCase() +
-                            status.status.slice(1)}
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Badge
-                variant="default"
-                className={`cursor-pointer ${
-                  orderStatusIcons.find((icon) => icon.status === status)
-                    ?.color || ""
-                }`}
-              >
-                {orderStatusIcons.find((icon) => icon.status === status)
-                  ?.icon || "❓"}
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Badge>
-            )}
-            <div className={`absolute ${status === "completed" ? "-bottom-7.5" : "-bottom-5"} right-0 text-[10px] flex items-center gap-1 text-muted-foreground w-max whitespace-pre-line`}>
-              <span
-                className={`${
-                  orderStatusIcons.find((icon) => icon.status === status)
-                    ?.color || ""
-                } w-1 h-1 rounded-full block`}
-              ></span>
-              {orderStatusIcons.find((icon) => icon.status === status)
-                ?.message || ""}
-            </div>
-          </div>
-        </div>
-        <p className="text-muted-foreground text-xs mt-0.5">
-          Order #{order._id}
-        </p>
-
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium">Payment Status</p>
-          <Badge
-            variant={order.isPaid ? "success" : "destructive"}
-            className="text-xs"
-          >
-            {order.isPaid ? "Paid" : "Unpaid"}
-          </Badge>
-        </div>
-
-        <div className="text-right text-xs text-muted-foreground flex items-center justify-between">
-          <p>
-            {new Date(order.createdAt).toLocaleDateString("en-US", {
-              weekday: "short",
-              year: "numeric",
-              month: "long",
-              day: "2-digit",
-            })}
-          </p>
-          <p>
-            {new Date(order.createdAt)
-              .toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              })
-              .toUpperCase()}
-          </p>
-        </div>
-
-        <div className="pt-2 text-sm space-y-1">
-          <Table>
-            <TableHeader className="border-t">
-              <TableRow>
-                <TableHead className="text-left">Items</TableHead>
-                <TableHead className="text-center">Qty</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {order.orderedFoodItems.map((item, index) => (
-                <TableRow
-                  key={item.foodItemId + index}
-                  className="text-primary/80"
-                >
-                  <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
+            <div className="relative">
+              {availableNextStatuses.length > 0 &&
+              availableNextStatuses[0]?.status !== "cancelled" ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <div
-                          className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
+                      <TooltipTrigger asChild>
+                        <Badge
+                          variant="default"
+                          className={`cursor-pointer ${
+                            orderStatusIcons.find(
+                              (icon) => icon.status === status
+                            )?.color || ""
+                          }`}
                         >
-                          <span
-                            className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                          ></span>
-                        </div>
+                          {orderStatusIcons.find(
+                            (icon) => icon.status === status
+                          )?.icon || "❓"}
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </Badge>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {item.foodType === "veg"
-                          ? "Veg"
-                          : item.foodType === "non-veg"
-                            ? "Non Veg"
-                            : "Vegan"}
+                        Click to Change Order Status
                       </TooltipContent>
                     </Tooltip>
-                    <span>
-                      {item.isVariantOrder ? item.variantName : item.foodName}
-                    </span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {availableNextStatuses.map((status) => {
+                      return (
+                        <DropdownMenuItem
+                          key={status.status}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            handleUpdateStatus(status.status);
+                          }}
+                        >
+                          {status.icon}{" "}
+                          {status.actionLabel ||
+                            status.status.charAt(0).toUpperCase() +
+                              status.status.slice(1)}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Badge
+                  variant="default"
+                  className={`cursor-pointer ${
+                    orderStatusIcons.find((icon) => icon.status === status)
+                      ?.color || ""
+                  }`}
+                >
+                  {orderStatusIcons.find((icon) => icon.status === status)
+                    ?.icon || "❓"}
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </Badge>
+              )}
+              <div
+                className={`absolute ${status === "completed" ? "-bottom-7.5" : "-bottom-5"} right-0 text-[10px] flex items-center gap-1 text-muted-foreground w-max whitespace-pre-line`}
+              >
+                <span
+                  className={`${
+                    orderStatusIcons.find((icon) => icon.status === status)
+                      ?.color || ""
+                  } w-1 h-1 rounded-full block`}
+                ></span>
+                {orderStatusIcons.find((icon) => icon.status === status)
+                  ?.message || ""}
+              </div>
+            </div>
+          </div>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            Order #{order._id}
+          </p>
+
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium">Payment Status</p>
+            <Badge
+              variant={order.isPaid ? "success" : "destructive"}
+              className="text-xs"
+            >
+              {order.isPaid ? "Paid" : "Unpaid"}
+            </Badge>
+          </div>
+
+          <div className="text-right text-xs text-muted-foreground flex items-center justify-between">
+            <p>
+              {new Date(order.createdAt).toLocaleDateString("en-US", {
+                weekday: "short",
+                year: "numeric",
+                month: "long",
+                day: "2-digit",
+              })}
+            </p>
+            <p>
+              {new Date(order.createdAt)
+                .toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })
+                .toUpperCase()}
+            </p>
+          </div>
+
+          <div className="pt-2 text-sm space-y-1">
+            <Table>
+              <TableHeader className="border-t">
+                <TableRow>
+                  <TableHead className="text-left">Items</TableHead>
+                  <TableHead className="text-center">Qty</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {order.orderedFoodItems.map((item, index) => (
+                  <TableRow
+                    key={item.foodItemId + index}
+                    className="text-foreground/80"
+                  >
+                    <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div
+                            className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
+                          >
+                            <span
+                              className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                            ></span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {item.foodType === "veg"
+                            ? "Veg"
+                            : item.foodType === "non-veg"
+                              ? "Non Veg"
+                              : "Vegan"}
+                        </TooltipContent>
+                      </Tooltip>
+                      <span>
+                        {item.isVariantOrder ? item.variantName : item.foodName}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.quantity}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ₹{item.finalPrice.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell className="text-left">Total</TableCell>
+                  <TableCell className="text-center">
+                    {order.orderedFoodItems.reduce(
+                      (prv, item) => prv + item.quantity,
+                      0
+                    )}
                   </TableCell>
-                  <TableCell className="text-center">{item.quantity}</TableCell>
                   <TableCell className="text-right">
-                    ₹{item.finalPrice.toFixed(2)}
+                    ₹{order.totalAmount.toFixed(2)}
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell className="text-left">Total</TableCell>
-                <TableCell className="text-center">
-                  {order.orderedFoodItems.reduce(
-                    (prv, item) => prv + item.quantity,
-                    0
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  ₹{order.totalAmount.toFixed(2)}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
+              </TableFooter>
+            </Table>
+          </div>
         </div>
-
         <div className="flex gap-2 pt-3 justify-between">
           <OrderDetails
             order={order}

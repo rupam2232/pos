@@ -272,7 +272,7 @@ const MenuClientPage = () => {
               ))}
             </TabsList>
             <div
-              className="flex items-center gap-2 *:flex flex-wrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-ring aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent mr-1"
+              className="flex items-center gap-2 *:flex flex-wrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent mr-1"
               onClick={() => {
                 if (searchInputRef.current) {
                   searchInputRef.current.focus();
@@ -608,7 +608,7 @@ const MenuClientPage = () => {
         </TabsContent>
       </Tabs>
       {(cartItems && cartItems.length > 0) && (
-        <div className="fixed bottom-2 w-full md:w-1/3 right-0 rounded-md bg-primary text-background z-30">
+        <div className="fixed bottom-2 w-full md:w-1/3 right-0 rounded-md bg-primary z-30">
           <Link href={`/${slug}/cart/?tableId=${tableId}`} scroll={false} passHref className="flex items-center justify-center p-4 font-semibold">
             View Cart ({cartItems.reduce((acc, item) => acc + item.quantity, 0)})
           </Link>

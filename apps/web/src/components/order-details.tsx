@@ -280,7 +280,7 @@ const OrderDetails = ({
                       {orderDetails.orderedFoodItems.map((item, index) => (
                         <TableRow
                           key={item.foodItemId + index}
-                          className="text-primary/80"
+                          className="text-foreground/80"
                         >
                           <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
                             <Tooltip>
