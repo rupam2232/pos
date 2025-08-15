@@ -10,11 +10,11 @@ import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
-import { Input } from "@repo/ui/components/input";
 import { Button } from "@repo/ui/components/button";
 import {
   Timer,
@@ -23,6 +23,8 @@ import {
   TrendingUp,
   TrendingDown,
   LineChart,
+  Plus,
+  CheckCheck,
 } from "lucide-react";
 import { IconReceipt, IconTable } from "@tabler/icons-react";
 import { useSocket } from "@/context/SocketContext";
@@ -30,12 +32,15 @@ import { OrderDetails } from "@repo/ui/types/Order";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import OrderCard from "@/components/order-card";
 import { cn } from "@repo/ui/lib/utils";
+import { AllTables } from "@repo/ui/types/Table";
+import Link from "next/link";
+import { ScrollArea } from "@repo/ui/components/scroll-area";
 
 const Page = () => {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
-  const [todayOrders, setTodayOrders] = useState<OrderDetails>(null);
+  const [latestOrders, setLatesOrders] = useState<OrderDetails>(null);
   const [stats, setStats] = useState<{
     newOrders: number;
     inProgressOrders: number;
@@ -43,6 +48,8 @@ const Page = () => {
     freeTables: number;
     todayTotalOrders: number;
     totalOrderChangePercent: number;
+    unPaidCompletedOrders: number;
+    readyOrders: number;
   }>({
     newOrders: 0,
     inProgressOrders: 0,
@@ -50,22 +57,25 @@ const Page = () => {
     freeTables: 0,
     todayTotalOrders: 0,
     totalOrderChangePercent: 0,
+    unPaidCompletedOrders: 0,
+    readyOrders: 0,
   });
   const dispatch = useDispatch();
   const router = useRouter();
   const socket = useSocket();
+  const [allTables, setAllTables] = useState<AllTables | null>(null);
 
   const fetchDashboardStats = useCallback(async () => {
     try {
       setIsPageLoading(true);
       const [orderResponse, statsResponse] = await Promise.all([
-        axios.get(`/order/${slug}/?date=today`),
+        axios.get(`/order/${slug}`),
         axios.get(`/restaurant/${slug}/staff-dashboard-stats`),
       ]);
       if (orderResponse.data.success) {
-        setTodayOrders(orderResponse.data.data);
+        setLatesOrders(orderResponse.data.data);
       } else {
-        setTodayOrders(null);
+        setLatesOrders(null);
         toast.error(orderResponse.data.message);
       }
 
@@ -74,6 +84,9 @@ const Page = () => {
       } else {
         toast.error(statsResponse.data.message);
       }
+
+      const tableResponse = await axios.get(`/table/${slug}`);
+      setAllTables(tableResponse.data.data);
     } catch (error) {
       console.error(
         "Failed to fetch dashboard stats. Please try again later:",
@@ -123,9 +136,12 @@ const Page = () => {
                 <BellRing className="size-4" />
               </CardHeader>
               <CardContent>
-                <h3 className="text-2xl font-bold text-foreground">
-                  {stats.newOrders}
-                </h3>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-bold">{stats.newOrders}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    *Updates in real-time
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -137,7 +153,14 @@ const Page = () => {
                 <Timer className="size-4" />
               </CardHeader>
               <CardContent>
-                <h3 className="text-2xl font-bold">{stats.inProgressOrders}</h3>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-bold">
+                    {stats.inProgressOrders}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    *Orders that are in preparing status
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -170,90 +193,253 @@ const Page = () => {
                   <h3 className="text-2xl font-bold">
                     {stats.todayTotalOrders}
                   </h3>
-                  <p className="text-xs text-muted-foreground">
-                    <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                      {stats.totalOrderChangePercent > 0 ? (
-                        <TrendingUp className="inline size-4 text-green-500" />
-                      ) : stats.totalOrderChangePercent < 0 ? (
-                        <TrendingDown className="inline size-4 text-red-500" />
-                      ) : (
-                        <LineChart className="inline size-4" />
-                      )}
-                      {stats.totalOrderChangePercent > 0 && "+"}
-                      <span
-                        className={cn("text-xs", {
-                          "text-green-500": stats.totalOrderChangePercent > 0,
-                          "text-red-500": stats.totalOrderChangePercent < 0,
-                        })}
-                      >
-                        {stats.totalOrderChangePercent.toFixed(0)}%
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        vs yesterday
-                      </span>
-                    </div>
-                  </p>
+                  <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                    {stats.totalOrderChangePercent > 0 ? (
+                      <TrendingUp className="inline size-4 text-green-500" />
+                    ) : stats.totalOrderChangePercent < 0 ? (
+                      <TrendingDown className="inline size-4 text-red-500" />
+                    ) : (
+                      <LineChart className="inline size-4" />
+                    )}
+                    {stats.totalOrderChangePercent > 0 && "+"}
+                    <span
+                      className={cn("text-xs", {
+                        "text-green-500": stats.totalOrderChangePercent > 0,
+                        "text-red-500": stats.totalOrderChangePercent < 0,
+                      })}
+                    >
+                      {stats.totalOrderChangePercent.toFixed(0)}%
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      vs yesterday
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <Card>
+                <CardContent className="flex items-center justify-center">
+                  <CardAction className="w-[80%]">
+                    <Link href={`/restaurant/${slug}/dashboard/new-order`}>
+                      <Button className="w-full">
+                        <Plus />
+                        Create New Order
+                      </Button>
+                    </Link>
+                  </CardAction>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex items-center justify-between pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">
+                    Ready to Serve
+                  </CardTitle>
+                  <CheckCheck className="size-4" />
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-2xl font-bold">
+                        {stats.readyOrders}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Orders ready and awaiting service
+                      </p>
+                    </div>
+                    <Link href={`/restaurant/${slug}/orders`}>
+                      <Button size="sm">View</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex items-center justify-between pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">
+                    Pending Payments
+                  </CardTitle>
+                  <Wallet className="size-4" />
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-2xl font-bold">
+                        {stats.unPaidCompletedOrders}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Orders completed but not paid
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      Settle
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* <Card>
+                  <CardHeader className="flex items-center justify-between pb-2">
+                    <CardTitle className="text-sm text-muted-foreground">
+                      Avg Preparation
+                    </CardTitle>
+                    <Clock className="size-4" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold">
+                          {demoAvgPrepMinutes} min
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Average prep time (today)
+                        </p>
+                      </div>
+                      <Button size="sm" variant="ghost">
+                        Details
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card> */}
+
+              {/* <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    {demoRecentActivity.map((act) => (
+                      <li
+                        key={act.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Activity className="size-4 text-muted-foreground" />
+                          <span>{act.text}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {act.time}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card> */}
+
+              <Card>
+                <CardHeader className="flex items-center justify-between text-muted-foreground text-sm">
+                  <CardTitle>Table Map</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                      <span>
+                        Available: {allTables ? allTables.availableTables : 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                      <span>
+                        Occupied: {allTables ? allTables.occupiedTables : 0}
+                      </span>
+                    </div>
+                  </div>
+                  {allTables?.totalPages && allTables?.totalPages > 1 && (
+                    <Link
+                      href={`/restaurant/${slug}/tables`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      View all tables
+                    </Link>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {allTables?.tables.map((t) => (
+                      <div
+                        key={t._id}
+                        className={cn(
+                          "rounded-md p-3 flex flex-col items-center justify-center text-sm truncate",
+                          t.isOccupied
+                            ? "bg-red-50 text-red-700 border border-red-100"
+                            : "bg-green-50 text-green-700 border border-green-100"
+                        )}
+                      >
+                        <h3 className="font-medium">{t.tableName}</h3>
+                        <div className="text-xs">
+                          {t.isOccupied ? "Occupied" : "Available"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {quickActions.map((a) => {
+                      const Icon = a.icon as any;
+                      return (
+                        <Button key={a.id} size="sm" variant="outline">
+                          <Icon className="size-4 mr-2 inline" />
+                          {a.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card> */}
+            </div>
+
             <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-2">Order List</h3>
-                <Input placeholder="Search a Order" className="mb-4" />
+              <CardHeader className="flex items-center justify-between">
+                <CardTitle className="text-sm text-muted-foreground">
+                  Order List
+                </CardTitle>
+                {latestOrders && latestOrders.totalPages > 1 && (
+                  <Link
+                    href={`/restaurant/${slug}/orders`}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    View all orders
+                  </Link>
+                )}
+              </CardHeader>
+              <CardContent>
                 {isPageLoading ? (
                   <div className="space-y-2">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Skeleton
                         key={i + Math.random()}
-                        className="h-6 w-full"
+                        className="h-80 w-full rounded-xl"
                       />
                     ))}
                   </div>
-                ) : (
-                  <ul className="space-y-2 text-sm">
-                    {todayOrders && todayOrders.orders.length > 0 ? (
-                      todayOrders?.orders.map((order) => (
+                ) : latestOrders && latestOrders.orders.length > 0 ? (
+                  <ScrollArea className="h-[560px]">
+                    <div className="space-y-2">
+                      {latestOrders?.orders.map((order) => (
                         <OrderCard
                           key={order._id}
                           order={order}
                           restaurantSlug={slug}
+                          className="hover:scale-100"
                         />
-                      ))
-                    ) : (
-                      <li className="flex justify-between items-center">
-                        <span>No orders found</span>
-                      </li>
-                    )}
-                  </ul>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <span>No orders found</span>
+                  </div>
                 )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-2">Payment</h3>
-                <Input placeholder="Search a Order" className="mb-4" />
-                <ul className="space-y-2 text-sm">
-                  {[
-                    "A9 Maja Becker",
-                    "C2 Erwan Richard",
-                    "A2 Stefan Meijer",
-                    "A3 Julie Madsen",
-                    "B4 Aulia Julie",
-                    "B7 Emma Fortin",
-                    "TA Mason Groves",
-                  ].map((name, i) => (
-                    <li key={i} className="flex justify-between items-center">
-                      <span>{name}</span>
-                      <Button variant="outline" className="text-xs">
-                        <Wallet size={14} className="mr-1" /> Pay Now
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
               </CardContent>
             </Card>
           </div>

@@ -125,11 +125,7 @@ const OrderDetails = ({
   const availableNextStatuses = orderStatusIcons.slice(currentStatusIndex + 1);
   return (
     <Dialog>
-      <DialogTrigger
-        asChild
-        onClick={() => onChildBtnClick()}
-        className="text-primary bg-background hover:bg-accent transition-all duration-200"
-      >
+      <DialogTrigger asChild onClick={() => onChildBtnClick()}>
         {children}
       </DialogTrigger>
       <DialogContent className="max-w-screen w-full">
@@ -321,11 +317,11 @@ const OrderDetails = ({
                                 </AvatarFallback>
                               </Avatar>
                             )}
-
                             <span>
+                              {item.foodName}
                               {item.isVariantOrder
-                                ? item.variantDetails?.variantName
-                                : item.foodName}
+                                ? ` (${item.variantDetails?.variantName})`
+                                : ""}
                             </span>
                           </TableCell>
                           <TableCell className="text-center">

@@ -36,16 +36,19 @@ import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useState } from "react";
+import { cn } from "@repo/ui/lib/utils";
 
 const OrderCard = ({
   order,
   restaurantSlug,
   ref,
+  className,
   // setOrders,
 }: {
   order: Order;
   restaurantSlug: string;
   ref?: React.Ref<HTMLDivElement>;
+  className?: string;
   // setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
 }) => {
   const dispatch = useDispatch();
@@ -151,7 +154,10 @@ const OrderCard = ({
   return (
     <Card
       ref={ref}
-      className="overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md"
+      className={cn(
+        "overflow-hidden transition-all duration-200 hover:scale-101 hover:shadow-md",
+        className
+      )}
     >
       <CardContent className="flex flex-col justify-between h-full">
         <div className="space-y-2">
@@ -299,7 +305,8 @@ const OrderCard = ({
                         </TooltipContent>
                       </Tooltip>
                       <span>
-                        {item.isVariantOrder ? item.variantName : item.foodName}
+                        {item.foodName}
+                        {item.isVariantOrder ? ` (${item.variantName})` : ""}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">

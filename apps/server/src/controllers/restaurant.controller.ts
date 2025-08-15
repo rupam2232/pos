@@ -531,6 +531,8 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
     tableStats,
     todayTotalOrders,
     yesterdayTotalOrdersAgg,
+    unPaidCompletedOrders,
+    readyOrders
   ] = await Promise.all([
     Order.countDocuments({
       restaurantId: restaurant._id,
@@ -598,6 +600,35 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
         },
       },
     ]),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          status: "completed",
+          isPaid: false,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+        },
+      },
+    ]),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          status: "ready",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+        },
+      },
+    ]),
   ]);
 
   const todayTotal = todayTotalOrders[0]?.total || 0;
@@ -622,6 +653,8 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
         freeTables: tableStats[0]?.freeTableCount || 0,
         todayTotalOrders: todayTotal,
         totalOrderChangePercent,
+        unPaidCompletedOrders: unPaidCompletedOrders[0]?.total || 0,
+        readyOrders: readyOrders[0]?.total || 0
       },
       "Dashboard stats retrieved successfully"
     )
