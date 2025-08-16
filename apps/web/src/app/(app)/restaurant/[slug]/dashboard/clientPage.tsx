@@ -37,8 +37,7 @@ import Link from "next/link";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 
 const Page = () => {
-  const params = useParams<{ slug: string }>();
-  const slug = params.slug;
+  const {slug} = useParams<{ slug: string }>();
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [latestOrders, setLatesOrders] = useState<OrderDetails>(null);
   const [stats, setStats] = useState<{
@@ -201,7 +200,6 @@ const Page = () => {
                     ) : (
                       <LineChart className="inline size-4" />
                     )}
-                    {stats.totalOrderChangePercent > 0 && "+"}
                     <span
                       className={cn("text-xs", {
                         "text-green-500": stats.totalOrderChangePercent > 0,
@@ -224,7 +222,9 @@ const Page = () => {
               <Card>
                 <CardContent className="flex items-center justify-center">
                   <CardAction className="w-[80%]">
-                    <Link href={`/restaurant/${slug}/dashboard/new-order`}>
+                    <Link
+                      href={`/restaurant/${slug}/dashboard/new-order`}
+                    >
                       <Button className="w-full">
                         <Plus />
                         Create New Order
@@ -414,14 +414,16 @@ const Page = () => {
               </CardHeader>
               <CardContent>
                 {isPageLoading ? (
-                  <div className="space-y-2">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Skeleton
-                        key={i + Math.random()}
-                        className="h-80 w-full rounded-xl"
-                      />
-                    ))}
-                  </div>
+                  <ScrollArea className="h-[560px]">
+                    <div className="space-y-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Skeleton
+                          key={i + Math.random()}
+                          className="h-80 w-full rounded-xl"
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
                 ) : latestOrders && latestOrders.orders.length > 0 ? (
                   <ScrollArea className="h-[560px]">
                     <div className="space-y-2">

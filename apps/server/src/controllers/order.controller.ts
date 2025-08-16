@@ -130,7 +130,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
 
     await canRestaurantRecieveOrders(restaurant);
 
-    const { paymentMethod, notes } = req.body;
+    const { paymentMethod, notes, customerName, customerPhone } = req.body;
 
     const currency = "INR"; // Default currency for payments, can be changed based on requirements
 
@@ -170,7 +170,9 @@ export const createOrder = asyncHandler(async (req, res, next) => {
           method: paymentMethod,
           status: "pending", // Default status for new orders
           isPaid: false, // Default to false
-          notes: notes,
+          notes,
+          customerName,
+          customerPhone,
         },
       ],
       { session }

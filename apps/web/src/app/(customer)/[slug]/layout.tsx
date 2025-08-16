@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "See what's available at this restaurant.",
 };
 
-export default async function RootLayout({
+export default async function Layout({
   children,
   modal,
   params,
