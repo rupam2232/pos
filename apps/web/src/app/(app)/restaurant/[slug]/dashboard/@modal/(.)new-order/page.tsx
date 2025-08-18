@@ -194,13 +194,17 @@ const Page = () => {
     >
       <DialogTrigger className="hidden">Open Dialog</DialogTrigger>
       <DialogContent className="sm:max-w-xl md:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="pb-2! p-6">{
-              step === 1 ? "Select Table" : step === 2 ? "Select Food Items" : "Confirm Order"
-              }</DialogTitle>
-        <ScrollArea className="overflow-y-auto h-[90vh] px-6">
+        <DialogHeader>
+          <DialogTitle className="pb-2! p-6">
+            {step === 1
+              ? "Select Table"
+              : step === 2
+                ? "Select Food Items"
+                : "Confirm Order"}
+          </DialogTitle>
+          <ScrollArea className="overflow-y-auto h-[90vh] px-6 pb-20 md:pb-6">
             {step === 1 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 pr-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 px-2">
                 {allTables?.tables.map((t, index) => (
                   <div
                     ref={
@@ -264,11 +268,9 @@ const Page = () => {
                         <p className="text-muted-foreground mb-6">
                           Add some delicious items from {slug}&apos;s menu
                         </p>
-                        {/* <Link href={`/${slug}/menu?tableId=${tableId}`}> */}
                         <Button className="bg-primary hover:bg-primary/90">
                           Browse Menu
                         </Button>
-                        {/* </Link> */}
                       </div>
                     </CardContent>
                   </Card>
@@ -282,7 +284,7 @@ const Page = () => {
                         {cartItems.map((item) => (
                           <div
                             key={item.foodId + (item.variantName || "")}
-                            className="flex items-center space-x-4 pt-2 pb-4 border-b first:border-t last:border-b-0 last:pb-0 relative"
+                            className="flex flex-col sm:flex-row sm:items-center space-x-4 pt-2 pb-4 border-b first:border-t last:border-b-0 last:pb-0 relative"
                           >
                             {item.imageUrl ? (
                               <Image
@@ -312,123 +314,125 @@ const Page = () => {
                                 <IconSalad className="size-5" />
                               </div>
                             )}
-
-                            <div
-                              className={cn(
-                                "flex-1 min-w-0",
-                                item.isAvailable
-                                  ? "opacity-100"
-                                  : "opacity-80 grayscale"
-                              )}
-                            >
-                              <div className="flex items-center space-x-2">
-                                <div
-                                  className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5`}
-                                >
-                                  <span
-                                    className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                                  ></span>
-                                  <span className="sr-only">
-                                    {item.foodType === "veg"
-                                      ? "Veg"
-                                      : item.foodType === "non-veg"
-                                        ? "Non Veg"
-                                        : "Vegan"}
-                                  </span>
+                            <div className="flex flex-1 items-center">
+                              <div
+                                className={cn(
+                                  "flex-1 min-w-0",
+                                  item.isAvailable
+                                    ? "opacity-100"
+                                    : "opacity-80 grayscale"
+                                )}
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <div
+                                    className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5`}
+                                  >
+                                    <span
+                                      className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
+                                    ></span>
+                                    <span className="sr-only">
+                                      {item.foodType === "veg"
+                                        ? "Veg"
+                                        : item.foodType === "non-veg"
+                                          ? "Non Veg"
+                                          : "Vegan"}
+                                    </span>
+                                  </div>
+                                  <h4 className="font-medium line-clamp-3">
+                                    {item.foodName}{" "}
+                                    {item.variantName &&
+                                      `(${item.variantName})`}
+                                  </h4>
                                 </div>
-                                <h4 className="font-medium line-clamp-3">
-                                  {item.foodName}{" "}
-                                  {item.variantName && `(${item.variantName})`}
-                                </h4>
-                              </div>
 
-                              {typeof item.discountedPrice === "number" ? (
-                                <p className="text-sm font-medium">
-                                  {" "}
-                                  ₹{item.discountedPrice.toFixed(2)}
-                                  <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
+                                {typeof item.discountedPrice === "number" ? (
+                                  <p className="text-sm font-medium">
+                                    {" "}
+                                    ₹{item.discountedPrice.toFixed(2)}
+                                    <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
+                                      ₹{item.price.toFixed(2)}
+                                    </span>
+                                  </p>
+                                ) : (
+                                  <p className="text-sm font-medium">
                                     ₹{item.price.toFixed(2)}
-                                  </span>
-                                </p>
-                              ) : (
-                                <p className="text-sm font-medium">
-                                  ₹{item.price.toFixed(2)}
-                                </p>
-                              )}
+                                  </p>
+                                )}
 
-                              <div className="flex items-center space-x-2 mt-2 dark:border-zinc-600 border rounded-md w-min">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  disabled={item.isAvailable === false}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (item.quantity > 1) {
+                                <div className="flex items-center space-x-2 mt-2 dark:border-zinc-600 border rounded-md w-min">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={item.isAvailable === false}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (item.quantity > 1) {
+                                        editItem({
+                                          ...item,
+                                          quantity: item.quantity - 1,
+                                        });
+                                      } else {
+                                        removeItem(item);
+                                      }
+                                    }}
+                                    className="w-8 h-8"
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                    <span className="sr-only">
+                                      Remove from cart
+                                    </span>
+                                  </Button>
+                                  <span className="text-sm font-medium w-8 text-center">
+                                    {item.quantity}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={item.isAvailable === false}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       editItem({
                                         ...item,
-                                        quantity: item.quantity - 1,
+                                        quantity: item.quantity + 1,
                                       });
-                                    } else {
-                                      removeItem(item);
-                                    }
-                                  }}
-                                  className="w-8 h-8"
-                                >
-                                  <Minus className="w-3 h-3" />
-                                  <span className="sr-only">
-                                    Remove from cart
-                                  </span>
-                                </Button>
-                                <span className="text-sm font-medium w-8 text-center">
-                                  {item.quantity}
-                                </span>
+                                    }}
+                                    className="w-8 h-8"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                    <span className="sr-only">Add to cart</span>
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="text-right">
+                                {item.isAvailable === false ? (
+                                  <p className="text-sm font-medium">
+                                    Unavailable
+                                  </p>
+                                ) : typeof item.discountedPrice === "number" ? (
+                                  <p className="text-sm font-medium flex flex-col items-end">
+                                    <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
+                                      ₹{(item.price * item.quantity).toFixed(2)}
+                                    </span>
+                                    ₹
+                                    {(
+                                      item.discountedPrice * item.quantity
+                                    ).toFixed(2)}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm font-medium">
+                                    ₹{(item.price * item.quantity).toFixed(2)}
+                                  </p>
+                                )}
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  disabled={item.isAvailable === false}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    editItem({
-                                      ...item,
-                                      quantity: item.quantity + 1,
-                                    });
-                                  }}
-                                  className="w-8 h-8"
+                                  onClick={() => removeItem(item)}
+                                  className="text-red-500 hover:text-red-700 transition-colors"
                                 >
-                                  <Plus className="w-3 h-3" />
-                                  <span className="sr-only">Add to cart</span>
+                                  <Trash2 />
                                 </Button>
                               </div>
-                            </div>
-
-                            <div className="text-right">
-                              {item.isAvailable === false ? (
-                                <p className="text-sm font-medium">
-                                  Unavailable
-                                </p>
-                              ) : typeof item.discountedPrice === "number" ? (
-                                <p className="text-sm font-medium flex flex-col items-end">
-                                  <span className="line-through ml-2 text-xs text-muted-foreground font-normal">
-                                    ₹{(item.price * item.quantity).toFixed(2)}
-                                  </span>
-                                  ₹
-                                  {(
-                                    item.discountedPrice * item.quantity
-                                  ).toFixed(2)}
-                                </p>
-                              ) : (
-                                <p className="text-sm font-medium">
-                                  ₹{(item.price * item.quantity).toFixed(2)}
-                                </p>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeItem(item)}
-                                className="text-red-500 hover:text-red-700 transition-colors"
-                              >
-                                <Trash2 />
-                              </Button>
                             </div>
                           </div>
                         ))}
@@ -509,58 +513,58 @@ const Page = () => {
                 )}
               </>
             )}
-        </ScrollArea>
-          </DialogHeader>
-          <DialogFooter className="rounded-b-lg p-6 fixed -bottom-[0.1px] left-0 right-0 bg-background justify-between! z-20">
-            {step === 1 && (
-              <>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">
-                    Close
-                  </Button>
-                </DialogClose>
-                <Button
-                  type="button"
-                  disabled={!tableId}
-                  onClick={() => setStep(2)}
-                >
-                  Go to Menu
+          </ScrollArea>
+        </DialogHeader>
+        <DialogFooter className="rounded-b-lg p-6 fixed -bottom-[0.1px] left-0 right-0 bg-background justify-between! z-20">
+          {step === 1 && (
+            <>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Close
                 </Button>
-              </>
-            )}
-            {step === 2 && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                >
-                  Go back to Tables
-                </Button>
-                <Button
-                  type="button"
-                  disabled={cartItems.length === 0}
-                  onClick={() => setStep(3)}
-                >
-                  View Cart ({cartItems.length})
-                </Button>
-              </>
-            )}
-            {step === 3 && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep(2)}
-                >
-                  Go back to Menu
-                </Button>
-                <Button type="button" onClick={confirmOrder}>
-                  Place Order
-                </Button>
-              </>
-            )}
-          </DialogFooter>
+              </DialogClose>
+              <Button
+                type="button"
+                disabled={!tableId}
+                onClick={() => setStep(2)}
+              >
+                Go to Menu
+              </Button>
+            </>
+          )}
+          {step === 2 && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep(1)}
+              >
+                Go back to Tables
+              </Button>
+              <Button
+                type="button"
+                disabled={cartItems.length === 0}
+                onClick={() => setStep(3)}
+              >
+                View Cart ({cartItems.length})
+              </Button>
+            </>
+          )}
+          {step === 3 && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep(2)}
+              >
+                Go back to Menu
+              </Button>
+              <Button type="button" onClick={confirmOrder}>
+                Place Order
+              </Button>
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
