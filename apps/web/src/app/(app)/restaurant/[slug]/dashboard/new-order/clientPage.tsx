@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import axios from "@/utils/axiosInstance";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { signOut } from "@/store/authSlice";
 import { AllTables } from "@repo/ui/types/Table";
 import { cn } from "@repo/ui/lib/utils";
@@ -24,18 +24,22 @@ import { IconSalad } from "@tabler/icons-react";
 import { Textarea } from "@repo/ui/components/textarea";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
-import { ScrollArea } from "@repo/ui/components/scroll-area";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import Link from "next/link";
+import { RootState } from "@/store/store";
 
 const ClientPage = () => {
   const router = useRouter();
   const { slug } = useParams<{ slug: string }>();
   const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
   const [step, setStep] = useState<number>(1);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
   const [allTables, setAllTables] = useState<AllTables | null>(null);
-  const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
-  const [isPageChanging, setIsPageChanging] = useState<boolean>(false);
+  const [isTablePageLoading, setIsTablePageLoading] = useState<boolean>(true);
+  const [isTablePageChanging, setIsTablePageChanging] =
+    useState<boolean>(false);
   const [tableId, setTableId] = useState<string | null>(null);
   const observer = useRef<IntersectionObserver>(null);
   const { cartItems, syncCart, removeItem, editItem, clearCart } =
@@ -60,11 +64,11 @@ const ClientPage = () => {
     }
     try {
       if (page === 1) {
-        setIsPageLoading(true);
+        setIsTablePageLoading(true);
         const response = await axios.get(`/table/${slug}`);
         setAllTables(response.data.data);
       } else {
-        setIsPageChanging(true);
+        setIsTablePageChanging(true);
         const response = await axios.get(`/table/${slug}?page=${page}`);
         setAllTables((prev) => ({
           ...response.data.data,
@@ -87,8 +91,8 @@ const ClientPage = () => {
       }
       setAllTables(null);
     } finally {
-      setIsPageChanging(false);
-      setIsPageLoading(false);
+      setIsTablePageChanging(false);
+      setIsTablePageLoading(false);
     }
   }, [slug, router, dispatch, page, drawerOpen]);
 
@@ -96,12 +100,12 @@ const ClientPage = () => {
     fetchAllTables();
   }, [fetchAllTables]);
 
-  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+  const lastTableElementRef = useCallback((node: HTMLDivElement | null) => {
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver((entries) => {
       if (entries && Array.isArray(entries) && entries[0]?.isIntersecting) {
         if (allTables && allTables?.totalPages > page) {
-          if (!isPageChanging) {
+          if (!isTablePageChanging) {
             setPage((prevPageNumber) => prevPageNumber + 1);
           }
         }
@@ -174,61 +178,86 @@ const ClientPage = () => {
   };
 
   return (
-    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto px-4 py-2 h-[calc(100vh-4rem)] relative">
-      <h1 className="text-3xl font-bold mb-4">
+    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto py-2 h-[calc(100vh-4rem)] relative">
+      <h1 className="text-2xl font-bold mb-4 px-4">
         {step === 1
           ? "Select Table"
           : step === 2
             ? "Select Food Items"
             : "Confirm Order"}
       </h1>
-      <ScrollArea className="overflow-y-auto h-[calc(100vh-8rem)] px-6 pb-20 md:pb-6">
+      <div className="overflow-y-auto h-[calc(100vh-14rem)] sm:h-[calc(100vh-11rem)] px-3 custom-scrollbar">
         {step === 1 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 px-2">
-            {allTables?.tables.map((t, index) => (
-              <div
-                ref={
-                  index === allTables.tables.length - 1
-                    ? lastElementRef
-                    : undefined
-                }
-                role="button"
-                onClick={() => {
-                  if (!t.isOccupied) {
-                    setTableId(t.qrSlug);
-                  }
-                }}
-                key={t._id}
-                className={cn(
-                  "rounded-md ring-3 ring-transparent cursor-pointer transition-all duration-200 relative",
-                  t.isOccupied
-                    ? "hover:ring-destructive"
-                    : "hover:ring-primary",
-                  t.isOccupied && "opacity-50 cursor-not-allowed",
-                  tableId === t.qrSlug && "ring-primary"
-                )}
-              >
-                {tableId === t.qrSlug && (
-                  <span className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 rounded-xl bg-primary">
-                    <Check className="text-white size-4" />
-                  </span>
-                )}
-                <div
-                  className={cn(
-                    "rounded-md p-3 flex flex-col items-center justify-center text-sm truncate",
-                    t.isOccupied
-                      ? "bg-red-50 text-red-700 border border-red-100"
-                      : "bg-green-50 text-green-700 border border-green-100"
-                  )}
-                >
-                  <h3 className="font-medium">{t.tableName}</h3>
-                  <div className="text-xs">
-                    {t.isOccupied ? "Occupied" : "Available"}
-                  </div>
-                </div>
+          <>
+            {isTablePageLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 px-2">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Skeleton key={index} className="h-20 w-full" />
+                ))}
               </div>
-            ))}
-          </div>
+            ) : allTables && allTables.tables.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 px-2">
+                {allTables.tables.map((t, index) => (
+                  <div
+                    ref={
+                      index === allTables.tables.length - 1
+                        ? lastTableElementRef
+                        : undefined
+                    }
+                    role="button"
+                    onClick={() => {
+                      if (!t.isOccupied) {
+                        setTableId(t.qrSlug);
+                      }
+                    }}
+                    key={t._id}
+                    className={cn(
+                      "rounded-md ring-3 ring-transparent cursor-pointer transition-all duration-200 relative",
+                      t.isOccupied
+                        ? "hover:ring-destructive"
+                        : "hover:ring-primary",
+                      t.isOccupied && "opacity-50 cursor-not-allowed",
+                      tableId === t.qrSlug && "ring-primary"
+                    )}
+                  >
+                    {tableId === t.qrSlug && (
+                      <span className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 rounded-xl bg-primary">
+                        <Check className="text-white size-4" />
+                      </span>
+                    )}
+                    <div
+                      className={cn(
+                        "rounded-md p-3 flex flex-col items-center justify-center text-sm truncate",
+                        t.isOccupied
+                          ? "bg-red-50 text-red-700 border border-red-100"
+                          : "bg-green-50 text-green-700 border border-green-100"
+                      )}
+                    >
+                      <h3 className="font-medium">{t.tableName}</h3>
+                      <div className="text-xs">
+                        {t.isOccupied ? "Occupied" : "Available"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {isTablePageChanging &&
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <Skeleton key={index} className="w-full min-h-[60px]" />
+                  ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center flex-col space-y-4 h-full">
+                <p className="text-center text-muted-foreground">
+                  No tables created yet. Please create a table to proceed.
+                </p>
+                {user?.role === "owner" && (
+                  <Link href={`/restaurant/${slug}/tables`}>
+                    <Button type="button">Create a new table</Button>
+                  </Link>
+                )}
+              </div>
+            )}
+          </>
         )}
         {step === 2 && (
           <ClinetFoodMenu
@@ -487,8 +516,8 @@ const ClientPage = () => {
             )}
           </>
         )}
-      </ScrollArea>
-      <div className="rounded-b-lg p-6 py-3 max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto w-full absolute bottom-0 right-0 bg-background flex items-center justify-between! z-20">
+      </div>
+      <div className="rounded-b-lg px-4 pt-0 pb-0 max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto w-full absolute bottom-0 right-0 bg-background flex items-center sm:justify-between flex-col-reverse gap-2 sm:flex-row z-10 [&_button]:w-full [&_button]:sm:w-auto">
         {step === 1 && (
           <>
             <Button

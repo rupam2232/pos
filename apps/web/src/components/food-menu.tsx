@@ -33,10 +33,12 @@ const ClinetFoodMenu = ({
   slug,
   tableId,
   isStaffCreatingOrder = false,
+  scrollClassName,
 }: {
   slug: string;
   tableId: string | null;
   isStaffCreatingOrder: boolean;
+  scrollClassName?: string;
 }) => {
   const [allFoodItems, setAllFoodItems] = useState<AllFoodItems | null>(null);
   const [restaurantCategories, setRestaurantCategories] = useState<string[]>(
@@ -239,7 +241,7 @@ const ClinetFoodMenu = ({
   }
 
   return (
-    <div className={cn("relative", {"p-4": !isStaffCreatingOrder})}>
+    <div className={cn("relative", { "p-4": !isStaffCreatingOrder })}>
       <Tabs
         className="mb-24"
         defaultValue="all"
@@ -252,7 +254,7 @@ const ClinetFoodMenu = ({
           setTabName(value);
         }}
       >
-        <ScrollArea className="w-full pb-3">
+        <ScrollArea className={cn("w-full pb-3", scrollClassName)}>
           <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger
@@ -334,7 +336,11 @@ const ClinetFoodMenu = ({
         </ScrollArea>
         <TabsContent value={tabName} className="mt-2">
           {isPageLoading ? (
-            <div className={cn("grid grid-cols-2 gap-4 sm:grid-cols-3", { "md:grid-cols-4 xl:grid-cols-5": !isStaffCreatingOrder })}>
+            <div
+              className={cn("grid grid-cols-2 gap-4 sm:grid-cols-3", {
+                "md:grid-cols-4 xl:grid-cols-5": !isStaffCreatingOrder,
+              })}
+            >
               {Array.from({ length: 4 }).map((_, index) => (
                 <Card
                   key={index}
@@ -353,7 +359,11 @@ const ClinetFoodMenu = ({
           ) : allFoodItems &&
             Array.isArray(allFoodItems.foodItems) &&
             allFoodItems.foodItems.length > 0 ? (
-            <div className={cn("grid grid-cols-2 gap-4 sm:grid-cols-3", { "md:grid-cols-4 xl:grid-cols-5": !isStaffCreatingOrder })}>
+            <div
+              className={cn("grid grid-cols-2 gap-4 sm:grid-cols-3", {
+                "md:grid-cols-4 xl:grid-cols-5": !isStaffCreatingOrder,
+              })}
+            >
               {allFoodItems.foodItems.map((foodItem, index) => (
                 <Card
                   key={foodItem._id}
