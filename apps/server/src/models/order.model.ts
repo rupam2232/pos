@@ -191,13 +191,7 @@ const orderSchema: Schema<Order> = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       immutable(doc) {
-        return (
-          doc.status === "preparing" ||
-          doc.status === "ready" ||
-          doc.status === "served" ||
-          doc.status === "completed" ||
-          doc.status === "cancelled"
-        );
+        return doc.status === "completed" || doc.status === "cancelled";
       },
     },
     customerName: {

@@ -307,6 +307,7 @@ export const getOrderById = asyncHandler(async (req, res) => {
               taxRate: 1,
               isTaxIncludedInPrice: 1,
               taxLabel: 1,
+              address: 1
             },
           },
         ],
@@ -338,6 +339,31 @@ export const getOrderById = asyncHandler(async (req, res) => {
         localField: "_id",
         foreignField: "orderId",
         as: "paymentAttempts",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "kitchenStaffId",
+        foreignField: "_id",
+        as: "kitchenStaff",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              firstName: 1,
+              lastName: 1,
+              role: 1,
+              avatar: 1
+            },
+          },
+        ],
+      }
+    },
+    {
+      $unwind: {
+        path: "$kitchenStaff",
+        preserveNullAndEmptyArrays: true,
       },
     },
     {
@@ -373,6 +399,7 @@ export const getOrderById = asyncHandler(async (req, res) => {
         notes: { $first: "$notes" },
         externalOrderId: { $first: "$externalOrderId" },
         externalPlatform: { $first: "$externalPlatform" },
+        kitchenStaff: { $first: "$kitchenStaff" },
         kitchenStaffId: { $first: "$kitchenStaffId" },
         customerName: { $first: "$customerName" },
         customerPhone: { $first: "$customerPhone" },
@@ -1054,7 +1081,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   if (status === "completed") {
     order.isPaid = true; // Automatically mark as paid if completed
   }
-  order.kitchenStaffId = req.user?._id as Types.ObjectId; // Set the kitchen staff who updated the order status
+  order.kitchenStaffId = req.user._id as Types.ObjectId; // Set the kitchen staff who updated the order status
   await order.save();
   // If the order is completed, update the table status
   if (status === "completed" || status === "cancelled") {

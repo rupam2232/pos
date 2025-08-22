@@ -335,7 +335,6 @@ const OrderCard = ({
               </TableFooter>
             </Table>
           </div>
-          <BillReceipt />
         </div>
         <div className="flex gap-2 pt-3 justify-between">
           <OrderDetails
@@ -348,6 +347,7 @@ const OrderCard = ({
           >
             <Button variant="outline">See Details</Button>
           </OrderDetails>
+          <Button variant="outline" onClick={()=> window.open(`/${restaurantSlug}/bill/${order._id}`, "PRINT", "height=600,width=800")}>Print Bill</Button>
           <Button>Pay Bills</Button>
         </div>
       </CardContent>

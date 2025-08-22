@@ -59,6 +59,7 @@ export interface FullOrderDetailsType {
     taxRate?: number;
     isTaxIncludedInPrice: number;
     taxLabel?: string;
+    address?: string;
   };
   status:
     | "pending"
@@ -80,6 +81,13 @@ export interface FullOrderDetailsType {
   customerName?: string;
   customerPhone?: string;
   deliveryAddress?: string;
+  kitchenStaff?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    avatar: string;
+    role: string;
+  };
   table: {
     _id: string;
     tableName: string;

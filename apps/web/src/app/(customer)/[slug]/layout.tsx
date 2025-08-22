@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { RestaurantHeader } from "@/components/restaurant-header";
 import { fetchRestaurantDetails } from "@/utils/fetchRestaurantDetails";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME,
@@ -17,7 +18,16 @@ export default async function Layout({
   params: Promise<{ slug: string }>;
 }>) {
   const { slug } = await params;
+  const headersList = await headers();
+  const url = headersList.get("x-current-path") || "";
+
+  const isBillPage = url
+    .slice(1)
+    .split("/")
+    .some((p) => p === "bill");
+
   const restaurant = await fetchRestaurantDetails(slug);
+
   if (!restaurant) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -27,7 +37,7 @@ export default async function Layout({
   }
   return (
     <>
-      <RestaurantHeader restaurant={restaurant} />
+      {!isBillPage && <RestaurantHeader restaurant={restaurant} />}
       {children}
       {modal}
     </>
