@@ -227,7 +227,9 @@ export const toggleRestaurantOpenStatus = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only owners can toggle restaurant status.");
   }
 
-  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id });
+  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id }).select(
+    "_id restaurantName slug description address logoUrl isCurrentlyOpen"
+  );
 
   if (!restaurant) {
     throw new ApiError(404, "Restaurant not found or you are not the owner.");
@@ -266,7 +268,9 @@ export const addRestaurantCategory = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only owners can create restaurant categories");
   }
 
-  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id });
+  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id }).select(
+    "_id restaurantName slug description address logoUrl isCurrentlyOpen categories"
+  );
 
   if (!restaurant) {
     throw new ApiError(404, "Restaurant not found");
@@ -311,6 +315,8 @@ export const removeRestaurantCategories = asyncHandler(async (req, res) => {
     { slug, ownerId: req.user!._id },
     { $pull: { categories: { $in: categories } } },
     { new: true, runValidators: true }
+  ).select(
+    "_id restaurantName slug description address logoUrl isCurrentlyOpen categories"
   );
 
   if (!restaurant) {
@@ -387,6 +393,8 @@ export const setRestaurantTax = asyncHandler(async (req, res) => {
       },
     },
     { new: true, runValidators: true }
+  ).select(
+    "_id restaurantName slug description address logoUrl isCurrentlyOpen categories"
   );
   if (!restaurant) {
     throw new ApiError(404, "Restaurant not found or you are not the owner");
@@ -456,7 +464,9 @@ export const updateRestaurantLogo = asyncHandler(async (req, res) => {
   }
 
   // Check if the restaurant exists and the user is the owner
-  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id });
+  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id }).select(
+    "_id restaurantName slug description address logoUrl isCurrentlyOpen categories"
+  );
   if (!restaurant) {
     if (logoLocalPath) fs.unlinkSync(logoLocalPath); // Remove the file if restaurant is not found
     throw new ApiError(404, "Restaurant not found or you are not the owner");

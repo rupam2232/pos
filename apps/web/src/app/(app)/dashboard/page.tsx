@@ -207,6 +207,7 @@ export default function Page() {
                                 restaurantName: restaurant.restaurantName,
                                 slug: restaurant.slug,
                                 logoUrl: restaurant.logoUrl,
+                                isCurrentlyOpen: restaurant.isCurrentlyOpen,
                               })
                             );
                             router.push(
@@ -274,6 +275,7 @@ export default function Page() {
                             restaurantName: staffsrestaurant.restaurantName,
                             slug: staffsrestaurant.slug,
                             logoUrl: staffsrestaurant.logoUrl,
+                            isCurrentlyOpen: staffsrestaurant.isCurrentlyOpen,
                           })
                         );
                         router.push(

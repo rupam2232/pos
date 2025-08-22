@@ -297,6 +297,21 @@ body {
   }
 }
 
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  @page {
+    size: 80mm auto; /* thermal paper size */
+    margin: 0;
+  }
+  /* print:hidden */
+  .print\:hidden {
+    display: none !important;
+  }
+}
+
 input[type="search"]::-webkit-search-cancel-button {
   -webkit-appearance: none;
   appearance: none;

@@ -33,8 +33,8 @@ export function SiteHeader() {
           className="mx-2 data-[orientation=vertical]:h-4"
         />
         {pathname.startsWith("/restaurant/") && (
-          <h1 className="text-base font-medium flex items-center">
-            <Avatar className="w-7 h-7 mr-2">
+          <div className="text-base font-medium flex items-center space-x-2">
+            <Avatar className="w-7 h-7">
               <AvatarImage
                 src={activeRestaurant?.logoUrl || "/placeholder-logo.png"}
                 alt={
@@ -47,20 +47,33 @@ export function SiteHeader() {
                 draggable={false}
               />
             </Avatar>
-            <span>{activeRestaurant?.restaurantName}</span>
-            <Separator
-              orientation="vertical"
-              className="mx-2 data-[orientation=vertical]:h-5 rotate-12 bg-zinc-400"
-            />
-            <span>
-              {(() => {
-                const segment = pathname?.slice(1).split("/")[2];
-                return segment
-                  ? segment.charAt(0).toUpperCase() + segment.slice(1)
-                  : "";
-              })()}
-            </span>
-          </h1>
+            <div className="flex items-center">
+              <span>{activeRestaurant?.restaurantName}</span>
+              <Separator
+                orientation="vertical"
+                className="mx-2 data-[orientation=vertical]:h-5 bg-zinc-400"
+              />
+              <span>
+                {(() => {
+                  const segment = pathname?.slice(1).split("/")[2];
+                  return segment
+                    ? segment.charAt(0).toUpperCase() + segment.slice(1)
+                    : "";
+                })()}
+              </span>
+            </div>
+            {activeRestaurant?.isCurrentlyOpen ? (
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                <p className="text-sm">Open</p>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                <p className="text-sm">Closed</p>
+              </div>
+            )}
+          </div>
         )}
         <div className="ml-auto flex items-center gap-2">
           <ToggleTheme />

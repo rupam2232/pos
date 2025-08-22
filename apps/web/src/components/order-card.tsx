@@ -37,6 +37,7 @@ import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useState } from "react";
 import { cn } from "@repo/ui/lib/utils";
+import BillReceipt from "./bill-receipt ";
 
 const OrderCard = ({
   order,
@@ -334,6 +335,7 @@ const OrderCard = ({
               </TableFooter>
             </Table>
           </div>
+          <BillReceipt />
         </div>
         <div className="flex gap-2 pt-3 justify-between">
           <OrderDetails
