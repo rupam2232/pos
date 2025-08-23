@@ -46,6 +46,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
     }
 
     let foodItems = [];
+    let orderedFoodItems = []; // to send real-time updates with socket.io
     // check if food variants are valid
     for (const foodItem of req.body.foodItems) {
       if (
@@ -110,6 +111,15 @@ export const createOrder = asyncHandler(async (req, res, next) => {
               (variant) => variant.variantName === foodItem.variantName
             )[0].price)
           : (isFoodItemValid.discountedPrice ?? isFoodItemValid.price),
+      });
+
+      orderedFoodItems.push({
+        ...foodItems[foodItems.length - 1],
+        foodName: isFoodItemValid.foodName,
+        foodType: isFoodItemValid.foodType,
+        isVariantOrder: isFoodItemValid.variants.filter(
+          (variant) => variant.variantName === foodItem.variantName
+        ).length > 0,
       });
     }
 
@@ -191,6 +201,25 @@ export const createOrder = asyncHandler(async (req, res, next) => {
     table.currentOrderId = order[0]._id as Types.ObjectId; // Link the current order to the table
     await table.save({ validateBeforeSave: false, session });
 
+    // Emit the new order event to the relevant sockets
+    const socketIoOrderData = {
+      _id: order[0]._id,
+      orderNo: order[0].orderNo,
+      restaurantId: restaurant._id,
+      status: order[0].status,
+      totalAmount: order[0].totalAmount,
+      isPaid: order[0].isPaid,
+      externalPlatform: order[0].externalPlatform,
+      table: {
+        _id: table._id,
+        tableName: table.tableName,
+        qrSlug: table.qrSlug,
+        isOccupied: table.isOccupied,
+      },
+      orderedFoodItems,
+      createdAt: order[0].createdAt,
+    };
+
     // If the payment method is online, we can initiate the payment process here
     if (paymentMethod === "online") {
       const payment = await Payment.create(
@@ -231,11 +260,11 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       await session.commitTransaction();
       session.endSession();
       io?.to(`restaurant_${restaurant._id}_staff`).emit("newOrder", {
-        order: order[0],
+        order: socketIoOrderData,
         message: "A new order has been placed",
       });
       io?.to(`restaurant_${restaurant._id}_owner`).emit("newOrder", {
-        order: order[0],
+        order: socketIoOrderData,
         message: "A new order has been placed",
       });
       res
@@ -252,11 +281,11 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       await session.commitTransaction();
       session.endSession();
       io?.to(`restaurant_${restaurant._id}_staff`).emit("newOrder", {
-        order: order[0],
+        order: socketIoOrderData,
         message: "A new order has been placed",
       });
       io?.to(`restaurant_${restaurant._id}_owner`).emit("newOrder", {
-        order: order[0],
+        order: socketIoOrderData,
         message: "A new order has been placed",
       });
       res
@@ -315,7 +344,7 @@ export const getOrderById = asyncHandler(async (req, res) => {
               taxRate: 1,
               isTaxIncludedInPrice: 1,
               taxLabel: 1,
-              address: 1
+              address: 1,
             },
           },
         ],
@@ -362,11 +391,11 @@ export const getOrderById = asyncHandler(async (req, res) => {
               firstName: 1,
               lastName: 1,
               role: 1,
-              avatar: 1
+              avatar: 1,
             },
           },
         ],
-      }
+      },
     },
     {
       $unwind: {
@@ -645,35 +674,35 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
   let fromDate: Date | undefined;
   let toDate: Date | undefined;
 
-if (req.query.date === "today") {
-  fromDate = new Date();
-  fromDate.setHours(0, 0, 0, 0);
-  toDate = new Date();
-  toDate.setHours(23, 59, 59, 999);
-} else if (req.query.date === "yesterday") {
-  fromDate = new Date();
-  fromDate.setDate(fromDate.getDate() - 1);
-  fromDate.setHours(0, 0, 0, 0);
-  toDate = new Date();
-  toDate.setDate(toDate.getDate() - 1);
-  toDate.setHours(23, 59, 59, 999);
-} else if (req.query.date && typeof req.query.date === "string") {
-  // If a specific date is provided (e.g. 2025-08-15)
-  fromDate = new Date(req.query.date);
-  fromDate.setHours(0, 0, 0, 0);
-  toDate = new Date(req.query.date);
-  toDate.setHours(23, 59, 59, 999);
-} else {
-  // Standard from/to logic
-  if (req.query.from) {
-    fromDate = new Date(req.query.from as string);
+  if (req.query.date === "today") {
+    fromDate = new Date();
     fromDate.setHours(0, 0, 0, 0);
-  }
-  if (req.query.to) {
-    toDate = new Date(req.query.to as string);
+    toDate = new Date();
     toDate.setHours(23, 59, 59, 999);
+  } else if (req.query.date === "yesterday") {
+    fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 1);
+    fromDate.setHours(0, 0, 0, 0);
+    toDate = new Date();
+    toDate.setDate(toDate.getDate() - 1);
+    toDate.setHours(23, 59, 59, 999);
+  } else if (req.query.date && typeof req.query.date === "string") {
+    // If a specific date is provided (e.g. 2025-08-15)
+    fromDate = new Date(req.query.date);
+    fromDate.setHours(0, 0, 0, 0);
+    toDate = new Date(req.query.date);
+    toDate.setHours(23, 59, 59, 999);
+  } else {
+    // Standard from/to logic
+    if (req.query.from) {
+      fromDate = new Date(req.query.from as string);
+      fromDate.setHours(0, 0, 0, 0);
+    }
+    if (req.query.to) {
+      toDate = new Date(req.query.to as string);
+      toDate.setHours(23, 59, 59, 999);
+    }
   }
-}
 
   // Only add createdAt filter if at least one date is provided
   if (fromDate || toDate) {
@@ -692,7 +721,9 @@ if (req.query.date === "today") {
           { customerName: { $regex: decodedSearch, $options: "i" } },
           { customerPhone: { $regex: decodedSearch, $options: "i" } },
           { notes: { $regex: decodedSearch, $options: "i" } },
-          { orderNo: isNaN(Number(decodedSearch)) ? -1 : Number(decodedSearch) },
+          {
+            orderNo: isNaN(Number(decodedSearch)) ? -1 : Number(decodedSearch),
+          },
           {
             "foodItemDetails.foodName": {
               $regex: decodedSearch,

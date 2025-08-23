@@ -10,7 +10,7 @@ import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import QRCodeStyling from "qr-code-styling";
-import { Loader2 } from "lucide-react";
+import { Loader2, Printer } from "lucide-react";
 
 const BillReceipt = ({
   orderId,
@@ -68,27 +68,29 @@ const BillReceipt = ({
 
   useEffect(() => {
     fetchOrderDetails();
-    setQrCode(new QRCodeStyling({
-      width: 1200,
-      height: 1200,
-      data: window.location.href,
-      type: "svg",
-      margin: 40,
-      dotsOptions: {
-        color: "#000000",
-        type: "rounded",
-      },
-      backgroundOptions: {
-        color: "#ffffff",
-      },
-      imageOptions: {
-        crossOrigin: "anonymous",
-        margin: 20,
-      },
-      qrOptions: {
-        errorCorrectionLevel: "H", // High error correction for logo overlay
-      },
-    }));
+    setQrCode(
+      new QRCodeStyling({
+        width: 1200,
+        height: 1200,
+        data: window.location.href,
+        type: "svg",
+        margin: 40,
+        dotsOptions: {
+          color: "#000000",
+          type: "rounded",
+        },
+        backgroundOptions: {
+          color: "#ffffff",
+        },
+        imageOptions: {
+          crossOrigin: "anonymous",
+          margin: 20,
+        },
+        qrOptions: {
+          errorCorrectionLevel: "H", // High error correction for logo overlay
+        },
+      })
+    );
   }, [fetchOrderDetails]);
 
   useEffect(() => {
@@ -99,25 +101,46 @@ const BillReceipt = ({
     }
   }, [qrCode, qrDivRef]);
 
-
   if (isLoading) {
-    return <div className="h-screen flex items-center justify-center gap-x-2"><Loader2 className="animate-spin size-4" />Loading...</div>;
+    return (
+      <div className="h-screen flex items-center justify-center gap-x-2">
+        <Loader2 className="animate-spin size-4" />
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="h-screen flex items-center justify-center gap-x-2">Error: {error}</div>;
+    return (
+      <div className="h-screen flex items-center justify-center gap-x-2">
+        Error: {error}
+      </div>
+    );
   }
 
   if (!orderDetails) {
-    return <div className="h-screen flex items-center justify-center gap-x-2">No order details found</div>;
+    return (
+      <div className="h-screen flex items-center justify-center gap-x-2">
+        No order details found
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col items-center">
+      {/* Print Button (won't be printed) */}
+      <Button
+        onClick={handlePrint}
+        variant="outline"
+        className="my-4 print:hidden"
+      >
+        <Printer /> Print
+      </Button>
+
       {/* Printable area */}
       <div
         id="print-area"
-        className="w-[80mm] bg-white text-black p-2 font-mono text-sm"
+        className="w-[80mm] bg-white text-black p-2 pb-4 font-mono text-sm mb-2 print:mb-0"
       >
         {/* Header */}
         <div className="text-center border-b border-dashed pb-2 mb-2">
@@ -203,16 +226,18 @@ const BillReceipt = ({
           )}
 
           {orderDetails.discountAmount &&
-            orderDetails.discountAmount ===
-              orderDetails.orderedFoodItems.reduce(
-                (acc, item) => acc + (item.finalPrice - item.price),
-                0
-              ) ? (
-              <div className="flex justify-between">
-                <span>Discount</span>
-                <span>-{orderDetails.discountAmount.toFixed(2)}</span>
-              </div>
-            ) : <></>}
+          orderDetails.discountAmount ===
+            orderDetails.orderedFoodItems.reduce(
+              (acc, item) => acc + (item.finalPrice - item.price),
+              0
+            ) ? (
+            <div className="flex justify-between">
+              <span>Discount</span>
+              <span>-{orderDetails.discountAmount.toFixed(2)}</span>
+            </div>
+          ) : (
+            <></>
+          )}
 
           <div className="flex justify-between font-bold">
             <span>Total</span>
@@ -226,15 +251,13 @@ const BillReceipt = ({
           <p>Visit Again</p>
         </div>
         <div className="text-center mt-4 text-xs">
-          <div className="[&_svg]:size-28! flex justify-center" ref={qrDivRef} />
+          <div
+            className="[&_svg]:size-28! flex justify-center"
+            ref={qrDivRef}
+          />
           <p>Scan this QR code to view your bill anytime</p>
         </div>
       </div>
-
-      {/* Print Button (won't be printed) */}
-      <Button onClick={handlePrint} className="mt-4 print:hidden">
-        Print Bill
-      </Button>
     </div>
   );
 };

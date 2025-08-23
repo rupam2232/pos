@@ -3,7 +3,7 @@ import axios from "@/utils/axiosInstance";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useDispatch, useSelector, } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
@@ -49,14 +49,12 @@ import {
   AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog";
 import type { RootState, AppDispatch } from "@/store/store";
-import {
-  setActiveRestaurant,
-} from "@/store/restaurantSlice";
+import { setActiveRestaurant } from "@/store/restaurantSlice";
 
 const Page = () => {
   const { slug } = useParams<{ slug: string }>();
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
-  const [latestOrders, setLatesOrders] = useState<OrderDetails>(null);
+  const [latestOrders, setLatestOrders] = useState<OrderDetails>(null);
   const [stats, setStats] = useState<{
     newOrders: number;
     inProgressOrders: number;
@@ -96,9 +94,9 @@ const Page = () => {
         axios.get(`/restaurant/${slug}/staff-dashboard-stats`),
       ]);
       if (orderResponse.data.success) {
-        setLatesOrders(orderResponse.data.data);
+        setLatestOrders(orderResponse.data.data);
       } else {
-        setLatesOrders(null);
+        setLatestOrders(null);
         toast.error(orderResponse.data.message);
       }
 
@@ -134,11 +132,43 @@ const Page = () => {
   }, [slug, fetchDashboardStats]);
 
   useEffect(() => {
-    socket?.on("newOrder", () => {
+    socket?.on("newOrder", ({ order }) => {
       setStats((prev) => ({
         ...prev,
         newOrders: prev.newOrders + 1,
+        todayTotalOrders: prev.todayTotalOrders + 1,
       }));
+      setLatestOrders((prev) =>
+        prev
+          ? { ...prev, orders: [order, ...prev.orders] }
+          : {
+              orders: [order],
+              page: 1,
+              limit: 10,
+              totalOrders: 1,
+              totalPages: 1,
+            }
+      );
+      setAllTables((prev) =>
+        prev
+          ? {
+              ...prev,
+              tables: prev.tables.map((table) =>
+                table._id === order.table._id
+                  ? { ...table, isOccupied: true }
+                  : table
+              ),
+            }
+          : {
+              tables: [order],
+              page: 1,
+              limit: 10,
+              totalCount: 1,
+              totalPages: 1,
+              availableTables: 0,
+              occupiedTables: 1,
+            }
+      );
     });
 
     return () => {
@@ -198,7 +228,9 @@ const Page = () => {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleToggleRestaurantStatus}>Continue</AlertDialogAction>
+                <AlertDialogAction onClick={handleToggleRestaurantStatus}>
+                  Continue
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

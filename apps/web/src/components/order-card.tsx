@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
 import { BellRing, BookCheck, CheckCheck, Soup, Timer } from "lucide-react";
-import { IconReceiptOff } from "@tabler/icons-react";
+import { IconReceipt, IconReceiptOff } from "@tabler/icons-react";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
 import OrderDetails from "@/components/order-details";
@@ -37,7 +37,6 @@ import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useState } from "react";
 import { cn } from "@repo/ui/lib/utils";
-import BillReceipt from "./bill-receipt ";
 
 const OrderCard = ({
   order,
@@ -347,8 +346,21 @@ const OrderCard = ({
           >
             <Button variant="outline">See Details</Button>
           </OrderDetails>
-          <Button variant="outline" onClick={()=> window.open(`/${restaurantSlug}/bill/${order._id}`, "PRINT", "height=600,width=800")}>Print Bill</Button>
-          <Button>Pay Bills</Button>
+          {order.isPaid ? (
+            <Button
+              onClick={() =>
+                window.open(
+                  `/${restaurantSlug}/bill/${order._id}`,
+                  "PRINT",
+                  "height=600,width=800"
+                )
+              }
+            >
+             <IconReceipt/> Print Bill
+            </Button>
+          ) : (
+            <Button>Pay Bills</Button>
+          )}
         </div>
       </CardContent>
     </Card>

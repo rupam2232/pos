@@ -46,7 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
-import { IconSalad } from "@tabler/icons-react";
+import { IconReceipt, IconSalad } from "@tabler/icons-react";
 
 const OrderDetails = ({
   children,
@@ -145,6 +145,19 @@ const OrderDetails = ({
             <div className="text-red-500 text-center">{error}</div>
           ) : orderDetails ? (
             <div className="space-y-4 p-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  window.open(
+                    `/${restaurantSlug}/bill/${order._id}`,
+                    "PRINT",
+                    "height=600,width=800"
+                  )
+                }
+              >
+                <IconReceipt /> Print Bill
+              </Button>
               <div className="flex items-center justify-between text-sm font-medium">
                 <span>Table: {orderDetails.table.tableName}</span>
                 <div className="relative">
