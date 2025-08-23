@@ -11,6 +11,7 @@ import { razorpay } from "../utils/razorpay.js";
 import { Payment } from "../models/payment.model.js";
 import { startSession } from "mongoose";
 import { io } from "../socket/index.js";
+import { OrderNoCounter } from "../models/orderNoCounter.model.js";
 
 export const createOrder = asyncHandler(async (req, res, next) => {
   const session = await startSession();
@@ -157,9 +158,16 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       0
     );
 
+    const orderNoCounter = await OrderNoCounter.findOneAndUpdate(
+      { restaurantId: restaurant._id },
+      { $inc: { orderNo: 1 } },
+      { new: true, upsert: true, session }
+    );
+
     const order = await Order.create(
       [
         {
+          orderNo: orderNoCounter.orderNo,
           restaurantId: restaurant._id,
           tableId: table._id,
           foodItems,
@@ -387,6 +395,7 @@ export const getOrderById = asyncHandler(async (req, res) => {
     {
       $group: {
         _id: "$_id",
+        orderNo: { $first: "$orderNo" },
         restaurant: { $first: "$restaurant" },
         table: { $first: "$table" },
         status: { $first: "$status" },
@@ -536,6 +545,7 @@ export const getOrdersByIds = asyncHandler(async (req, res) => {
     {
       $group: {
         _id: "$_id",
+        orderNo: { $first: "$orderNo" },
         restaurantId: { $first: "$restaurantId" },
         status: { $first: "$status" },
         totalAmount: { $first: "$totalAmount" },
@@ -682,6 +692,7 @@ if (req.query.date === "today") {
           { customerName: { $regex: decodedSearch, $options: "i" } },
           { customerPhone: { $regex: decodedSearch, $options: "i" } },
           { notes: { $regex: decodedSearch, $options: "i" } },
+          { orderNo: isNaN(Number(decodedSearch)) ? -1 : Number(decodedSearch) },
           {
             "foodItemDetails.foodName": {
               $regex: decodedSearch,
@@ -699,7 +710,7 @@ if (req.query.date === "today") {
   }
 
   sortStage.statusOrder = 1;
-  sortStage._id = 1;
+  sortStage.orderNo = 1;
 
   // Main aggregation pipeline for fetching orders
   const aggregationPipeline = [
@@ -729,6 +740,7 @@ if (req.query.date === "today") {
     {
       $group: {
         _id: "$_id",
+        orderNo: { $first: "$orderNo" },
         restaurantId: { $first: "$restaurantId" },
         table: { $first: "$table" },
         status: { $first: "$status" },
@@ -929,6 +941,7 @@ export const getOrderByTable = asyncHandler(async (req, res) => {
     {
       $group: {
         _id: "$_id",
+        orderNo: { $first: "$orderNo" },
         restaurantId: { $first: "$restaurantId" },
         table: { $first: "$table" },
         status: { $first: "$status" },

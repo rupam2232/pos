@@ -1,5 +1,6 @@
 export type Order = {
   _id: string;
+  orderNo: number;
   restaurantId: string;
   status:
     | "pending"
@@ -52,6 +53,7 @@ export type OrderDetails = {
 
 export interface FullOrderDetailsType {
   _id: string;
+  orderNo: number;
   restaurant: {
     _id: string;
     restaurantName: string;

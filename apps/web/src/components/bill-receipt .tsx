@@ -95,7 +95,6 @@ const BillReceipt = ({
     if (qrCode) {
       setTimeout(() => {
         qrCode.append(qrDivRef.current!);
-        console.log(qrDivRef.current);
       }, 500);
     }
   }, [qrCode, qrDivRef]);
@@ -132,9 +131,8 @@ const BillReceipt = ({
         </div>
 
         {/* Bill Info */}
-        <div className="flex justify-between text-xs mb-2 flex-wrap">
-          {/* <span>Bill No: #1023</span> */}
-          <span>Order: #12</span>
+        <div className="flex justify-between text-xs mb-2 flex-wrap gap-2">
+          <span>Order: #{orderDetails.orderNo}</span>
           <span>
             {new Date(orderDetails.createdAt).getDate()}{" "}
             {new Date(orderDetails.createdAt).toLocaleString("default", {

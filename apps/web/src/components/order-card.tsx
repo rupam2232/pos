@@ -238,7 +238,7 @@ const OrderCard = ({
             </div>
           </div>
           <p className="text-muted-foreground text-xs mt-0.5">
-            Order #{order._id}
+            Order #{order.orderNo}
           </p>
 
           <div className="flex items-center justify-between">

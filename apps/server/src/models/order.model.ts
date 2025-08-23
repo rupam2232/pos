@@ -49,6 +49,7 @@ const foodItemSchema: Schema<FoodItem> = new Schema({
  * Represents a customer's order in the restaurant.
  */
 export interface Order extends Document {
+  orderNo: number; // Sequential order number unique per restaurant
   restaurantId: Types.ObjectId; // Reference to the Restaurant
   tableId: Types.ObjectId; // Reference to the Table
   foodItems: FoodItem[]; // Array of ordered food items
@@ -83,6 +84,12 @@ export interface Order extends Document {
  */
 const orderSchema: Schema<Order> = new Schema(
   {
+    orderNo: {
+      type: Number,
+      required: [true, "Order number is required"],
+      index: true, // Index for faster queries
+      immutable: true,
+    },
     restaurantId: {
       type: Schema.Types.ObjectId,
       ref: "Restaurant",
@@ -215,6 +222,12 @@ const orderSchema: Schema<Order> = new Schema(
     timestamps: true,
   }
 );
+
+/**
+ * Compound index to ensure all order no. are unique per restaurant id.
+ * Allows the order no. to be used by different restaurants, but only once per restaurant id.
+ */
+orderSchema.index({ restaurantId: 1, orderNo: 1 }, { unique: true});
 
 /**
  * Mongoose model for the Order schema.

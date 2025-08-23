@@ -16,7 +16,7 @@ export async function generateMetadata({
     };
   }
   return {
-    title: `${restaurant.restaurantName} | Bill - #${id}`,
+    title: `${restaurant.restaurantName} | Bill - ID:${id}`,
     description: "Your bill receipt",
     icons: [
       {

@@ -284,6 +284,7 @@ const Page = () => {
                         "text-red-500": stats.totalOrderChangePercent < 0,
                       })}
                     >
+                      {stats.totalOrderChangePercent > 0 ? "+" : ""}
                       {stats.totalOrderChangePercent.toFixed(0)}%
                     </span>
                     <span className="text-xs text-muted-foreground">

@@ -646,7 +646,7 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
 
   let totalOrderChangePercent = null;
   if (yesterdayTotal === 0 && todayTotal > 0) {
-    totalOrderChangePercent = 100;
+    totalOrderChangePercent = 100 * todayTotal;
   } else if (yesterdayTotal === 0 && todayTotal === 0) {
     totalOrderChangePercent = 0;
   } else {

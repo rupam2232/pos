@@ -218,7 +218,7 @@ const OrderDetails = ({
                 </div>
               </div>
               <p className="text-muted-foreground text-xs mt-0.5">
-                Order #{orderDetails._id}
+                Order #{orderDetails.orderNo}
               </p>
 
               <div className="flex items-center justify-between">
