@@ -34,7 +34,6 @@ const ClientPage = () => {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
   const [step, setStep] = useState<number>(1);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
   const [allTables, setAllTables] = useState<AllTables | null>(null);
   const [isTablePageLoading, setIsTablePageLoading] = useState<boolean>(true);
@@ -57,9 +56,6 @@ const ClientPage = () => {
     if (!slug) {
       console.error("Restaurant slug is required to fetch tables");
       toast.error("Restaurant slug is required to fetch tables");
-      return;
-    }
-    if (!drawerOpen) {
       return;
     }
     try {
@@ -94,7 +90,7 @@ const ClientPage = () => {
       setIsTablePageChanging(false);
       setIsTablePageLoading(false);
     }
-  }, [slug, router, dispatch, page, drawerOpen]);
+  }, [slug, router, dispatch, page]);
 
   useEffect(() => {
     fetchAllTables();
@@ -163,7 +159,7 @@ const ClientPage = () => {
         id: toastId,
       });
       clearCart();
-      setDrawerOpen(false);
+      router.back();
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       console.error(axiosError.response?.data.message || axiosError.message);

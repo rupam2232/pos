@@ -117,9 +117,10 @@ export const createOrder = asyncHandler(async (req, res, next) => {
         ...foodItems[foodItems.length - 1],
         foodName: isFoodItemValid.foodName,
         foodType: isFoodItemValid.foodType,
-        isVariantOrder: isFoodItemValid.variants.filter(
-          (variant) => variant.variantName === foodItem.variantName
-        ).length > 0,
+        isVariantOrder:
+          isFoodItemValid.variants.filter(
+            (variant) => variant.variantName === foodItem.variantName
+          ).length > 0,
       });
     }
 
@@ -185,7 +186,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
           totalAmount,
           taxAmount,
           discountAmount,
-          method: paymentMethod,
+          paymentMethod,
           status: "pending", // Default status for new orders
           isPaid: false, // Default to false
           notes,
@@ -219,6 +220,10 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       orderedFoodItems,
       createdAt: order[0].createdAt,
     };
+
+    // Calculate the size in bytes
+    // const dataSizeBytes = Buffer.byteLength(JSON.stringify(socketIoOrderData), "utf8");
+    // console.log(`Socket.IO order data size: ${dataSizeBytes} bytes (${(dataSizeBytes / 1024).toFixed(2)} KB)`);
 
     // If the payment method is online, we can initiate the payment process here
     if (paymentMethod === "online") {
@@ -1084,6 +1089,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
   // Check if the staff is the one who updated the order before
   if (
+    req.user!.role !== "owner" &&
     order.kitchenStaffId &&
     order.kitchenStaffId.toString() !== req.user!._id!.toString()
   ) {
@@ -1125,7 +1131,11 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   if (status === "completed") {
     order.isPaid = true; // Automatically mark as paid if completed
   }
-  order.kitchenStaffId = req.user._id as Types.ObjectId; // Set the kitchen staff who updated the order status
+
+  if (!order.kitchenStaffId) {
+    order.kitchenStaffId = req.user._id as Types.ObjectId; // Set the kitchen staff who updated the order status
+  }
+
   await order.save();
   // If the order is completed, update the table status
   if (status === "completed" || status === "cancelled") {
@@ -1318,4 +1328,88 @@ export const updateOrder = asyncHandler(async (req, res, next) => {
     session.endSession();
     next(error); // asyncHandler will catch and forward this error
   }
+});
+
+export const updatePaidStatus = asyncHandler(async (req, res) => {
+  if (!req.params.orderId || !req.params.restaurantSlug) {
+    throw new ApiError(400, "Order ID and restaurant slug are required");
+  }
+
+  const restaurant = await Restaurant.findOne({
+    slug: req.params.restaurantSlug,
+  });
+
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found");
+  }
+
+  if (req.user!.role === "owner") {
+    if (restaurant.ownerId.toString() !== req.user!._id!.toString()) {
+      throw new ApiError(
+        403,
+        "You are not authorized to update orders for this restaurant"
+      );
+    }
+  } else if (req.user?.role === "staff") {
+    if (
+      !restaurant.staffIds ||
+      restaurant.staffIds.length === 0 ||
+      !restaurant.staffIds.some(
+        (staff) => staff._id.toString() === req.user!._id!.toString()
+      )
+    ) {
+      throw new ApiError(
+        403,
+        "You are not authorized to update orders for this restaurant"
+      );
+    }
+  } else {
+    throw new ApiError(
+      403,
+      "You are not authorized to update orders for this restaurant"
+    );
+  }
+
+  const order = await Order.findOne({
+    _id: req.params.orderId,
+    restaurantId: restaurant._id,
+  });
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  if (order.paymentMethod !== "cash") {
+    throw new ApiError(400, "Only cash orders can be marked as paid or unpaid");
+  }
+
+  // Check if the order is already completed or cancelled
+  if (["completed", "cancelled"].includes(order.status)) {
+    throw new ApiError(
+      400,
+      "Cannot update order that is already completed or cancelled"
+    );
+  }
+
+  // If marking as unpaid, ensure order is not completed
+  if (order.isPaid && order.status === "completed") {
+    throw new ApiError(400, "Completed orders must be paid");
+  }
+
+  // If marking as paid, and order is not completed, we can allow it
+  order.isPaid = !order.isPaid;
+  if (req.body?.markCompleted && order.isPaid && order.status !== "completed") {
+    order.status = "completed"; // Automatically mark as completed if paid
+  }
+
+  if (!order.kitchenStaffId) {
+    order.kitchenStaffId = req.user!._id as Types.ObjectId; // Set the kitchen staff who updated the order status
+  }
+  await order.save();
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, order, "Order payment status updated successfully")
+    );
 });

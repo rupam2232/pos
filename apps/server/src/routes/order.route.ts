@@ -7,6 +7,7 @@ import {
   updateOrderStatus,
   updateOrder,
   getOrdersByIds,
+  updatePaidStatus,
 } from "../controllers/order.controller.js";
 import rateLimit from "express-rate-limit";
 import { ApiError } from "../utils/ApiError.js";
@@ -43,5 +44,7 @@ router.get("/:restaurantSlug", verifyAuth, getOrdersByRestaurant);
 router.get("/:restaurantSlug/table/:tableQrSlug", verifyAuth, getOrderByTable);
 
 router.patch("/:restaurantSlug/:orderId/status", verifyAuth, updateOrderStatus);
+
+router.patch("/:restaurantSlug/:orderId/paid-status", verifyAuth, updatePaidStatus);
 
 export default router;

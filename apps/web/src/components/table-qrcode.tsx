@@ -116,7 +116,7 @@ const TableQRCode = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <DialogTrigger className="w-min [&_svg]:size-6! p-5 bg-transparent hover:bg-secondary/10 text-primary border border-accent-foreground/60">
+          <DialogTrigger className="w-min [&_svg]:size-6! p-5 bg-transparent hover:bg-secondary/10 border border-accent-foreground/60">
             <IconQrcode />
           </DialogTrigger>
         </TooltipTrigger>
@@ -138,8 +138,7 @@ const TableQRCode = ({
                 draggable={false}
               />
             ) : (
-              <div className="w-[300px] h-[385px] animate-pulse bg-gray-200 mx-auto">
-              </div>
+              <div className="w-[300px] h-[385px] animate-pulse bg-gray-200 mx-auto"></div>
             )}
             <Button onClick={onButtonClick} className="w-2/3 mx-auto">
               Download

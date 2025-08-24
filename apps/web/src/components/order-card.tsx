@@ -1,6 +1,6 @@
 import type {
   Order,
-  // OrderDetails as OrderDetailsType,
+  OrderDetails as OrderDetailsType,
 } from "@repo/ui/types/Order";
 import { Badge } from "@repo/ui/components/badge";
 import {
@@ -17,7 +17,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@repo/ui/components/tooltip";
-import { BellRing, BookCheck, CheckCheck, Soup, Timer } from "lucide-react";
+import {
+  BellRing,
+  BookCheck,
+  CheckCheck,
+  Loader2,
+  Soup,
+  Timer,
+} from "lucide-react";
 import { IconReceipt, IconReceiptOff } from "@tabler/icons-react";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
@@ -43,17 +50,18 @@ const OrderCard = ({
   restaurantSlug,
   ref,
   className,
-  // setOrders,
+  setOrders,
 }: {
   order: Order;
   restaurantSlug: string;
   ref?: React.Ref<HTMLDivElement>;
   className?: string;
-  // setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
+  setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
 }) => {
   const dispatch = useDispatch();
   const router = useRouter();
   const [status, setStatus] = useState(order.status);
+  const [isBtnLoading, setIsBtnLoading] = useState(false);
 
   const orderStatusIcons = [
     {
@@ -148,6 +156,46 @@ const OrderCard = ({
       }
     } finally {
       // setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePaidStatus = async () => {
+    setIsBtnLoading(true);
+    try {
+      const response = await axios.patch(
+        `/order/${restaurantSlug}/${order._id}/paid-status`
+      );
+
+      if (!response.data || !response.data.data) {
+        console.error("Invalid response data:", response.data);
+        toast.error(
+          "Failed to update order paid status. Please try again later"
+        );
+        return;
+      }
+      setOrders((prev) =>
+        prev
+          ? {
+              ...prev,
+              orders: prev.orders.map((o) =>
+                o._id === order._id ? { ...o, ...response.data.data } : o
+              ),
+            }
+          : null
+      );
+      toast.success(`Order payment status updated successfully`);
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "Failed to fetch un paid orders. Please try again later"
+      );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push(`/signin?redirect=${window.location.pathname}`);
+      }
+    } finally {
+      setIsBtnLoading(false);
     }
   };
 
@@ -356,10 +404,19 @@ const OrderCard = ({
                 )
               }
             >
-             <IconReceipt/> Print Bill
+              <IconReceipt /> Print Bill
             </Button>
           ) : (
-            <Button>Pay Bills</Button>
+            <Button onClick={handleUpdatePaidStatus} disabled={isBtnLoading}>
+              {isBtnLoading ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                "Mark as Paid"
+              )}
+            </Button>
           )}
         </div>
       </CardContent>

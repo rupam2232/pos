@@ -61,6 +61,7 @@ const Page = () => {
     occupiedTables: number;
     freeTables: number;
     todayTotalOrders: number;
+    yesterdayTotalOrders: number;
     totalOrderChangePercent: number;
     unPaidCompletedOrders: number;
     readyOrders: number;
@@ -70,6 +71,7 @@ const Page = () => {
     occupiedTables: 0,
     freeTables: 0,
     todayTotalOrders: 0,
+    yesterdayTotalOrders: 0,
     totalOrderChangePercent: 0,
     unPaidCompletedOrders: 0,
     readyOrders: 0,
@@ -132,49 +134,14 @@ const Page = () => {
   }, [slug, fetchDashboardStats]);
 
   useEffect(() => {
-    socket?.on("newOrder", ({ order }) => {
-      setStats((prev) => ({
-        ...prev,
-        newOrders: prev.newOrders + 1,
-        todayTotalOrders: prev.todayTotalOrders + 1,
-      }));
-      setLatestOrders((prev) =>
-        prev
-          ? { ...prev, orders: [order, ...prev.orders] }
-          : {
-              orders: [order],
-              page: 1,
-              limit: 10,
-              totalOrders: 1,
-              totalPages: 1,
-            }
-      );
-      setAllTables((prev) =>
-        prev
-          ? {
-              ...prev,
-              tables: prev.tables.map((table) =>
-                table._id === order.table._id
-                  ? { ...table, isOccupied: true }
-                  : table
-              ),
-            }
-          : {
-              tables: [order],
-              page: 1,
-              limit: 10,
-              totalCount: 1,
-              totalPages: 1,
-              availableTables: 0,
-              occupiedTables: 1,
-            }
-      );
+    socket?.on("newOrder", () => {
+      router.refresh();
     });
 
     return () => {
       socket?.off("newOrder");
     };
-  }, [socket]);
+  }, [socket, router]);
 
   const handleToggleRestaurantStatus = async () => {
     try {
@@ -540,6 +507,7 @@ const Page = () => {
                         <OrderCard
                           key={order._id}
                           order={order}
+                          setOrders={setLatestOrders}
                           restaurantSlug={slug}
                           className="hover:scale-100"
                         />

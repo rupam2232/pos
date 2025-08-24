@@ -173,6 +173,7 @@ const Page = () => {
       });
       clearCart();
       setDrawerOpen(false);
+      router.back();
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       console.error(axiosError.response?.data.message || axiosError.message);

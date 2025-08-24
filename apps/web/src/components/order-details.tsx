@@ -407,16 +407,37 @@ const OrderDetails = ({
                 </ScrollArea>
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium mb-2">Order Note</h3>
-                <p
-                  className={`bg-muted px-3 py-1 rounded-md ${!orderDetails.notes ? "text-xs text-muted-foreground" : "text-sm"}`}
-                >
-                  {orderDetails.notes ?? "No special instructions provided"}
-                </p>
-              </div>
-
               <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Order Note</h3>
+                  <p
+                    className={`bg-muted px-3 py-1 rounded-md ${!orderDetails.notes ? "text-xs text-muted-foreground" : "text-sm"}`}
+                  >
+                    {orderDetails.notes || "No special instructions provided"}
+                  </p>
+                </div>
+                {/* Customer Info */}
+                {orderDetails.kitchenStaff && (
+                  <div>
+                    <div className="mb-1">
+                      <h3 className="text-sm font-medium">Managed By</h3>
+                      <p className="text-muted-foreground text-[11px]">
+                        The first staff to update this order becomes its
+                        manager. Only that staff member can manage this order.
+                        Except the owner, who can manage all orders.
+                      </p>
+                    </div>
+                    <div className="bg-muted rounded-md p-3 space-y-1 text-sm">
+                      <p>
+                        <span className="font-medium">Name: </span>
+                        {orderDetails.kitchenStaff.firstName}{" "}
+                        {orderDetails.kitchenStaff.lastName} (
+                        {orderDetails.kitchenStaff.role})
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Customer Info */}
                 {orderDetails.customerName && (
                   <div>
@@ -468,7 +489,7 @@ const OrderDetails = ({
                 )}
 
                 {/* Payment Attempts */}
-                <div>
+                {/* <div>
                   <h3 className="text-sm font-medium mb-1">Payment Attempts</h3>
                   <div
                     className={`bg-muted px-3 py-1 rounded-md ${orderDetails.paymentAttempts.length === 0 ? "text-xs text-muted-foreground" : "text-sm"}`}
@@ -478,7 +499,6 @@ const OrderDetails = ({
                         {orderDetails.paymentAttempts.map((attempt, index) => (
                           <li key={index}>
                             {JSON.stringify(attempt)}{" "}
-                            {/* You can format if structure is known */}
                           </li>
                         ))}
                       </ul>
@@ -486,7 +506,7 @@ const OrderDetails = ({
                       <p>No payment attempts recorded</p>
                     )}
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           ) : (
@@ -498,7 +518,7 @@ const OrderDetails = ({
             <DialogClose asChild>
               <Button variant="outline">Close</Button>
             </DialogClose>
-            <Button type="submit">Save changes</Button>
+            {/* <Button type="submit">Save changes</Button> */}
           </DialogFooter>
         </ScrollArea>
       </DialogContent>

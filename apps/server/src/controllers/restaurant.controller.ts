@@ -662,6 +662,7 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
         occupiedTables: tableStats[0]?.occupiedTableCount || 0,
         freeTables: tableStats[0]?.freeTableCount || 0,
         todayTotalOrders: todayTotal,
+        yesterdayTotalOrders: yesterdayTotal,
         totalOrderChangePercent,
         unPaidCompletedOrders: unPaidCompletedOrders[0]?.total || 0,
         readyOrders: readyOrders[0]?.total || 0
