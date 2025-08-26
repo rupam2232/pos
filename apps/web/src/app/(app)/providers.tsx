@@ -52,7 +52,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         }
       >
         <AppSidebar variant="inset" />
-        <SidebarInset>
+        <SidebarInset className="mt-0!">
           <SiteHeader />
           {children}
         </SidebarInset>

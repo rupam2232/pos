@@ -547,14 +547,14 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
     Order.countDocuments({
       restaurantId: restaurant._id,
       status: "pending",
-      createdAt: { $gte: start, $lte: end },
+      // createdAt: { $gte: start, $lte: end },
     }),
     Order.aggregate([
       {
         $match: {
           restaurantId: restaurant._id,
           status: "preparing",
-          createdAt: { $gte: start, $lte: end },
+          // createdAt: { $gte: start, $lte: end },
         },
       },
       {

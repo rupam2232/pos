@@ -250,7 +250,7 @@ export default function SelectTable() {
                       : null
                   }
                   className={cn(
-                    "rounded-md ring-3 ring-transparent cursor-pointer transition-all duration-200 relative hover:ring-primary",
+                    "rounded-md ring-3 ring-transparent cursor-pointer transition-all duration-200 relative hover:ring-primary p-0.5",
                     isSelected && "text-white ring-primary"
                   )}
                   onClick={() => handleTableSelect(table)}

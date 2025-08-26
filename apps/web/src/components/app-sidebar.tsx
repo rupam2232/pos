@@ -3,12 +3,10 @@
 import * as React from "react";
 import {
   IconCamera,
-  // IconChartBar,
   IconDatabase,
   IconFileAi,
   IconFileDescription,
   IconFileWord,
-  // IconFolder,
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
@@ -18,8 +16,8 @@ import {
   IconSettings,
   IconTable,
   IconToolsKitchen,
-  // IconUsers,
-  IconCash,
+  IconLayoutDashboard,
+  IconChartBar,
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -167,7 +165,7 @@ if (isRestaurantPage) {
     {
       title: "Dashboard",
       url: `/restaurant/${restaurantSlug}/dashboard`,
-      icon: IconListDetails,
+      icon: IconLayoutDashboard,
     },
     {
       title: "Orders",
@@ -185,15 +183,15 @@ if (isRestaurantPage) {
       icon: IconToolsKitchen,
     },
     {
-      title: "Billing",
-      url: `/restaurant/${restaurantSlug}/billing`,
-      icon: IconDatabase,
+      title: "Owner Dashboard",
+      url: `/restaurant/${restaurantSlug}/owner-dashboard`,
+      icon: IconChartBar,
     },
     {
-      title: "Payments",
-      url: `/restaurant/${restaurantSlug}/payments`,
-      icon: IconCash,
-    },
+      title: "Settings",
+      url: `/restaurant/${restaurantSlug}/settings`,
+      icon: IconSettings,
+    }
   ];
 
   return (

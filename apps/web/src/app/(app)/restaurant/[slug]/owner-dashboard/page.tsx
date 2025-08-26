@@ -16,8 +16,8 @@ export async function generateMetadata({
     };
   }
   return {
-    title: `Dashboard | ${restaurant.restaurantName} - ${process.env.NEXT_PUBLIC_APP_NAME}`,
-    description: `Manage your restaurant's dashboard.`,
+    title: `Owner Dashboard | ${restaurant.restaurantName} - ${process.env.NEXT_PUBLIC_APP_NAME}`,
+    description: `Manage your restaurant's owner dashboard.`,
   };
 }
 

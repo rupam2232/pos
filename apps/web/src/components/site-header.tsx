@@ -1,7 +1,7 @@
 "use client";
 import { Separator } from "@repo/ui/components/separator";
 import { SidebarTrigger } from "@repo/ui/components/sidebar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ToggleTheme from "./toggle-Theme";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -10,6 +10,7 @@ import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 
 export function SiteHeader() {
   const [currentTime, setCurrentTime] = useState<null | Date>(null);
+  const pageTitle = useRef<string>("");
   const pathname = usePathname();
   const activeRestaurant = useSelector(
     (state: RootState) => state.restaurantsSlice.activeRestaurant
@@ -21,11 +22,24 @@ export function SiteHeader() {
   };
 
   useEffect(() => {
-    setInterval(updateTime, 1000);
+    const intervalId = setInterval(updateTime, 1000);
+    return () => clearInterval(intervalId);
   }, []);
 
+  useEffect(() => {
+    (() => {
+      const segment = pathname?.slice(1).split("/")[2];
+      pageTitle.current = segment
+        ? segment
+            .split("-")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ")
+        : "";
+    })();
+  }, [pathname]);
+
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) sticky top-0 z-10 px-1 backdrop-blur-sm bg-background/70">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <SidebarTrigger className="-ml-1" />
         <Separator
@@ -54,12 +68,7 @@ export function SiteHeader() {
                 className="mx-2 data-[orientation=vertical]:h-5 bg-zinc-400"
               />
               <span>
-                {(() => {
-                  const segment = pathname?.slice(1).split("/")[2];
-                  return segment
-                    ? segment.charAt(0).toUpperCase() + segment.slice(1)
-                    : "";
-                })()}
+                {pageTitle.current}
               </span>
             </div>
             {activeRestaurant?.isCurrentlyOpen ? (
