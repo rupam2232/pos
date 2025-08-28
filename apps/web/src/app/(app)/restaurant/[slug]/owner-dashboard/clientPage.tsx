@@ -14,26 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
-import { Button } from "@repo/ui/components/button";
-import {
-  Timer,
-  Wallet,
-  BellRing,
-  TrendingUp,
-  TrendingDown,
-  LineChart,
-  Plus,
-  CheckCheck,
-} from "lucide-react";
+import { Timer, BellRing, Loader2 } from "lucide-react";
 import { IconReceipt, IconTable } from "@tabler/icons-react";
 import { useSocket } from "@/context/SocketContext";
-import { OrderDetails } from "@repo/ui/types/Order";
-import { Skeleton } from "@repo/ui/components/skeleton";
-import OrderCard from "@/components/order-card";
-import { cn } from "@repo/ui/lib/utils";
-import { AllTables } from "@repo/ui/types/Table";
-import Link from "next/link";
-import { ScrollArea } from "@repo/ui/components/scroll-area";
 import { Switch } from "@repo/ui/components/switch";
 import { Label } from "@repo/ui/components/label";
 import {
@@ -49,36 +32,17 @@ import {
 } from "@repo/ui/components/alert-dialog";
 import type { RootState, AppDispatch } from "@/store/store";
 import { setActiveRestaurant } from "@/store/restaurantSlice";
+import { OwnerDashboardStats } from "@repo/ui/types/Stats";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 
 const ClientPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
-  const [latestOrders, setLatestOrders] = useState<OrderDetails>(null);
-  const [stats, setStats] = useState<{
-    newOrders: number;
-    inProgressOrders: number;
-    occupiedTables: number;
-    freeTables: number;
-    todayTotalOrders: number;
-    yesterdayTotalOrders: number;
-    totalOrderChangePercent: number;
-    unPaidCompletedOrders: number;
-    readyOrders: number;
-  }>({
-    newOrders: 0,
-    inProgressOrders: 0,
-    occupiedTables: 0,
-    freeTables: 0,
-    todayTotalOrders: 0,
-    yesterdayTotalOrders: 0,
-    totalOrderChangePercent: 0,
-    unPaidCompletedOrders: 0,
-    readyOrders: 0,
-  });
+  const [stats, setStats] = useState<OwnerDashboardStats>();
+
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const socket = useSocket();
-  const [allTables, setAllTables] = useState<AllTables | null>(null);
   const [isRestaurantCurrentlyOpen, setIsRestaurantCurrentlyOpen] = useState(
     useSelector(
       (state: RootState) =>
@@ -90,25 +54,15 @@ const ClientPage = () => {
   const fetchDashboardStats = useCallback(async () => {
     try {
       setIsPageLoading(true);
-      const [orderResponse, statsResponse] = await Promise.all([
-        axios.get(`/order/${slug}`),
-        axios.get(`/restaurant/${slug}/staff-dashboard-stats`),
-      ]);
-      if (orderResponse.data.success) {
-        setLatestOrders(orderResponse.data.data);
-      } else {
-        setLatestOrders(null);
-        toast.error(orderResponse.data.message);
-      }
+      const statsResponse = await axios.get(
+        `/restaurant/${slug}/owner-dashboard-stats`
+      );
 
       if (statsResponse.data.success) {
         setStats(statsResponse.data.data);
       } else {
         toast.error(statsResponse.data.message);
       }
-
-      const tableResponse = await axios.get(`/table/${slug}`);
-      setAllTables(tableResponse.data.data);
     } catch (error) {
       console.error(
         "Failed to fetch dashboard stats. Please try again later:",
@@ -121,7 +75,9 @@ const ClientPage = () => {
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
-        router.push("/signin");
+        router.push(
+          "/signin?redirect=/restaurant/" + slug + "/owner-dashboard"
+        );
       }
     } finally {
       setIsPageLoading(false);
@@ -161,8 +117,22 @@ const ClientPage = () => {
         axiosError.response?.data.message ||
           "Failed to toggle restaurant status. Please try again later"
       );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push(
+          "/signin?redirect=/restaurant/" + slug + "/owner-dashboard"
+        );
+      }
     }
   };
+
+  if (isPageLoading) {
+    return (
+      <div className="h-[95vh] flex items-center justify-center">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -202,27 +172,23 @@ const ClientPage = () => {
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Link href={`/restaurant/${slug}/dashboard/new-order`}>
-            <Button>
-              <Plus />
-              Create New Order
-            </Button>
-          </Link>
         </div>
         <div className="flex flex-col gap-4 md:gap-6 p-4 pt-2! lg:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  New Orders
+                  Total Sales
                 </CardTitle>
                 <BellRing className="size-4" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-bold">{stats.newOrders}</h3>
+                  <h3 className="text-2xl font-bold">
+                    {stats?.kpis.totalSales.value}
+                  </h3>
                   <p className="text-xs text-muted-foreground">
-                    *Updates in real-time
+                    {stats?.kpis.totalSales.description}
                   </p>
                 </div>
               </CardContent>
@@ -231,17 +197,17 @@ const ClientPage = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  In Progress
+                  Total Completed Orders
                 </CardTitle>
                 <Timer className="size-4" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    {stats.inProgressOrders}
+                    {stats?.kpis.totalCompletedOrders.value}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    *Orders that are in preparing status
+                    {stats?.kpis.totalCompletedOrders.description}
                   </p>
                 </div>
               </CardContent>
@@ -250,15 +216,17 @@ const ClientPage = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Occupied Tables
+                  Average Order Value
                 </CardTitle>
                 <IconTable className="size-4" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-bold">{stats.occupiedTables}</h3>
+                  <h3 className="text-2xl font-bold">
+                    {stats?.kpis.avgOrderValue.value}
+                  </h3>
                   <p className="text-xs text-muted-foreground">
-                    {stats.freeTables} Tables Available
+                    {stats?.kpis.avgOrderValue.description}
                   </p>
                 </div>
               </CardContent>
@@ -267,36 +235,18 @@ const ClientPage = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Today&apos;s Total Orders
+                  Unpaid Orders
                 </CardTitle>
                 <IconReceipt className="size-4" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    {stats.todayTotalOrders}
+                    {stats?.kpis.unpaidOrders.value}
                   </h3>
-                  <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                    {stats.totalOrderChangePercent > 0 ? (
-                      <TrendingUp className="inline size-4 text-green-500" />
-                    ) : stats.totalOrderChangePercent < 0 ? (
-                      <TrendingDown className="inline size-4 text-red-500" />
-                    ) : (
-                      <LineChart className="inline size-4" />
-                    )}
-                    <span
-                      className={cn("text-xs", {
-                        "text-green-500": stats.totalOrderChangePercent > 0,
-                        "text-red-500": stats.totalOrderChangePercent < 0,
-                      })}
-                    >
-                      {stats.totalOrderChangePercent > 0 ? "+" : ""}
-                      {stats.totalOrderChangePercent.toFixed(0)}%
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      vs yesterday
-                    </span>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {stats?.kpis.unpaidOrders.description}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -304,218 +254,9 @@ const ClientPage = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-4">
-
-              <Card>
-                <CardHeader className="flex items-center justify-between pb-2">
-                  <CardTitle className="text-sm text-muted-foreground">
-                    Ready to Serve
-                  </CardTitle>
-                  <CheckCheck className="size-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold">
-                        {stats.readyOrders}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Orders ready and awaiting service
-                      </p>
-                    </div>
-                    <Link href={`/restaurant/${slug}/orders`}>
-                      <Button size="sm">View</Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex items-center justify-between pb-2">
-                  <CardTitle className="text-sm text-muted-foreground">
-                    Pending Payments
-                  </CardTitle>
-                  <Wallet className="size-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold">
-                        {stats.unPaidCompletedOrders}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Orders completed but not paid
-                      </p>
-                    </div>
-                    <Button size="sm" variant="outline">
-                      Settle
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* <Card>
-                  <CardHeader className="flex items-center justify-between pb-2">
-                    <CardTitle className="text-sm text-muted-foreground">
-                      Avg Preparation
-                    </CardTitle>
-                    <Clock className="size-4" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-2xl font-bold">
-                          {demoAvgPrepMinutes} min
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Average prep time (today)
-                        </p>
-                      </div>
-                      <Button size="sm" variant="ghost">
-                        Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card> */}
-
-              {/* <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm">
-                    {demoRecentActivity.map((act) => (
-                      <li
-                        key={act.id}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Activity className="size-4 text-muted-foreground" />
-                          <span>{act.text}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {act.time}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card> */}
-
-              <Card>
-                <CardHeader className="flex items-center justify-between text-muted-foreground text-sm">
-                  <CardTitle>Table Map</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                      <span>
-                        Available: {allTables ? allTables.availableTables : 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                      <span>
-                        Occupied: {allTables ? allTables.occupiedTables : 0}
-                      </span>
-                    </div>
-                  </div>
-                  {allTables?.totalPages && allTables?.totalPages > 1 && (
-                    <Link
-                      href={`/restaurant/${slug}/tables`}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      View all tables
-                    </Link>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {allTables?.tables.map((t) => (
-                      <div
-                        key={t._id}
-                        className={cn(
-                          "rounded-md p-3 flex flex-col items-center justify-center text-sm truncate",
-                          t.isOccupied
-                            ? "bg-red-50 text-red-700 border border-red-100"
-                            : "bg-green-50 text-green-700 border border-green-100"
-                        )}
-                      >
-                        <h3 className="font-medium">{t.tableName}</h3>
-                        <div className="text-xs">
-                          {t.isOccupied ? "Occupied" : "Available"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {quickActions.map((a) => {
-                      const Icon = a.icon as any;
-                      return (
-                        <Button key={a.id} size="sm" variant="outline">
-                          <Icon className="size-4 mr-2 inline" />
-                          {a.label}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card> */}
+              <ChartAreaInteractive />
             </div>
-
-            <Card>
-              <CardHeader className="flex items-center justify-between">
-                <CardTitle className="text-sm text-muted-foreground">
-                  Latest Orders
-                </CardTitle>
-                {latestOrders && latestOrders.totalPages > 1 && (
-                  <Link
-                    href={`/restaurant/${slug}/orders`}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    View all orders
-                  </Link>
-                )}
-              </CardHeader>
-              <CardContent>
-                {isPageLoading ? (
-                  <ScrollArea className="h-auto lg:h-[calc(100vh-140px)]">
-                    <div className="space-y-2">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Skeleton
-                          key={i + Math.random()}
-                          className="h-80 w-full rounded-xl"
-                        />
-                      ))}
-                    </div>
-                  </ScrollArea>
-                ) : latestOrders && latestOrders.orders.length > 0 ? (
-                  <ScrollArea className="h-auto lg:h-[calc(100vh-140px)]">
-                    <div className="space-y-2">
-                      {latestOrders?.orders.map((order) => (
-                        <OrderCard
-                          key={order._id}
-                          order={order}
-                          setOrders={setLatestOrders}
-                          restaurantSlug={slug}
-                          className="hover:scale-100"
-                        />
-                      ))}
-                    </div>
-                  </ScrollArea>
-                ) : (
-                  <div className="flex justify-between items-center">
-                    <span>No orders found</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ChartAreaInteractive />
           </div>
         </div>
       </div>

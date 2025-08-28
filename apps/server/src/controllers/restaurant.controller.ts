@@ -227,7 +227,10 @@ export const toggleRestaurantOpenStatus = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only owners can toggle restaurant status.");
   }
 
-  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id }).select(
+  const restaurant = await Restaurant.findOne({
+    slug,
+    ownerId: req.user!._id,
+  }).select(
     "_id restaurantName slug description address logoUrl isCurrentlyOpen"
   );
 
@@ -268,7 +271,10 @@ export const addRestaurantCategory = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only owners can create restaurant categories");
   }
 
-  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id }).select(
+  const restaurant = await Restaurant.findOne({
+    slug,
+    ownerId: req.user!._id,
+  }).select(
     "_id restaurantName slug description address logoUrl isCurrentlyOpen categories"
   );
 
@@ -464,7 +470,10 @@ export const updateRestaurantLogo = asyncHandler(async (req, res) => {
   }
 
   // Check if the restaurant exists and the user is the owner
-  const restaurant = await Restaurant.findOne({ slug, ownerId: req.user!._id }).select(
+  const restaurant = await Restaurant.findOne({
+    slug,
+    ownerId: req.user!._id,
+  }).select(
     "_id restaurantName slug description address logoUrl isCurrentlyOpen categories"
   );
   if (!restaurant) {
@@ -542,7 +551,7 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
     todayTotalOrders,
     yesterdayTotalOrdersAgg,
     unPaidCompletedOrders,
-    readyOrders
+    readyOrders,
   ] = await Promise.all([
     Order.countDocuments({
       restaurantId: restaurant._id,
@@ -650,7 +659,8 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
   } else if (yesterdayTotal === 0 && todayTotal === 0) {
     totalOrderChangePercent = 0;
   } else {
-    totalOrderChangePercent = ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
+    totalOrderChangePercent =
+      ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
   }
 
   res.status(200).json(
@@ -665,9 +675,236 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
         yesterdayTotalOrders: yesterdayTotal,
         totalOrderChangePercent,
         unPaidCompletedOrders: unPaidCompletedOrders[0]?.total || 0,
-        readyOrders: readyOrders[0]?.total || 0
+        readyOrders: readyOrders[0]?.total || 0,
       },
       "Dashboard stats retrieved successfully"
+    )
+  );
+});
+
+export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
+  if (!req.params || !req.params.slug) {
+    throw new ApiError(400, "Restaurant slug is required");
+  }
+  const { slug } = req.params;
+
+  if (req.user!.role !== "owner") {
+    throw new ApiError(403, "You are not authorized to access this resource");
+  }
+
+  // Find restaurant and check owner
+  const restaurant = await Restaurant.findOne({ slug });
+  if (!restaurant) throw new ApiError(404, "Restaurant not found");
+  if (restaurant.ownerId.toString() !== req.user!._id!.toString()) {
+    throw new ApiError(403, "You are not the owner of this restaurant");
+  }
+
+  // Date helpers
+  const now = new Date();
+  // const startOfToday = new Date(
+  //   now.getFullYear(),
+  //   now.getMonth(),
+  //   now.getDate()
+  // );
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  // 1. Total sales (all time, this month, last month)
+  const [allTimeSales, thisMonthSales, lastMonthSales] = await Promise.all([
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          status: "completed",
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    ]),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          status: "completed",
+          createdAt: { $gte: startOfMonth },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    ]),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          status: "completed",
+          createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    ]),
+  ]);
+
+  // 2. Total completed orders (all time, this month, last month)
+  const [allTimeCompletedOrders, thisMonthCompletedOrders, lastMonthCompletedOrders] = await Promise.all([
+  Order.countDocuments({ restaurantId: restaurant._id, status: "completed" }),
+  Order.countDocuments({ restaurantId: restaurant._id, status: "completed", createdAt: { $gte: startOfMonth } }),
+  Order.countDocuments({ restaurantId: restaurant._id, status: "completed", createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+]);
+
+// 3. Total cancelled orders (all time, this month, last month)
+// const [allTimeCancelledOrders, thisMonthCancelledOrders, lastMonthCancelledOrders] = await Promise.all([
+//   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled" }),
+//   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled", createdAt: { $gte: startOfMonth } }),
+//   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled", createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+// ]);
+
+  // 3. Sales trend (last 30 days)
+  const salesTrend = await Order.aggregate([
+    {
+      $match: {
+        restaurantId: restaurant._id,
+        status: { $in: ["completed", "served"] },
+        createdAt: { $gte: new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000) },
+      },
+    },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+        total: { $sum: "$totalAmount" },
+        orders: { $sum: 1 },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  // 4. Top 5 most ordered food items (by quantity)
+  const topFoodItems = await Order.aggregate([
+    { $match: { restaurantId: restaurant._id } },
+    { $unwind: "$foodItems" },
+    {
+      $group: {
+        _id: "$foodItems.foodItemId",
+        count: { $sum: "$foodItems.quantity" },
+      },
+    },
+    { $sort: { count: -1 } },
+    { $limit: 5 },
+    {
+      $lookup: {
+        from: "fooditems",
+        localField: "_id",
+        foreignField: "_id",
+        as: "foodItem",
+      },
+    },
+    { $unwind: "$foodItem" },
+    { $project: { _id: 0, name: "$foodItem.foodName", count: 1 } },
+  ]);
+
+  // 5. Top 5 most used tables
+  const topTables = await Order.aggregate([
+    {
+      $match: {
+        restaurantId: restaurant._id,
+        tableId: { $exists: true, $ne: null },
+      },
+    },
+    { $group: { _id: "$tableId", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: 5 },
+    {
+      $lookup: {
+        from: "tables",
+        localField: "_id",
+        foreignField: "_id",
+        as: "table",
+      },
+    },
+    { $unwind: "$table" },
+    { $project: { _id: 0, name: "$table.tableName", count: 1 } },
+  ]);
+
+  // 6. Payment method breakdown
+  const paymentBreakdown = await Order.aggregate([
+    {
+      $match: {
+        restaurantId: restaurant._id,
+        status: { $in: ["completed", "served"] },
+      },
+    },
+    {
+      $group: {
+        _id: "$paymentMethod",
+        count: { $sum: 1 },
+        total: { $sum: "$totalAmount" },
+      },
+    },
+  ]);
+
+  // 7. Average order value (this month)
+  const avgOrderValue = thisMonthCompletedOrders
+    ? (thisMonthSales[0]?.total || 0) / thisMonthCompletedOrders
+    : 0;
+
+  // 8. Unpaid/outstanding orders
+  const unpaidOrders = await Order.countDocuments({
+    restaurantId: restaurant._id,
+    status: "completed",
+    isPaid: false,
+  });
+
+  // 9. Recent orders
+  // const recentOrders = await Order.find({ restaurantId: restaurant._id })
+  //   .sort({ createdAt: -1 })
+  //   .limit(5)
+  //   .select("orderNo totalAmount status createdAt customerName");
+
+  // 10. Percentage changes
+  const salesChangePercent =
+    lastMonthSales[0]?.total && lastMonthSales[0].total !== 0
+      ? (((thisMonthSales[0]?.total || 0) - lastMonthSales[0].total) /
+          lastMonthSales[0].total) *
+        100
+      : null;
+  const completedOrdersChangePercent =
+    lastMonthCompletedOrders && lastMonthCompletedOrders !== 0
+      ? ((thisMonthCompletedOrders - lastMonthCompletedOrders) / lastMonthCompletedOrders) * 100
+      : null;
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        kpis: {
+          totalSales: {
+            value: allTimeSales[0]?.total || 0,
+            description:
+              salesChangePercent !== null
+                ? `${salesChangePercent > 0 ? "+" : ""}${salesChangePercent.toFixed(1)}% from last month`
+                : "No data for last month",
+          },
+          totalCompletedOrders: {
+            value: allTimeCompletedOrders,
+            description:
+              completedOrdersChangePercent !== null
+                ? `${completedOrdersChangePercent > 0 ? "+" : ""}${completedOrdersChangePercent.toFixed(1)}% from last month`
+                : "No data for last month",
+          },
+          avgOrderValue: {
+            value: avgOrderValue,
+            description: "This month",
+          },
+          unpaidOrders: {
+            value: unpaidOrders,
+            description: "Unpaid completed orders",
+          },
+        },
+        salesTrend,
+        topFoodItems,
+        topTables,
+        paymentBreakdown,
+        // recentOrders,
+      },
+      "Owner dashboard stats retrieved successfully"
     )
   );
 });

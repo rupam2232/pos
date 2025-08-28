@@ -49,22 +49,13 @@ import {
 } from "@repo/ui/components/alert-dialog";
 import type { RootState, AppDispatch } from "@/store/store";
 import { setActiveRestaurant } from "@/store/restaurantSlice";
+import type { StaffDashboardStats } from "@repo/ui/types/Stats";
 
 const ClientPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
   const [latestOrders, setLatestOrders] = useState<OrderDetails>(null);
-  const [stats, setStats] = useState<{
-    newOrders: number;
-    inProgressOrders: number;
-    occupiedTables: number;
-    freeTables: number;
-    todayTotalOrders: number;
-    yesterdayTotalOrders: number;
-    totalOrderChangePercent: number;
-    unPaidCompletedOrders: number;
-    readyOrders: number;
-  }>({
+  const [stats, setStats] = useState<StaffDashboardStats>({
     newOrders: 0,
     inProgressOrders: 0,
     occupiedTables: 0,
@@ -121,7 +112,7 @@ const ClientPage = () => {
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
-        router.push("/signin");
+        router.push("/signin?redirect=/restaurant/" + slug + "/dashboard");
       }
     } finally {
       setIsPageLoading(false);
@@ -161,6 +152,10 @@ const ClientPage = () => {
         axiosError.response?.data.message ||
           "Failed to toggle restaurant status. Please try again later"
       );
+      if (axiosError.response?.status === 401) {
+        dispatch(signOut());
+        router.push("/signin?redirect=/restaurant/" + slug + "/dashboard");
+      }
     }
   };
 
@@ -304,7 +299,6 @@ const ClientPage = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-4">
-
               <Card>
                 <CardHeader className="flex items-center justify-between pb-2">
                   <CardTitle className="text-sm text-muted-foreground">
