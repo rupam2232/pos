@@ -185,7 +185,7 @@ const ClientPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    {stats?.kpis.totalSales.value}
+                    ₹{stats?.kpis.totalSales.value}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {stats?.kpis.totalSales.description}
@@ -223,7 +223,7 @@ const ClientPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    {stats?.kpis.avgOrderValue.value}
+                    ₹{stats?.kpis.avgOrderValue.value}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {stats?.kpis.avgOrderValue.description}
@@ -254,7 +254,7 @@ const ClientPage = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-4">
-              <ChartAreaInteractive />
+              <ChartAreaInteractive data={stats?.salesTrend} />
             </div>
             <ChartAreaInteractive />
           </div>

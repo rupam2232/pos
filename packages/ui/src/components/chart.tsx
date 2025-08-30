@@ -118,6 +118,7 @@ function ChartTooltipContent({
   color,
   nameKey,
   labelKey,
+  extraNameKey
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
   React.ComponentProps<"div"> & {
     hideLabel?: boolean
@@ -125,6 +126,7 @@ function ChartTooltipContent({
     indicator?: "line" | "dot" | "dashed"
     nameKey?: string
     labelKey?: string
+    extraNameKey?: string
   }) {
   const { config } = useChart()
 
@@ -236,6 +238,18 @@ function ChartTooltipContent({
                       <span className="text-foreground font-mono font-medium tabular-nums">
                         {item.value.toLocaleString()}
                       </span>
+                    )}
+                    {extraNameKey && item.payload && item.payload[extraNameKey] && (<>
+                    <div className="grid gap-1.5">
+                      {nestLabel ? tooltipLabel : null}
+                      <span className="text-muted-foreground">
+                        {config[extraNameKey]?.label}
+                      </span>
+                    </div>
+                      <span className="text-foreground font-mono font-medium tabular-nums">
+                        {item.payload[extraNameKey]}
+                      </span>
+                      </>
                     )}
                   </div>
                 </>

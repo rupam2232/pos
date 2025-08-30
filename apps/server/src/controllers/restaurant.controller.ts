@@ -762,7 +762,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
     {
       $match: {
         restaurantId: restaurant._id,
-        status: { $in: ["completed", "served"] },
+        status: "completed",
         createdAt: { $gte: new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000) },
       },
     },
