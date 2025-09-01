@@ -35,19 +35,22 @@ export interface OwnerDashboardStats {
     orders: number;
   }[];
   topFoodItems: {
+    _id: string;
     count: number;
-    name: string;
+    foodName: string;
+    firstImageUrl?: string;
     variantName?: string;
   }[];
   topTables: {
-    count: number;
-    name: string;
-  }[];
-  paymentBreakdown: {
     _id: string;
     count: number;
-    total: number;
+    tableName: string;
   }[];
+  // paymentBreakdown: {
+  //   _id: string;
+  //   count: number;
+  //   total: number;
+  // }[];
   //   recentOrders: [
   //     {
   //       _id: "68ab7033d1e3c2f7b614ca7f";

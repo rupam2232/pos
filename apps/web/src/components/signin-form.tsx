@@ -25,9 +25,10 @@ import type { AppDispatch } from "@/store/store";
 import { signIn, signOut } from "@/store/authSlice";
 import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export function SigninForm({
   className,
@@ -35,6 +36,8 @@ export function SigninForm({
 }: React.ComponentProps<"div">) {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const [emailLoginLoading, setEmailLoginLoading] = useState(false);
   const [googleLoginLoading, setGoogleLoginLoading] = useState(false);
 
@@ -62,7 +65,7 @@ export function SigninForm({
       ) {
         router.replace("/dashboard?from=signup");
       } else {
-        router.replace("/dashboard");
+        router.replace(redirectTo);
       }
     } catch (error) {
       dispatch(signOut());
@@ -86,7 +89,7 @@ export function SigninForm({
       const response = await axios.post("/auth/signin", data);
       dispatch(signIn(response.data.data));
       toast.success(response.data.message || "Sign in successful!");
-      router.replace("/dashboard");
+      router.replace(redirectTo);
     } catch (error) {
       dispatch(signOut());
       const axiosError = error as AxiosError<ApiResponse>;
@@ -226,9 +229,9 @@ export function SigninForm({
                   </Button>
                   <div className="text-center text-sm">
                     Don&apos;t have an account?{" "}
-                    <a href="/signup" className="underline underline-offset-4">
+                    <Link href="/signup" className="underline underline-offset-4">
                       Sign up
-                    </a>
+                    </Link>
                   </div>
                   <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs *:[a]:underline *:[a]:underline-offset-4">
                     By clicking continue, you agree to our{" "}

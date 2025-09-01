@@ -744,18 +744,30 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
   ]);
 
   // 2. Total completed orders (all time, this month, last month)
-  const [allTimeCompletedOrders, thisMonthCompletedOrders, lastMonthCompletedOrders] = await Promise.all([
-  Order.countDocuments({ restaurantId: restaurant._id, status: "completed" }),
-  Order.countDocuments({ restaurantId: restaurant._id, status: "completed", createdAt: { $gte: startOfMonth } }),
-  Order.countDocuments({ restaurantId: restaurant._id, status: "completed", createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
-]);
+  const [
+    allTimeCompletedOrders,
+    thisMonthCompletedOrders,
+    lastMonthCompletedOrders,
+  ] = await Promise.all([
+    Order.countDocuments({ restaurantId: restaurant._id, status: "completed" }),
+    Order.countDocuments({
+      restaurantId: restaurant._id,
+      status: "completed",
+      createdAt: { $gte: startOfMonth },
+    }),
+    Order.countDocuments({
+      restaurantId: restaurant._id,
+      status: "completed",
+      createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+    }),
+  ]);
 
-// 3. Total cancelled orders (all time, this month, last month)
-// const [allTimeCancelledOrders, thisMonthCancelledOrders, lastMonthCancelledOrders] = await Promise.all([
-//   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled" }),
-//   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled", createdAt: { $gte: startOfMonth } }),
-//   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled", createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
-// ]);
+  // 3. Total cancelled orders (all time, this month, last month)
+  // const [allTimeCancelledOrders, thisMonthCancelledOrders, lastMonthCancelledOrders] = await Promise.all([
+  //   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled" }),
+  //   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled", createdAt: { $gte: startOfMonth } }),
+  //   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled", createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+  // ]);
 
   // 3. Sales trend (last 30 days)
   const salesTrend = await Order.aggregate([
@@ -783,6 +795,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
     {
       $group: {
         _id: "$foodItems.foodItemId",
+        variantName: { $first: "$foodItems.variantName" },
         count: { $sum: "$foodItems.quantity" },
       },
     },
@@ -797,7 +810,21 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       },
     },
     { $unwind: "$foodItem" },
-    { $project: { _id: 0, name: "$foodItem.foodName", count: 1 } },
+    {
+      $project: {
+        _id: 1,
+        foodName: "$foodItem.foodName",
+        firstImageUrl: {
+          $cond: {
+            if: { $gt: [{ $size: "$foodItem.imageUrls" }, 0] },
+            then: { $arrayElemAt: ["$foodItem.imageUrls", 0] },
+            else: null,
+          },
+        }, // Get the first image URL if available
+        variantName: 1,
+        count: 1,
+      },
+    },
   ]);
 
   // 5. Top 5 most used tables
@@ -820,25 +847,25 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       },
     },
     { $unwind: "$table" },
-    { $project: { _id: 0, name: "$table.tableName", count: 1 } },
+    { $project: { _id: 1, tableName: "$table.tableName", count: 1 } },
   ]);
 
   // 6. Payment method breakdown
-  const paymentBreakdown = await Order.aggregate([
-    {
-      $match: {
-        restaurantId: restaurant._id,
-        status: { $in: ["completed", "served"] },
-      },
-    },
-    {
-      $group: {
-        _id: "$paymentMethod",
-        count: { $sum: 1 },
-        total: { $sum: "$totalAmount" },
-      },
-    },
-  ]);
+  // const paymentBreakdown = await Order.aggregate([
+  //   {
+  //     $match: {
+  //       restaurantId: restaurant._id,
+  //       status: { $in: ["completed", "served"] },
+  //     },
+  //   },
+  //   {
+  //     $group: {
+  //       _id: "$paymentMethod",
+  //       count: { $sum: 1 },
+  //       total: { $sum: "$totalAmount" },
+  //     },
+  //   },
+  // ]);
 
   // 7. Average order value (this month)
   const avgOrderValue = thisMonthCompletedOrders
@@ -867,7 +894,9 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       : null;
   const completedOrdersChangePercent =
     lastMonthCompletedOrders && lastMonthCompletedOrders !== 0
-      ? ((thisMonthCompletedOrders - lastMonthCompletedOrders) / lastMonthCompletedOrders) * 100
+      ? ((thisMonthCompletedOrders - lastMonthCompletedOrders) /
+          lastMonthCompletedOrders) *
+        100
       : null;
 
   res.status(200).json(
@@ -901,7 +930,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
         salesTrend,
         topFoodItems,
         topTables,
-        paymentBreakdown,
+        // paymentBreakdown,
         // recentOrders,
       },
       "Owner dashboard stats retrieved successfully"

@@ -115,7 +115,7 @@ export function ChartAreaInteractive({data}: {
                 <stop
                   offset="95%"
                   stopColor="var(--color-total)"
-                  stopOpacity={0.1}
+                  stopOpacity={0.4}
                 />
               </linearGradient>
               <linearGradient id="fillOrders" x1="0" y1="0" x2="0" y2="1">
@@ -168,15 +168,16 @@ export function ChartAreaInteractive({data}: {
                     })
                   }}
                   indicator="dot"
-                  className="!bg-popover !shadow-lg"
+                  // className="!bg-popover !shadow-lg"
+                  color="var(--chart-1)"
                   hideIndicator
-                  extraNameKey="orders"
+                  // extraNameKey="orders"
                 />
               }
             />
             {/* <Bar dataKey="total" radius={4} fill="var(--color-total)" type="natural" /> */}
             <Bar dataKey="total" radius={4} fill="url(#fillTotal)" stackId="a" type="natural" />
-            {/* <Bar dataKey="orders" radius={4} fill="url(#fillOrders)" stackId="a" type="natural" /> */}
+            <Bar dataKey="orders" barSize={0} radius={4} fill="url(#fillOrders)" stackId="a" type="natural" className="hidden" />
           </BarChart>
         </ChartContainer>
       </CardContent>
