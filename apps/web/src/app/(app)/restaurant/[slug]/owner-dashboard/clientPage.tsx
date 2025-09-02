@@ -199,7 +199,7 @@ const ClientPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    ₹{stats?.kpis.totalSales.value}
+                    ₹{stats?.kpis.totalSales.value ?? 0}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {stats?.kpis.totalSales.description}
@@ -218,7 +218,7 @@ const ClientPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    {stats?.kpis.totalCompletedOrders.value}
+                    {stats?.kpis.totalCompletedOrders.value ?? 0}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {stats?.kpis.totalCompletedOrders.description}
@@ -237,7 +237,7 @@ const ClientPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    ₹{stats?.kpis.avgOrderValue.value}
+                    ₹{stats?.kpis.avgOrderValue.value ?? 0}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {stats?.kpis.avgOrderValue.description}
@@ -256,7 +256,7 @@ const ClientPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    {stats?.kpis.unpaidOrders.value}
+                    {stats?.kpis.unpaidOrders.value ?? 0}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     {stats?.kpis.unpaidOrders.description}

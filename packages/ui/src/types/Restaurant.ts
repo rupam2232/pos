@@ -7,3 +7,13 @@ export type RestaurantMinimalInfo = {
   logoUrl?: string;
   isCurrentlyOpen?: boolean;
 };
+
+export type RestaurantFullInfo = RestaurantMinimalInfo & {
+  openingTime?: string;
+  closingTime?: string;
+  taxRate: number;
+  taxLabel?: string;
+  isTaxIncludedInPrice: boolean;
+  address?: string;
+  categories?: string[];
+};
