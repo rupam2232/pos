@@ -284,7 +284,7 @@ const ClientPage = () => {
                         <TableHead className="text-center">Orders</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="border-b">
                       {stats?.topTables && stats?.topTables.length > 0 ? (
                         stats?.topTables.map((item, index) => (
                           <TableRow
@@ -326,7 +326,7 @@ const ClientPage = () => {
                         <TableHead className="text-center">Orders</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="border-b">
                       {stats?.topFoodItems && stats?.topFoodItems.length > 0 ? (
                         stats?.topFoodItems.map((item, index) => (
                           <TableRow

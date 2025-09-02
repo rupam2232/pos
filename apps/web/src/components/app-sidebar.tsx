@@ -18,6 +18,7 @@ import {
   IconToolsKitchen,
   IconLayoutDashboard,
   IconChartBar,
+  IconUser,
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -43,6 +44,7 @@ const data = {
     {
       title: "Dashboard",
       url: "/dashboard",
+      showInSidebar: true,
       icon: IconListDetails,
     },
     // {
@@ -156,42 +158,53 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const isRestaurantPage = pathname?.slice(1).split("/")[0] === "restaurant";
 
-let restaurantSlug = "";
-if (isRestaurantPage) {
-  restaurantSlug = pathname?.slice(1).split("/")[1] || "";
-}
+  let restaurantSlug = "";
+  if (isRestaurantPage) {
+    restaurantSlug = pathname?.slice(1).split("/")[1] || "";
+  }
 
   const restaurantNavData = [
     {
       title: "Dashboard",
       url: `/restaurant/${restaurantSlug}/dashboard`,
+      showInSidebar: true,
       icon: IconLayoutDashboard,
     },
     {
       title: "Orders",
       url: `/restaurant/${restaurantSlug}/orders`,
+      showInSidebar: true,
       icon: IconReceipt,
     },
     {
       title: "Tables",
       url: `/restaurant/${restaurantSlug}/tables`,
+      showInSidebar: true,
       icon: IconTable,
     },
     {
       title: "Menu",
       url: `/restaurant/${restaurantSlug}/menu`,
+      showInSidebar: true,
       icon: IconToolsKitchen,
     },
     {
-      title: "Owner Dashboard",
-      url: `/restaurant/${restaurantSlug}/owner-dashboard`,
-      icon: IconChartBar,
+      title: "Owner",
+      icon: IconUser,
+      showInSidebar: user?.role === "owner",
+      subItems: [
+        {
+          title: "Dashboard",
+          url: `/restaurant/${restaurantSlug}/owner-dashboard`,
+          icon: IconChartBar,
+        },
+        {
+          title: "Settings",
+          url: `/restaurant/${restaurantSlug}/settings`,
+          icon: IconSettings,
+        },
+      ],
     },
-    {
-      title: "Settings",
-      url: `/restaurant/${restaurantSlug}/settings`,
-      icon: IconSettings,
-    }
   ];
 
   return (
@@ -216,14 +229,12 @@ if (isRestaurantPage) {
       <SidebarContent>
         <ScrollArea className="h-full">
           <NavMain
-            items={
-              isRestaurantPage
-                ? restaurantNavData
-                : data.navMain
-            }
+            items={isRestaurantPage ? restaurantNavData : data.navMain}
           />
           {!isRestaurantPage && <NavDocuments items={data.documents} />}
-          {!isRestaurantPage && <NavSecondary items={data.navSecondary} className="mt-auto" />}
+          {!isRestaurantPage && (
+            <NavSecondary items={data.navSecondary} className="mt-auto" />
+          )}
         </ScrollArea>
       </SidebarContent>
       <SidebarFooter>
