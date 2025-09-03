@@ -3,12 +3,13 @@ import axios from "@/utils/axiosInstance";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { signOut } from "@/store/authSlice";
+import { updateRestaurant, setActiveRestaurant } from "@/store/restaurantSlice";
 import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
-import { ImagePlusIcon, Loader2 } from "lucide-react";
+import { ImagePlusIcon, Loader2, Trash2 } from "lucide-react";
 // import {
 //   AlertDialog,
 //   AlertDialogAction,
@@ -20,13 +21,8 @@ import { ImagePlusIcon, Loader2 } from "lucide-react";
 //   AlertDialogTitle,
 //   AlertDialogTrigger,
 // } from "@repo/ui/components/alert-dialog";
-import type { RootState, AppDispatch } from "@/store/store";
-// import { setActiveRestaurant } from "@/store/restaurantSlice";
-// import {
-//   Avatar,
-//   AvatarFallback,
-//   AvatarImage,
-// } from "@repo/ui/components/avatar";
+import type { AppDispatch } from "@/store/store";
+import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 import {
   Form,
   FormControl,
@@ -46,6 +42,12 @@ import { Textarea } from "@repo/ui/components/textarea";
 import { RestaurantFullInfo } from "@repo/ui/types/Restaurant";
 import { TagsInput } from "@repo/ui/components/tags-input";
 import { FileRejection, useDropzone } from "react-dropzone";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@repo/ui/components/tooltip";
+import { useDebounceCallback } from "usehooks-ts";
 
 const ClientPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -53,10 +55,16 @@ const ClientPage = () => {
   const [restaurantData, setRestaurantData] = useState<RestaurantFullInfo>();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const user = useSelector((state: RootState) => state.auth.user);
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageErrorMessage, setImageErrorMessage] = useState<string>("");
+  const [pendingImageOperations, setPendingImageOperations] = useState<
+    Promise<void>[]
+  >([]);
+  const [formSlug, setFormSlug] = useState<string>("");
+  const [isSlugUnique, setIsSlugUnique] = useState<boolean | null>(null);
+  const [isCheckingSlug, setIsCheckingSlug] = useState<boolean>(false);
+  const debounced = useDebounceCallback(setFormSlug, 300);
 
   const form = useForm<z.infer<typeof updateRestaurantSchema>>({
     resolver: zodResolver(updateRestaurantSchema),
@@ -101,59 +109,113 @@ const ClientPage = () => {
     name: "logoUrl",
   });
 
-  const handleImageRemove = async () => {
-    setImageErrorMessage("");
-    if (logoUrl) {
-      // If logoUrl is set, remove the image from the server
-      const mediaUrl = logoUrl;
-      form.setValue("logoUrl", undefined);
-      setImageFile(null);
+  const checkUsernameUnique = useCallback(async () => {
+    setIsSlugUnique(null);
+    if (isCheckingSlug) return; // Prevent multiple requests
+    if (!formSlug) return; // Skip if slug is empty
+    if(formSlug === restaurantData?.slug) return;
+    form.trigger("newSlug"); // Ensure slug is validated before checking uniqueness
+    if (form.getValues("newSlug").length > 2) {
+      setIsCheckingSlug(true);
+      setIsSlugUnique(null);
       try {
-        const response = await axios.delete("/media/restaurant-logo", {
-          data: {
-            mediaUrl,
-          },
-        });
-        if (!response.data.success) {
-          toast.error(response.data.message || "Failed to remove logo");
+        const response = await axios.get(`/restaurant/${formSlug}/is-unique-slug`);
+        if (!response.data.data) {
+          form.setError("newSlug", {
+            type: "validate",
+            message: "Slug is already taken",
+          });
+        } else {
+          setIsSlugUnique(true);
         }
       } catch (error) {
-        console.error("Error removing image:", error);
         const axiosError = error as AxiosError<ApiResponse>;
-        toast.error(
-          axiosError.response?.data.message || "Failed to remove logo"
-        );
+        console.error("Error checking slug uniqueness:", axiosError);
         if (axiosError.response?.status === 401) {
           dispatch(signOut());
           router.push("/signin");
         }
+      } finally {
+        setIsCheckingSlug(false);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formSlug]);
+
+    useEffect(() => {
+      checkUsernameUnique();
+    }, [checkUsernameUnique]);
+
+  const handleImageRemove = async () => {
+    const uploadPromise = new Promise<void>((resolve, reject) => {
+      (async () => {
+        setImageErrorMessage("");
+        // If logoUrl is set, remove the image from the server
+        if (logoUrl) {
+          const mediaUrl = logoUrl;
+          try {
+            await Promise.all(pendingImageOperations);
+            form.setValue("logoUrl", undefined);
+            setImageFile(null);
+            const response = await axios.delete("/media/restaurant-logo", {
+              data: {
+                mediaUrl,
+              },
+            });
+            if (!response.data.success) {
+              toast.error(response.data.message || "Failed to remove logo");
+            }
+            resolve();
+          } catch (error) {
+            console.error("Error removing image:", error);
+            form.setValue("logoUrl", mediaUrl);
+            const axiosError = error as AxiosError<ApiResponse>;
+            toast.error(
+              axiosError.response?.data.message || "Failed to remove logo"
+            );
+            if (axiosError.response?.status === 401) {
+              dispatch(signOut());
+              router.push("/signin?redirect=/restaurant/" + slug + "/settings");
+            }
+            reject(error);
+          }
+        }
+      })();
+    });
+    setPendingImageOperations((prev) => [...prev, uploadPromise]);
   };
 
   const handleImageUpload = async (file: File) => {
-    try {
-      const response = await axios.post(
-        "/media/restaurant-logo",
-        { restaurantLogo: file },
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+    const uploadPromise = new Promise<void>((resolve, reject) => {
+      (async () => {
+        try {
+          await Promise.all(pendingImageOperations);
+          const response = await axios.post(
+            "/media/restaurant-logo",
+            { restaurantLogo: file },
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+          form.setValue("logoUrl", response.data.data);
+          resolve();
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          const axiosError = error as AxiosError<ApiResponse>;
+          toast.error(
+            axiosError.response?.data.message || "Failed to upload image"
+          );
+          if (axiosError.response?.status === 401) {
+            dispatch(signOut());
+            router.push("/signin?redirect=/restaurant/" + slug + "/settings");
+          }
+          reject(error);
         }
-      );
-      form.setValue("logoUrl", response.data.data);
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      const axiosError = error as AxiosError<ApiResponse>;
-      toast.error(
-        axiosError.response?.data.message || "Failed to upload image"
-      );
-      if (axiosError.response?.status === 401) {
-        dispatch(signOut());
-        router.push("/signin");
-      }
-    }
+      })();
+    });
+    setPendingImageOperations((prev) => [...prev, uploadPromise]);
   };
 
   const onImageDrop = (
@@ -195,7 +257,7 @@ const ClientPage = () => {
       onDrop: onImageDrop,
     });
 
-  const fetchDashboardStats = useCallback(async () => {
+  const fetchRestaurantData = useCallback(async () => {
     try {
       setIsPageLoading(true);
       const response = await axios.get(`/restaurant/${slug}`);
@@ -225,21 +287,28 @@ const ClientPage = () => {
   }, [slug, router, dispatch]);
 
   const onSubmit = async (data: z.infer<typeof updateRestaurantSchema>) => {
-    if (form.formState.isSubmitting) return;
     if (isReallyDirty() === false) {
       toast.info("No changes made");
       return;
     }
+    const toastId = toast.loading("Updating restaurant...");
     try {
+      await Promise.all(pendingImageOperations);
       const response = await axios.patch(`/restaurant/${slug}`, data);
 
       if (response.data.success) {
         toast.success(
-          response.data.message || "Restaurant updated successfully"
+          response.data.message || "Restaurant updated successfully",
+          {
+            id: toastId,
+          }
         );
-        fetchDashboardStats();
+        dispatch(updateRestaurant(response.data.data));
+        dispatch(setActiveRestaurant(response.data.data));
       } else {
-        toast.error(response.data.message);
+        toast.error(response.data.message, {
+          id: toastId,
+        });
       }
     } catch (error) {
       console.error(
@@ -249,7 +318,10 @@ const ClientPage = () => {
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message ||
-          "Failed to update restaurant data. Please try again later"
+          "Failed to update restaurant data. Please try again later",
+        {
+          id: toastId,
+        }
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
@@ -259,8 +331,8 @@ const ClientPage = () => {
   };
 
   useEffect(() => {
-    fetchDashboardStats();
-  }, [slug, fetchDashboardStats]);
+    fetchRestaurantData();
+  }, [slug, fetchRestaurantData]);
 
   useEffect(() => {
     if (restaurantData) {
@@ -277,6 +349,23 @@ const ClientPage = () => {
     }
   }, [restaurantData, form]);
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (
+        logoUrl &&
+        restaurantData?.logoUrl &&
+        logoUrl !== restaurantData?.logoUrl
+      ) {
+        handleImageRemove();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logoUrl, restaurantData]);
+
   if (isPageLoading) {
     return (
       <div className="h-[95vh] flex items-center justify-center">
@@ -286,36 +375,83 @@ const ClientPage = () => {
   }
 
   return (
-    <div className="@container/main flex flex-1 flex-col px-6 py-4">
-      <h1 className="text-2xl font-bold">Restaurant Settings</h1>
-      <p className="text-muted-foreground mb-4 text-sm">
-        Manage your restaurant&apos;s settings and preferences.
-      </p>
+    <div className="@container/main flex flex-1 flex-col px-6 py-4 pt-0">
+      <div className="lg:sticky top-(--header-height) z-2 bg-background/40 pt-2 backdrop-blur-xl">
+        <h1 className="text-2xl font-bold">Restaurant Settings</h1>
+        <p className="text-muted-foreground mb-4 text-sm">
+          Manage your restaurant&apos;s settings and preferences.
+        </p>
+      </div>
       <Form {...form}>
         <form
-          className="space-y-4"
+          className="space-y-4 relative flex items-start justify-between flex-col lg:flex-row-reverse mt-5"
           onSubmit={form.handleSubmit(onSubmit, (errors) =>
             console.log("Form errors:", errors)
           )}
         >
-          <div
-            {...getRootProps()}
-            className={`group rounded-full w-30 h-30 mx-auto ${imageFile && "hidden"} text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
-              isDragActive
-                ? `${!isDragReject ? "border-green-500" : "border-red-500"} border-2`
-                : isDragReject
-                  ? "border-red-500 border-2"
-                  : "border-zinc-500 border-dashed border"
-            }`}
-          >
-            <input {...getInputProps()} name="logoUrl" />
-            <Button
-              type="button"
-              className="bg-transparent hover:bg-transparent text-foreground/50 group-hover:text-foreground shadow-none"
+          <div className="lg:sticky top-[calc((var(--header-height)+6rem))] lg:max-w-1/3 grid">
+            <p className="text-sm font-semibold mb-2">Restaurant Logo</p>
+            {(imageFile || logoUrl) && (
+              <div className="group relative mx-auto rounded-full cursor-pointer inline-block">
+                <Tooltip>
+                  <TooltipTrigger className="cursor-pointer" asChild>
+                    <div>
+                      <Avatar className="w-30 h-30 lg:w-50 lg:h-50 rounded-full">
+                        <AvatarImage
+                          src={
+                            logoUrl ? logoUrl : URL.createObjectURL(imageFile!)
+                          }
+                          alt="Restaurant Logo"
+                          className="object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      </Avatar>
+                      <Button
+                        type="button"
+                        className="bg-black/50 text-foreground/50 group-hover:text-foreground hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
+                        onClick={handleImageRemove}
+                        aria-label="Remove Logo"
+                      >
+                        <Trash2 className="size-6 text-red-600" />
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-sm font-semibold">
+                      Click to remove the logo
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+            <div
+              {...getRootProps()}
+              className={`group rounded-full w-30 h-30 lg:w-50 lg:h-50 mx-auto ${imageFile || (logoUrl && "hidden")} text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
+                isDragActive
+                  ? `${!isDragReject ? "border-green-500" : "border-red-500"} border-2`
+                  : isDragReject
+                    ? "border-red-500 border-2"
+                    : "border-zinc-500 border-dashed border"
+              }`}
             >
-              <ImagePlusIcon />
-              Select Logo
-            </Button>
+              <input {...getInputProps()} name="logoUrl" />
+              <Button
+                type="button"
+                className="bg-transparent hover:bg-transparent text-foreground/50 group-hover:text-foreground shadow-none"
+              >
+                <ImagePlusIcon />
+                Select Logo
+              </Button>
+            </div>
+            {imageErrorMessage && (
+              <p className="text-red-500">{imageErrorMessage}</p>
+            )}
+            <span className="text-sm text-muted-foreground mt-2">
+              Upload JPG, PNG, or JPEG image with a minimum size of 500x500
+              pixels and a maximum file size of {MAX_IMAGE_SIZE / 1024 / 1024}
+              MB.
+            </span>
           </div>
           <div className="lg:max-w-1/2 space-y-4">
             <FormField
@@ -361,13 +497,13 @@ const ClientPage = () => {
                       autoComplete="slug"
                       required
                       {...field}
-                      //   onChange={(e) => {
-                      //     field.onChange(e);
-                      //     debounced(e.target.value);
-                      //   }}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        debounced(e.target.value);
+                      }}
                     />
                   </FormControl>
-                  {/* {form.getValues("slug") ? (
+                  {form.getValues("newSlug") ? (
                     isCheckingSlug ? (
                       <p className="text-sm text-muted-foreground">
                         Checking slug uniqueness...
@@ -381,7 +517,7 @@ const ClientPage = () => {
                     )
                   ) : (
                     <FormMessage />
-                  )} */}
+                  )}
                   <FormDescription>
                     A unique identifier for your restaurant. It will be used in
                     the URL for your restaurant&apos;s page.
@@ -518,21 +654,21 @@ const ClientPage = () => {
                 </FormItem>
               )}
             />
+            <Button
+              type="submit"
+              className="w-full md:w-auto"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
           </div>
-          <Button
-            type="submit"
-            className="w-full md:w-auto"
-            disabled={form.formState.isSubmitting}
-          >
-            {form.formState.isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
         </form>
       </Form>
     </div>

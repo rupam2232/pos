@@ -145,11 +145,12 @@ export const getRestaurantBySlug = asyncHandler(async (req, res) => {
 });
 
 export const updateRestaurantDetails = asyncHandler(async (req, res) => {
-  if (!req.params?.slug) {
+  if (!req.params || !req.params.slug) {
     throw new ApiError(400, "Restaurant slug is required");
   }
   const { slug } = req.params;
-  if (!req.body?.restaurantName || !req.body?.newSlug) {
+
+  if (!req.body || !req.body.restaurantName || !req.body.newSlug) {
     throw new ApiError(400, "Restaurant name and new slug are required");
   }
   if (req.user!.role !== "owner") {
@@ -161,6 +162,8 @@ export const updateRestaurantDetails = asyncHandler(async (req, res) => {
     newSlug,
     description,
     address,
+    logoUrl,
+    categories,
     openingTime,
     closingTime,
   } = req.body;
@@ -195,24 +198,49 @@ export const updateRestaurantDetails = asyncHandler(async (req, res) => {
     }
   }
 
-  const restaurant = await Restaurant.findOneAndUpdate(
-    { slug, ownerId: req.user!._id },
-    {
-      $set: {
-        restaurantName,
-        slug: newSlug,
-        description: description ? description : null,
-        address: address ? address : null,
-        openingTime: openingTime ? openingTime : null,
-        closingTime: closingTime ? closingTime : null,
-      },
-    },
-    { new: true, runValidators: true }
-  );
+  if (slug === newSlug) {
+    const duplicateRestaurantSlug = await Restaurant.findOne({
+      slug: newSlug,
+    });
+    if (duplicateRestaurantSlug) {
+      throw new ApiError(400, "Slug already exists");
+    }
+  }
+
+  const duplicateRestaurantName = await Restaurant.find({
+    restaurantName,
+    ownerId: req.user!._id,
+  });
+  if (duplicateRestaurantName.length > 1) {
+    throw new ApiError(400, "Restaurant name already exists");
+  }
+  let restaurant = duplicateRestaurantName.length > 0 && duplicateRestaurantName[0].slug === newSlug ? duplicateRestaurantName[0] : null;
 
   if (!restaurant) {
-    throw new ApiError(404, "Restaurant not found or you are not the owner");
+    const foundRestaurant = await Restaurant.findOne({
+      slug,
+    }).select("-staffIds -__v -updatedAt");
+    if (!foundRestaurant) {
+      throw new ApiError(404, "Restaurant not found");
+    } else if (
+      foundRestaurant.ownerId.toString() !== req.user!._id!.toString()
+    ) {
+      throw new ApiError(403, "You are not the owner of this restaurant");
+    }
+    restaurant = foundRestaurant;
   }
+
+  restaurant.slug = newSlug;
+  restaurant.restaurantName = restaurantName;
+  restaurant.description = description ?? restaurant.description;
+  restaurant.logoUrl = logoUrl ?? restaurant.logoUrl;
+  restaurant.categories = categories ?? restaurant.categories;
+  restaurant.address = address ?? restaurant.address;
+  restaurant.openingTime = openingTime ?? restaurant.openingTime;
+  restaurant.closingTime = closingTime ?? restaurant.closingTime;
+
+  await restaurant.save();
+
   res
     .status(200)
     .json(new ApiResponse(200, restaurant, "Restaurant updated successfully"));

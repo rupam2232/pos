@@ -508,7 +508,6 @@ export const updateFoodItem = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid food item ID");
   }
 
-  // foodName price discountedPrice hasVariants variants imageUrls category foodType description tags
   const restaurant = await Restaurant.findOne({
     slug: req.params.restaurantSlug,
     ownerId: req.user._id,

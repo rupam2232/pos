@@ -35,6 +35,19 @@ const restaurantsSlice = createSlice({
     ) {
       state.restaurants.push(action.payload);
     },
+    updateRestaurant(
+      state,
+      action: PayloadAction<RestaurantsState["restaurants"][number]>
+    ) {
+      const index = state.restaurants.findIndex(
+        (restaurant) => restaurant._id === action.payload._id
+      );
+      if (index !== -1 && state.restaurants[index]) {
+        state.restaurants[index]._id = action.payload._id;
+        state.restaurants[index].restaurantName = action.payload.restaurantName;
+        state.restaurants[index].slug = action.payload.slug;
+      }
+    },
     setActiveRestaurant(
       state,
       action: PayloadAction<RestaurantsState["activeRestaurant"]>
@@ -44,6 +57,6 @@ const restaurantsSlice = createSlice({
   },
 });
 
-export const { setAllRestaurants, addRestaurant, setActiveRestaurant } =
+export const { setAllRestaurants, addRestaurant, updateRestaurant, setActiveRestaurant } =
   restaurantsSlice.actions;
 export default restaurantsSlice.reducer;
