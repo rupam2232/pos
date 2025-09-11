@@ -10,17 +10,17 @@ import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { ImagePlusIcon, Loader2, Trash2 } from "lucide-react";
-// import {
-//   AlertDialog,
-//   AlertDialogAction,
-//   AlertDialogCancel,
-//   AlertDialogContent,
-//   AlertDialogDescription,
-//   AlertDialogFooter,
-//   AlertDialogHeader,
-//   AlertDialogTitle,
-//   AlertDialogTrigger,
-// } from "@repo/ui/components/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
 import type { AppDispatch } from "@/store/store";
 import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 import {
@@ -42,11 +42,6 @@ import { Textarea } from "@repo/ui/components/textarea";
 import { RestaurantFullInfo } from "@repo/ui/types/Restaurant";
 import { TagsInput } from "@repo/ui/components/tags-input";
 import { FileRejection, useDropzone } from "react-dropzone";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@repo/ui/components/tooltip";
 import { useDebounceCallback } from "usehooks-ts";
 
 const ClientPage = () => {
@@ -87,6 +82,7 @@ const ClientPage = () => {
     return (
       form.formState.defaultValues?.restaurantName?.trim() !==
         current.restaurantName.trim() ||
+      form.formState.defaultValues?.logoUrl !== current.logoUrl?.trim() ||
       form.formState.defaultValues?.newSlug?.trim() !==
         current.newSlug.trim() ||
       (form.formState.defaultValues?.description?.trim() || "") !==
@@ -113,13 +109,15 @@ const ClientPage = () => {
     setIsSlugUnique(null);
     if (isCheckingSlug) return; // Prevent multiple requests
     if (!formSlug) return; // Skip if slug is empty
-    if(formSlug === restaurantData?.slug) return;
+    if (formSlug === restaurantData?.slug) return;
     form.trigger("newSlug"); // Ensure slug is validated before checking uniqueness
     if (form.getValues("newSlug").length > 2) {
       setIsCheckingSlug(true);
       setIsSlugUnique(null);
       try {
-        const response = await axios.get(`/restaurant/${formSlug}/is-unique-slug`);
+        const response = await axios.get(
+          `/restaurant/${formSlug}/is-unique-slug`
+        );
         if (!response.data.data) {
           form.setError("newSlug", {
             type: "validate",
@@ -142,28 +140,41 @@ const ClientPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formSlug]);
 
-    useEffect(() => {
-      checkUsernameUnique();
-    }, [checkUsernameUnique]);
+  useEffect(() => {
+    checkUsernameUnique();
+  }, [checkUsernameUnique]);
 
   const handleImageRemove = async () => {
     const uploadPromise = new Promise<void>((resolve, reject) => {
       (async () => {
         setImageErrorMessage("");
         // If logoUrl is set, remove the image from the server
+        await Promise.all(pendingImageOperations);
         if (logoUrl) {
           const mediaUrl = logoUrl;
           try {
-            await Promise.all(pendingImageOperations);
             form.setValue("logoUrl", undefined);
             setImageFile(null);
             const response = await axios.delete("/media/restaurant-logo", {
               data: {
                 mediaUrl,
+                restaurantId:
+                  restaurantData?.logoUrl === mediaUrl
+                    ? restaurantData?._id
+                    : undefined,
               },
             });
             if (!response.data.success) {
               toast.error(response.data.message || "Failed to remove logo");
+            } else {
+              if (restaurantData?.logoUrl === mediaUrl) {
+                setRestaurantData((prev) =>
+                  prev ? { ...prev, logoUrl: undefined } : prev
+                );
+                dispatch(
+                  setActiveRestaurant({ ...restaurantData, logoUrl: undefined })
+                );
+              }
             }
             resolve();
           } catch (error) {
@@ -224,11 +235,25 @@ const ClientPage = () => {
   ) => {
     const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"];
 
+    if (rejectedFiles.length > 0) {
+      if (rejectedFiles[0]?.errors[0]?.code === "file-too-large") {
+        setImageErrorMessage("Logo file size exceeds 1MB.");
+        return;
+      } else if (rejectedFiles[0]?.errors[0]?.code === "file-invalid-type") {
+        setImageErrorMessage("Only .jpeg, .jpg, .png files are allowed.");
+        return;
+      } else {
+        setImageErrorMessage(
+          rejectedFiles[0]?.errors[0]?.message ||
+            "Failed to upload logo. Please try again."
+        );
+        return;
+      }
+    }
     if (
-      rejectedFiles.length > 0 ||
-      (acceptedFiles.length > 0 &&
-        (!acceptedFiles[0]?.type ||
-          !allowedImageTypes.includes(acceptedFiles[0].type)))
+      acceptedFiles.length > 0 &&
+      (!acceptedFiles[0]?.type ||
+        !allowedImageTypes.includes(acceptedFiles[0].type))
     ) {
       setImageErrorMessage("Only .jpeg, .jpg, .png files are allowed.");
       return;
@@ -287,13 +312,13 @@ const ClientPage = () => {
   }, [slug, router, dispatch]);
 
   const onSubmit = async (data: z.infer<typeof updateRestaurantSchema>) => {
+    await Promise.all(pendingImageOperations);
+    const toastId = toast.loading("Updating restaurant...");
     if (isReallyDirty() === false) {
-      toast.info("No changes made");
+      toast.info("No changes made", { id: toastId });
       return;
     }
-    const toastId = toast.loading("Updating restaurant...");
     try {
-      await Promise.all(pendingImageOperations);
       const response = await axios.patch(`/restaurant/${slug}`, data);
 
       if (response.data.success) {
@@ -303,6 +328,7 @@ const ClientPage = () => {
             id: toastId,
           }
         );
+        setRestaurantData(response.data.data);
         dispatch(updateRestaurant(response.data.data));
         dispatch(setActiveRestaurant(response.data.data));
       } else {
@@ -351,11 +377,7 @@ const ClientPage = () => {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (
-        logoUrl &&
-        restaurantData?.logoUrl &&
-        logoUrl !== restaurantData?.logoUrl
-      ) {
+      if (logoUrl && logoUrl !== restaurantData?.logoUrl) {
         handleImageRemove();
       }
     };
@@ -392,42 +414,66 @@ const ClientPage = () => {
           <div className="lg:sticky top-[calc((var(--header-height)+6rem))] lg:max-w-1/3 grid">
             <p className="text-sm font-semibold mb-2">Restaurant Logo</p>
             {(imageFile || logoUrl) && (
-              <div className="group relative mx-auto rounded-full cursor-pointer inline-block">
-                <Tooltip>
-                  <TooltipTrigger className="cursor-pointer" asChild>
-                    <div>
-                      <Avatar className="w-30 h-30 lg:w-50 lg:h-50 rounded-full">
-                        <AvatarImage
-                          src={
-                            logoUrl ? logoUrl : URL.createObjectURL(imageFile!)
-                          }
-                          alt="Restaurant Logo"
-                          className="object-cover"
-                          loading="lazy"
-                          draggable={false}
-                        />
-                      </Avatar>
+              <div className="group relative mx-auto rounded-full inline-block ">
+                <Avatar className="w-30 h-30 lg:w-50 lg:h-50 rounded-full">
+                  <AvatarImage
+                    src={logoUrl ? logoUrl : URL.createObjectURL(imageFile!)}
+                    alt="Restaurant Logo"
+                    className="object-cover"
+                    loading="lazy"
+                    draggable={false}
+                  />
+                </Avatar>
+                {logoUrl && restaurantData?.logoUrl === logoUrl ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
                       <Button
                         type="button"
-                        className="bg-black/50 text-foreground/50 group-hover:text-foreground hidden group-hover:flex absolute top-1/2 right-1/2 translate-x-1/2 -translate-y-1/2 rounded-full w-full h-full items-center justify-center hover:bg-black/50"
-                        onClick={handleImageRemove}
+                        className="absolute top-0 right-0 rounded-full"
+                        variant="outline"
                         aria-label="Remove Logo"
                       >
-                        <Trash2 className="size-6 text-red-600" />
+                        <Trash2 className="text-red-600" />
                       </Button>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-sm font-semibold">
-                      Click to remove the logo
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Are you absolutely sure?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently
+                          delete this logo from the server. Even if you
+                          don&apos;t submit or save this form.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-red-500 hover:bg-red-600 text-white"
+                          onClick={handleImageRemove}
+                        >
+                          Continue
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <Button
+                    type="button"
+                    className="absolute top-0 right-0 rounded-full"
+                    variant="outline"
+                    onClick={handleImageRemove}
+                    aria-label="Remove Logo"
+                  >
+                    <Trash2 className="text-red-600" />
+                  </Button>
+                )}
               </div>
             )}
             <div
               {...getRootProps()}
-              className={`group rounded-full w-30 h-30 lg:w-50 lg:h-50 mx-auto ${imageFile || (logoUrl && "hidden")} text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
+              className={`group rounded-full w-30 h-30 lg:w-50 lg:h-50 mx-auto ${(imageFile || logoUrl) && "hidden"} text-center cursor-pointer hover:bg-secondary/70 bg-secondary flex items-center justify-center ${
                 isDragActive
                   ? `${!isDragReject ? "border-green-500" : "border-red-500"} border-2`
                   : isDragReject
@@ -614,16 +660,15 @@ const ClientPage = () => {
                     <Input
                       id="openingTime"
                       type="text"
-                      placeholder="E.g., 9:00 AM"
+                      placeholder="E.g., 9:00"
                       autoComplete="openingTime"
                       {...field}
                     />
                   </FormControl>
                   <FormMessage />
-                  {/* write in HH:MM format */}
                   <FormDescription>
                     Optional, opening time of your restaurant. Write in HH:MM
-                    format
+                    format (24-hour clock).
                   </FormDescription>
                 </FormItem>
               )}
@@ -641,7 +686,7 @@ const ClientPage = () => {
                     <Input
                       id="closingTime"
                       type="text"
-                      placeholder="E.g., 11:00 PM"
+                      placeholder="E.g., 23:00"
                       autoComplete="closingTime"
                       {...field}
                     />
@@ -649,7 +694,7 @@ const ClientPage = () => {
                   <FormMessage />
                   <FormDescription>
                     Optional, closing time of your restaurant. Write in HH:MM
-                    format
+                    format (24-hour clock).
                   </FormDescription>
                 </FormItem>
               )}

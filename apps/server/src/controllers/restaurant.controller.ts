@@ -198,7 +198,7 @@ export const updateRestaurantDetails = asyncHandler(async (req, res) => {
     }
   }
 
-  if (slug === newSlug) {
+  if (slug !== newSlug) {
     const duplicateRestaurantSlug = await Restaurant.findOne({
       slug: newSlug,
     });
@@ -230,14 +230,14 @@ export const updateRestaurantDetails = asyncHandler(async (req, res) => {
     restaurant = foundRestaurant;
   }
 
-  restaurant.slug = newSlug;
+  if (restaurant.slug !== newSlug) restaurant.slug = newSlug;
   restaurant.restaurantName = restaurantName;
-  restaurant.description = description ?? restaurant.description;
-  restaurant.logoUrl = logoUrl ?? restaurant.logoUrl;
-  restaurant.categories = categories ?? restaurant.categories;
-  restaurant.address = address ?? restaurant.address;
-  restaurant.openingTime = openingTime ?? restaurant.openingTime;
-  restaurant.closingTime = closingTime ?? restaurant.closingTime;
+  restaurant.description = description;
+  restaurant.logoUrl = logoUrl;
+  restaurant.categories = categories;
+  restaurant.address = address;
+  restaurant.openingTime = openingTime;
+  restaurant.closingTime = closingTime;
 
   await restaurant.save();
 
