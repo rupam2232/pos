@@ -429,7 +429,7 @@ const ClientPage = () => {
                     <AlertDialogTrigger asChild>
                       <Button
                         type="button"
-                        className="absolute top-0 right-0 rounded-full"
+                        className="absolute top-0 right-0 rounded-full bg-input/30 hover:bg-input/50"
                         variant="outline"
                         aria-label="Remove Logo"
                       >
@@ -461,7 +461,7 @@ const ClientPage = () => {
                 ) : (
                   <Button
                     type="button"
-                    className="absolute top-0 right-0 rounded-full"
+                    className="absolute top-0 right-0 rounded-full bg-input/30 hover:bg-input/50"
                     variant="outline"
                     onClick={handleImageRemove}
                     aria-label="Remove Logo"

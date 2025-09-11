@@ -194,7 +194,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       showInSidebar: user?.role === "owner",
       subItems: [
         {
-          title: "Dashboard",
+          title: "Owner Dashboard",
           url: `/restaurant/${restaurantSlug}/owner-dashboard`,
           icon: IconChartBar,
         },
@@ -214,7 +214,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:!p-1.5 text-sidebar-accent-foreground"
             >
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
