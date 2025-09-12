@@ -37,8 +37,8 @@ export function NavMain({
             (item) =>
               item.showInSidebar &&
               (item.subItems && item.subItems.length > 0 ? (
-                <>
-                  <SidebarGroupLabel className="text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden">{item.title}</SidebarGroupLabel>
+                <div key={item.title} className="space-y-1">
+                  <SidebarGroupLabel className="text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden mb-0!">{item.title}</SidebarGroupLabel>
                   {item.subItems.map((subItem) => (
                     <SidebarMenuItem key={subItem.title + subItem.url}>
                       <Link
@@ -54,7 +54,7 @@ export function NavMain({
                       </Link>
                     </SidebarMenuItem>
                   ))}
-                </>
+                </div>
               ) : (
                 <SidebarMenuItem key={item.title}>
                   <Link

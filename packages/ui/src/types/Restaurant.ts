@@ -17,3 +17,17 @@ export type RestaurantFullInfo = RestaurantMinimalInfo & {
   address?: string;
   categories?: string[];
 };
+
+export type RestaurantStaffData = {
+  _id: string;
+  restaurantName: string;
+  slug: string;
+  staffs: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    email: string;
+    avatar: string;
+  }[];
+};

@@ -214,7 +214,11 @@ export const updateRestaurantDetails = asyncHandler(async (req, res) => {
   if (duplicateRestaurantName.length > 1) {
     throw new ApiError(400, "Restaurant name already exists");
   }
-  let restaurant = duplicateRestaurantName.length > 0 && duplicateRestaurantName[0].slug === newSlug ? duplicateRestaurantName[0] : null;
+  let restaurant =
+    duplicateRestaurantName.length > 0 &&
+    duplicateRestaurantName[0].slug === newSlug
+      ? duplicateRestaurantName[0]
+      : null;
 
   if (!restaurant) {
     const foundRestaurant = await Restaurant.findOne({
@@ -964,4 +968,112 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       "Owner dashboard stats retrieved successfully"
     )
   );
+});
+
+export const getAllStaffOfRestaurant = asyncHandler(async (req, res) => {
+  if (!req.params || !req.params.slug) {
+    throw new ApiError(400, "Restaurant slug is required");
+  }
+
+  if (req.user!.role !== "owner") {
+    throw new ApiError(403, "Only owners can view their restaurant staffs");
+  }
+
+  const restaurant = await Restaurant.findOne({
+    slug: req.params.slug,
+    ownerId: req.user!._id,
+  })
+    .populate({
+      path: "staffIds",
+      select: "_id firstName lastName email role avatar",
+    })
+    .select("staffIds restaurantName slug _id");
+
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found");
+  }
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        staffs: restaurant.staffIds,
+        restaurantName: restaurant.restaurantName,
+        slug: restaurant.slug,
+        _id: restaurant._id,
+      },
+      "Staff members retrieved successfully"
+    )
+  );
+});
+
+export const addStaffToRestaurant = asyncHandler(async (req, res) => {
+  if (!req.params || !req.params.slug) {
+    throw new ApiError(400, "Restaurant slug is required");
+  }
+
+  if (!req.body || !req.body.staffId) {
+    throw new ApiError(400, "Staff ID is required");
+  }
+
+  if (req.user!.role !== "owner") {
+    throw new ApiError(403, "Only owners can add staff to their restaurant");
+  }
+
+  const restaurant = await Restaurant.findOne({
+    slug: req.params.slug,
+    ownerId: req.user!._id,
+  });
+
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found");
+  }
+
+  if (restaurant.staffIds?.includes(req.body.staffId)) {
+    throw new ApiError(400, "Staff member is already added to this restaurant");
+  }
+
+  restaurant.staffIds?.push(req.body.staffId);
+  await restaurant.save();
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, restaurant, "Staff added successfully"));
+});
+
+export const removeStaffFromRestaurant = asyncHandler(async (req, res) => {
+  if (!req.params || !req.params.slug) {
+    throw new ApiError(400, "Restaurant slug is required");
+  }
+
+  if (!req.body || !req.body.staffId) {
+    throw new ApiError(400, "Staff ID is required");
+  }
+
+  if (req.user!.role !== "owner") {
+    throw new ApiError(
+      403,
+      "Only owners can remove staff from their restaurant"
+    );
+  }
+  const restaurant = await Restaurant.findOne({
+    slug: req.params.slug,
+    ownerId: req.user!._id,
+  });
+
+  if (!restaurant) {
+    throw new ApiError(404, "Restaurant not found");
+  }
+  if (!restaurant.staffIds?.includes(req.body.staffId)) {
+    throw new ApiError(400, "Staff member not found in this restaurant");
+  }
+
+  restaurant.staffIds = restaurant.staffIds.filter(
+    (id) => id !== req.body.staffId
+  );
+  await restaurant.save();
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, restaurant, "Staff removed successfully"));
 });

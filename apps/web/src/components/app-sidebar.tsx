@@ -19,6 +19,7 @@ import {
   IconLayoutDashboard,
   IconChartBar,
   IconUser,
+  IconUsers,
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -197,6 +198,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: "Owner Dashboard",
           url: `/restaurant/${restaurantSlug}/owner-dashboard`,
           icon: IconChartBar,
+        },
+        {
+          title: "Staff Management",
+          url: `/restaurant/${restaurantSlug}/staff-management`,
+          icon: IconUsers,
         },
         {
           title: "Settings",

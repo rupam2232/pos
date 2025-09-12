@@ -15,6 +15,9 @@ import {
   getRestaurantCategories,
   getStaffDashboardStats,
   getOwnerDashboardStats,
+  getAllStaffOfRestaurant,
+  addStaffToRestaurant,
+  removeStaffFromRestaurant,
 } from "../controllers/restaurant.controller.js";
 import { rateLimit } from "express-rate-limit";
 import { ApiError } from "../utils/ApiError.js";
@@ -68,7 +71,11 @@ router.post(
 router
   .route("/:slug/categories")
   .get(getRestaurantCategories)
-  .post(verifyAuth, isProduction ? isSubscriptionActive : (req, res, next) => next(), addRestaurantCategory)
+  .post(
+    verifyAuth,
+    isProduction ? isSubscriptionActive : (req, res, next) => next(),
+    addRestaurantCategory
+  )
   .patch(verifyAuth, removeRestaurantCategories);
 
 router.post("/:slug/tax", verifyAuth, setRestaurantTax);
@@ -78,6 +85,12 @@ router.get("/:slug/staff-dashboard-stats", verifyAuth, getStaffDashboardStats);
 router.get("/:slug/owner-dashboard-stats", verifyAuth, getOwnerDashboardStats);
 
 router.get("/:slug/is-unique-slug", verifyAuth, checkUniqueRestaurantSlug);
+
+router
+  .route("/:slug/staff")
+  .get(verifyAuth, getAllStaffOfRestaurant)
+  .post(verifyAuth, addStaffToRestaurant)
+  .delete(verifyAuth, removeStaffFromRestaurant);
 
 router.post(
   "/:slug/update-logo",

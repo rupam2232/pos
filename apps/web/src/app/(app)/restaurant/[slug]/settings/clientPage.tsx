@@ -1,12 +1,11 @@
 "use client";
 import axios from "@/utils/axiosInstance";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
 import { signOut } from "@/store/authSlice";
 import { updateRestaurant, setActiveRestaurant } from "@/store/restaurantSlice";
-import { useRouter } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { ImagePlusIcon, Loader2, Trash2 } from "lucide-react";
