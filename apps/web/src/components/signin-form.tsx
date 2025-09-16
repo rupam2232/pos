@@ -32,8 +32,13 @@ import Link from "next/link";
 
 export function SigninForm({
   className,
+  cardClassName,
+  setDrawerOpen,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.HTMLAttributes<HTMLDivElement> & {
+  cardClassName?: string;
+  setDrawerOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -90,6 +95,9 @@ export function SigninForm({
       dispatch(signIn(response.data.data));
       toast.success(response.data.message || "Sign in successful!");
       router.replace(redirectTo);
+      if (setDrawerOpen) {
+        setDrawerOpen(false);
+      }
     } catch (error) {
       dispatch(signOut());
       const axiosError = error as AxiosError<ApiResponse>;
@@ -107,11 +115,11 @@ export function SigninForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
+      <Card className={cn("overflow-hidden p-0", cardClassName)}>
         <CardContent className="grid p-0 md:grid-cols-2">
           <Form {...form}>
             <form
-              className="md:h-[85vh] overflow-y-auto overflow-x-hidden"
+              className="md:h-[84vh] overflow-y-auto overflow-x-hidden"
               onSubmit={form.handleSubmit(onSubmit)}
             >
               <ScrollArea className="h-full">
@@ -191,12 +199,12 @@ export function SigninForm({
                         <FormItem>
                           <div className="flex items-center">
                             <FormLabel htmlFor="password">Password</FormLabel>
-                            <a
+                            <Link
                               href="#"
                               className="ml-auto text-sm underline-offset-2 hover:underline"
                             >
                               Forgot your password?
-                            </a>
+                            </Link>
                           </div>
                           <FormControl>
                             <Input
@@ -235,8 +243,8 @@ export function SigninForm({
                   </div>
                   <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs *:[a]:underline *:[a]:underline-offset-4">
                     By clicking continue, you agree to our{" "}
-                    <a href="#">Terms of Service</a> and{" "}
-                    <a href="#">Privacy Policy</a>.
+                    <Link href="#">Terms of Service</Link> and{" "}
+                    <Link href="#">Privacy Policy</Link>.
                   </div>
                 </div>
               </ScrollArea>

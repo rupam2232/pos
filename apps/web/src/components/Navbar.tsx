@@ -41,15 +41,30 @@ export default function NavbarComp() {
         <NavItems items={navItems} />
         <div className="flex items-center gap-4">
           {authenticated ? (
-            <NavbarButton href="/dashboard" variant="primary" className="bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none">
+            <NavbarButton
+              href="/dashboard"
+              as={Link}
+              variant="primary"
+              className="bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
+            >
               Dashboard
             </NavbarButton>
           ) : (
             <>
-              <NavbarButton href="/signin" variant="secondary" className="shadow-xs hover:bg-primary-foreground/10 font-medium hover:translate-none">
+              <NavbarButton
+                href="/signin"
+                as={Link}
+                variant="secondary"
+                className="shadow-xs hover:bg-primary-foreground/10 font-medium hover:translate-none"
+              >
                 Sign In
               </NavbarButton>
-              <NavbarButton href="/signup" variant="primary" className="bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none">
+              <NavbarButton
+                href="/signup"
+                as={Link}
+                variant="primary"
+                className="bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
+              >
                 Sign Up
               </NavbarButton>
             </>
@@ -87,6 +102,7 @@ export default function NavbarComp() {
               <NavbarButton
                 onClick={() => setIsMobileMenuOpen(false)}
                 href="/dashboard"
+                as={Link}
                 variant="primary"
                 className="w-full bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
               >
@@ -97,6 +113,7 @@ export default function NavbarComp() {
                 <NavbarButton
                   onClick={() => setIsMobileMenuOpen(false)}
                   href="/signin"
+                  as={Link}
                   variant="primary"
                   className="w-full bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
                 >
@@ -105,6 +122,7 @@ export default function NavbarComp() {
                 <NavbarButton
                   onClick={() => setIsMobileMenuOpen(false)}
                   href="/signup"
+                  as={Link}
                   variant="primary"
                   className="w-full bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
                 >

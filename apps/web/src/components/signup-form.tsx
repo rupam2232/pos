@@ -35,11 +35,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, Loader2, RotateCcw } from "lucide-react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
+import Link from "next/link";
 
 export function SignupForm({
   className,
+  cardClassName,
+  setDrawerOpen,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.HTMLAttributes<HTMLDivElement> & {
+  cardClassName?: string;
+  setDrawerOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const [emailSignupLoading, setEmailSignupLoading] = useState<boolean>(false);
@@ -181,6 +187,9 @@ export function SignupForm({
       dispatch(signIn(response.data.data));
       toast.success(response.data.message || "Sign up successful!");
       router.replace("/dashboard?from=signup");
+      if (setDrawerOpen) {
+        setDrawerOpen(false);
+      }
     } catch (error) {
       dispatch(signOut());
       const axiosError = error as AxiosError<ApiResponse>;
@@ -198,7 +207,7 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
+      <Card className={cn("overflow-hidden p-0", cardClassName)}>
         <CardContent className="grid p-0 md:grid-cols-2">
           <div className="bg-muted relative hidden md:block">
             <Image
@@ -212,7 +221,7 @@ export function SignupForm({
           </div>
           <Form {...form}>
             <form
-              className="md:h-[85vh] overflow-y-auto overflow-x-hidden"
+              className="md:h-[84vh] overflow-y-auto overflow-x-hidden"
               onSubmit={form.handleSubmit(onSubmit)}
             >
               <ScrollArea className="h-full">
@@ -467,14 +476,14 @@ export function SignupForm({
                   </Button>
                   <div className="text-center text-sm">
                     Already have an account?{" "}
-                    <a href="/signin" className="underline underline-offset-4">
+                    <Link href="/signin" className="underline underline-offset-4">
                       Sign in
-                    </a>
+                    </Link>
                   </div>
                   <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs *:[a]:underline *:[a]:underline-offset-4">
                     By clicking continue, you agree to our{" "}
-                    <a href="#">Terms of Service</a> and{" "}
-                    <a href="#">Privacy Policy</a>.
+                    <Link href="#">Terms of Service</Link> and{" "}
+                    <Link href="#">Privacy Policy</Link>.
                   </div>
                 </div>
               </ScrollArea>
