@@ -1,33 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
-//   const url = request.nextUrl;
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-current-path", request.nextUrl.pathname);
+  const accessToken = request.cookies.get("accessToken")?.value;
+
+  // Redirect unauthenticated users from /dashboard and /restaurant routes
+  if (!accessToken && (request.nextUrl.pathname === "/dashboard" || request.nextUrl.pathname.startsWith("/restaurant"))) {
+    return NextResponse.redirect(new URL("/signin", request.url));
+  }
+
+  if( accessToken && (request.nextUrl.pathname.startsWith("/signin") || request.nextUrl.pathname.startsWith("/signup"))) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 
   return NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
-
-  //   if (
-  //     token &&
-  //     (url.pathname.startsWith("/signin") ||
-  //       url.pathname.startsWith("/signup") ||
-  //       url.pathname.startsWith("/verify") ||
-  //       url.pathname === "/")
-  //   ) {
-  //     return NextResponse.redirect(new URL("/dashboard", request.url));
-  //   }
-
-  //   if(!token && url.pathname.startsWith("/dashboard")) {
-  //     return NextResponse.redirect(new URL("/signin", request.url));
-  //   }
-
-  //   return NextResponse.next();
 }
 
-// export const config = {
-//   matcher: ["/signin", "/signup", "/", "/dashboard/:path*", "/verify/:path*"],
-// };
+export const config = {
+  matcher: ["/signin", "/signup", "/", "/dashboard/:path*", "/restaurant/:path*"],
+};

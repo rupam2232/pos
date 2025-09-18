@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2021",
-    "module": "ESNext",                       // use ES modules
-    "moduleResolution": "node",               // Use Node.js module resolution
+    "module": "Node16",                       // use ES modules
+    "moduleResolution": "node16",               // Use Node.js module resolution
     "strict": true,                           // Enable all strict type-checking options
     "esModuleInterop": true,                  // Compatibility for CommonJS/ES modules
     "skipLibCheck": true,                     // Skip type checks of node_modules (speed up build)
