@@ -28,13 +28,23 @@ export function SiteHeader() {
 
   useEffect(() => {
     (() => {
-      const segment = pathname?.slice(1).split("/")[2];
-      pageTitle.current = segment
-        ? segment
-            .split("-")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" ")
-        : "";
+      if (pathname.startsWith("/restaurant/")) {
+        const segment = pathname?.slice(1).split("/")[2];
+        pageTitle.current = segment
+          ? segment
+              .split("-")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")
+          : "";
+      } else {
+        const segment = pathname?.slice(1).split("/")[0];
+        pageTitle.current = segment
+          ? segment
+              .split("-")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")
+          : "";
+      }
     })();
   }, [pathname]);
 
@@ -46,7 +56,7 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        {pathname.startsWith("/restaurant/") && (
+        {pathname.startsWith("/restaurant/") ? (
           <div className="text-base font-medium flex items-center space-x-2">
             <Avatar className="w-7 h-7">
               <AvatarImage
@@ -67,9 +77,7 @@ export function SiteHeader() {
                 orientation="vertical"
                 className="mx-2 data-[orientation=vertical]:h-5 bg-zinc-400"
               />
-              <span>
-                {pageTitle.current}
-              </span>
+              <span>{pageTitle.current}</span>
             </div>
             {activeRestaurant?.isCurrentlyOpen ? (
               <div className="flex items-center gap-1.5">
@@ -83,6 +91,8 @@ export function SiteHeader() {
               </div>
             )}
           </div>
+        ) : (
+          <h3 className="text-base font-medium">{pageTitle.current}</h3>
         )}
         <div className="ml-auto flex items-center gap-2">
           <ToggleTheme />

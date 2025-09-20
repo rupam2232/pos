@@ -38,6 +38,8 @@ export const isSubscriptionActive = asyncHandler(async (req, _, next) => {
     subscription.trialExpiresAt < new Date()
   ) {
     subscription.isSubscriptionActive = false;
+    subscription.isTrial = false;
+    subscription.trialExpiresAt = undefined;
     subscription.save({ validateBeforeSave: false });
     throw new ApiError(
       403,

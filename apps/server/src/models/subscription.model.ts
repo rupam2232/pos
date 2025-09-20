@@ -37,13 +37,9 @@ const subscriptionSchema: Schema<Subscription> = new Schema(
       type: Boolean,
       default: false,
       required: [true, "isTrial field is required"],
-      immutable(doc) {
-        return !doc.isTrial;
-      },
     },
     trialExpiresAt: {
       type: Date,
-      immutable: true,
     },
     subscriptionStartDate: Date,
     subscriptionEndDate: Date,

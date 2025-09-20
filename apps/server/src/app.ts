@@ -13,6 +13,7 @@ import orderRoute from "./routes/order.route.js";
 import otpRoute from "./routes/otp.route.js";
 import paymentRoute from "./routes/payment.route.js";
 import cartRoute from "./routes/cart.route.js";
+import subscriptionRoute from "./routes/subscription.route.js";
 
 // Create Express app instance
 const app = express();
@@ -65,6 +66,7 @@ app.use("/api/v1/order", orderRoute)
 app.use("/api/v1/otp", otpRoute)
 app.use("/api/v1/payment", paymentRoute)
 app.use("/api/v1/cart", cartRoute);
+app.use("/api/v1/subscription", subscriptionRoute);
 
 // Global error handler middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
