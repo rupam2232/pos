@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "nodemon --watch src --ext ts --exec \"node --loader ts-node/esm -r dotenv/config src/index.ts\"",
+    "dev": "concurrently \"tsc --watch --preserveWatchOutput\" \"nodemon --delay 3 --watch dist --ignore dist/**/*.map --ignore public -r dotenv/config dist/index.js\"",
     "start": "node -r dotenv/config dist/index.js",
     "build": "tsc",
     "format": "prettier --write ."
@@ -43,6 +43,7 @@
     "@types/node": "^22.15.21",
     "@types/nodemailer": "^6.4.17",
     "@types/request-ip": "^0.0.41",
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.10",
     "prettier": "^3.5.3",
     "ts-node-dev": "^2.0.0",
