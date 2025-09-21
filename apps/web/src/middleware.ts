@@ -5,12 +5,25 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-current-path", request.nextUrl.pathname);
   const accessToken = request.cookies.get("accessToken")?.value;
 
-  // Redirect unauthenticated users from /dashboard and /restaurant routes
-  if (!accessToken && (request.nextUrl.pathname === "/dashboard" || request.nextUrl.pathname.startsWith("/restaurant"))) {
-    return NextResponse.redirect(new URL("/signin", request.url));
+  const protectedRoutes = [
+    "/dashboard",
+    "/subscription",
+  ];
+
+  // Redirect logic
+  if (
+    !accessToken &&
+    (protectedRoutes.includes(request.nextUrl.pathname) ||
+      request.nextUrl.pathname.startsWith("/restaurant"))
+  ) {
+    return NextResponse.redirect(new URL("/signin?redirect=" + request.nextUrl.pathname, request.url));
   }
 
-  if( accessToken && (request.nextUrl.pathname.startsWith("/signin") || request.nextUrl.pathname.startsWith("/signup"))) {
+  if (
+    accessToken &&
+    (request.nextUrl.pathname.startsWith("/signin") ||
+      request.nextUrl.pathname.startsWith("/signup"))
+  ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -22,5 +35,12 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/signin", "/signup", "/", "/dashboard/:path*", "/restaurant/:path*"],
+  matcher: [
+    "/signin",
+    "/signup",
+    "/",
+    "/dashboard/:path*",
+    "/subscription/:path*",
+    "/restaurant/:path*",
+  ],
 };

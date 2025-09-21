@@ -4,10 +4,12 @@ import rateLimit from "express-rate-limit";
 import { ApiError } from "../utils/ApiError.js";
 import { verifyOptionalAuth } from "../middlewares/optionalAuth.middleware.js";
 import { isSubscriptionActive } from "../middlewares/subscriptionCheck.middleware.js";
-import { getSubscriptionDetails } from "../controllers/subscription.controller.js";
+import { createSubscription, getSubscriptionDetails } from "../controllers/subscription.controller.js";
 
 const router = Router();
+router.use(verifyAuth);
 
-router.get("/", verifyAuth, getSubscriptionDetails);
+router.get("/", getSubscriptionDetails);
+router.post("/create", createSubscription);
 
 export default router;
