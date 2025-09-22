@@ -42,8 +42,8 @@ const data = {
       icon: IconListDetails,
     },
     {
-      title: "Subscription",
-      url: "/subscription",
+      title: "Billing",
+      url: "/billing",
       showInSidebar: true,
       icon: IconCreditCard,
     }

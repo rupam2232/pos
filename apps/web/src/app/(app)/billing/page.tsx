@@ -3,8 +3,8 @@ import ClientPage from "./clientPage";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: `Subscription - ${process.env.NEXT_PUBLIC_APP_NAME}`,
-    description: `Manage your subscription plans.`,
+    title: `Billing - ${process.env.NEXT_PUBLIC_APP_NAME}`,
+    description: `Manage your billing details.`,
   };
 }
 

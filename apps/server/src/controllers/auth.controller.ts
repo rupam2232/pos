@@ -109,6 +109,7 @@ export const signup = async (
         {
           userId: user[0]._id,
           isTrial: true,
+          plan: "starter",
           trialExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           isSubscriptionActive: true,
         },
@@ -122,6 +123,7 @@ export const signup = async (
         {
           userId: user[0]._id,
           amount: 0,
+          plan: subscription[0].plan,
           isTrial: true,
           trialExpiresAt: subscription[0].trialExpiresAt,
         },

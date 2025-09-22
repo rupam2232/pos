@@ -8,6 +8,7 @@ import { signOut } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
+import type { CurrentSubscription } from "@repo/ui/types/Subscription";
 import {
   Card,
   CardContent,
@@ -18,9 +19,11 @@ import {
 } from "@repo/ui/components/card";
 import { Button } from "@repo/ui/components/button";
 import { RootState } from "@/store/store";
+import loadRazorpayScript from "@/utils/loadRazorpayScript";
 
 const ClientPage = () => {
-  const [currentSubscription, setCurrentSubscription] = useState(null);
+  const [currentSubscription, setCurrentSubscription] =
+    useState<CurrentSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [cardLoading, setCardLoading] = useState(false);
   const router = useRouter();
@@ -79,20 +82,6 @@ const ClientPage = () => {
     fetchSubscriptionDetails();
   }, [fetchSubscriptionDetails]);
 
-  const loadScript = (src: string) => {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = src;
-      script.onload = () => {
-        resolve(true);
-      };
-      script.onerror = () => {
-        reject(new Error("Payment SDK failed to load"));
-      };
-      document.body.appendChild(script);
-    });
-  };
-
   const onSubscribe = async (
     e: React.MouseEvent<HTMLButtonElement>,
     plan: string,
@@ -100,9 +89,7 @@ const ClientPage = () => {
   ) => {
     e.preventDefault();
     try {
-      const res = await loadScript(
-        "https://checkout.razorpay.com/v1/checkout.js"
-      );
+      const res = await loadRazorpayScript();
       if (!res) {
         toast.error("Razorpay SDK failed to load");
         return;
@@ -118,11 +105,10 @@ const ClientPage = () => {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.amount,
         currency: data.currency,
-        name: card.title,
+        name: `${process.env.NEXT_PUBLIC_APP_NAME} ${card.title}`,
         description: card.description,
         image: process.env.NEXT_PUBLIC_CLIENT_BASE_URL + "/favicon.ico",
         order_id: data.id,
-        // customer_id: user?._id,
         handler: function () {
           toast.success("Payment Successfull");
           router.refresh();
@@ -136,9 +122,11 @@ const ClientPage = () => {
         },
         prefill: {
           email: user?.email || "",
-          contact: "+919977665544",
+          contact: "+919977665544", // Dummy contact number, as Razorpay requires it
           name: user?.firstName + " " + user?.lastName || "",
         },
+        readonly: { email: true },
+        hidden: { contact: true },
         modal: {
           backdropclose: true,
           confirm_close: true,
@@ -160,7 +148,7 @@ const ClientPage = () => {
         );
         if (axiosError.response?.status === 401) {
           dispatch(signOut());
-          router.push("/signin?redirect=/subscription");
+          router.push("/signin?redirect=/billing");
         }
       } else if (error instanceof Error) {
         toast.error(
@@ -184,9 +172,17 @@ const ClientPage = () => {
 
   return (
     <div className="p-6">
-      <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
+      <div>
+        <h1 className="text-2xl font-bold mb-2">Current Plan</h1>
+        <p className="mb-4">
+          {currentSubscription?.plan
+            ? `You are currently subscribed to the ${currentSubscription.plan} plan.`
+            : "You are not subscribed to any plan."}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         {cardData.map((card) => (
-          <Card key={card.title} className="gap-2 w-full md:w-1/3">
+          <Card key={card.title} className="gap-2 w-full">
             <CardHeader>
               <CardTitle className="text-3xl">
                 {card.plan.charAt(0).toUpperCase() + card.plan.slice(1)}
