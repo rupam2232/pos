@@ -72,7 +72,12 @@ export const createSubscription = asyncHandler(async (req, res) => {
     currency: "INR",
     receipt: `receipt_${Math.random().toString(36).substring(2, 15)}`,
     notes: {
+      paymentType: "subscription",
+      period: "monthly",
+      userId: req.user!._id!.toString(),
       email: req.user!.email,
+      plan: req.body.plan,
+      amount: amount,
     },
   };
 

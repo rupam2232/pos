@@ -71,7 +71,7 @@ const ClientPage = () => {
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
-        router.push("/signin?redirect=/subscription");
+        router.push("/signin?redirect=/billing");
       }
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ const ClientPage = () => {
   const onSubscribe = async (
     e: React.MouseEvent<HTMLButtonElement>,
     plan: string,
-    card: { title: string; plan: string; description: string }
+    card: { title: string; plan: string; description: string; price: number }
   ) => {
     e.preventDefault();
     try {
@@ -109,12 +109,51 @@ const ClientPage = () => {
         description: card.description,
         image: process.env.NEXT_PUBLIC_CLIENT_BASE_URL + "/favicon.ico",
         order_id: data.id,
-        handler: function () {
-          toast.success("Payment Successfull");
-          router.refresh();
+        handler: async function (response: unknown) {
+          if (
+            !response ||
+            typeof response !== "object" ||
+            !("razorpay_payment_id" in response) ||
+            !("razorpay_signature" in response)
+          ) {
+            toast.error("Invalid response from Razorpay");
+            return;
+          }
+          try {
+            const verifyResponse = await axios.post(
+              "/payment/razorpay/verify",
+              {
+                paymentId: response.razorpay_payment_id,
+                orderId: data.id,
+                signature: response.razorpay_signature,
+              }
+            );
+            if (verifyResponse.data.success) {
+              toast.success(
+                verifyResponse.data.message || "Payment Successful"
+              );
+              router.refresh();
+            } else {
+              toast.error(
+                verifyResponse.data.message || "Payment Verification Failed"
+              );
+            }
+          } catch (error) {
+            console.error("Payment verification failed:", error);
+            const axiosError = error as AxiosError<ApiResponse>;
+            toast.error(
+              axiosError.response?.data.message ||
+                "Payment verification failed. Please try again later."
+            );
+          }
         },
         notes: {
-          id: card.plan,
+          paymentType: data.notes.paymentType ?? "subscription",
+          period: data.notes.period ?? "monthly",
+          userId: data.notes.userId ?? user?._id,
+          email: data.notes.email ?? user?.email,
+          amount: data.notes.amount ?? card.price,
+          plan: data.notes.plan ?? plan,
           receipt: data.receipt,
         },
         theme: {
