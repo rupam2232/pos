@@ -42,7 +42,7 @@ export function SigninForm({
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect") || "/home";
   const [emailLoginLoading, setEmailLoginLoading] = useState(false);
   const [googleLoginLoading, setGoogleLoginLoading] = useState(false);
 
@@ -68,7 +68,7 @@ export function SigninForm({
         response.data?.message &&
         response.data.message.toLowerCase().includes("sign up")
       ) {
-        router.replace("/dashboard?from=signup");
+        router.replace("/home?from=signup");
       } else {
         router.replace(redirectTo);
       }
@@ -237,7 +237,7 @@ export function SigninForm({
                   </Button>
                   <div className="text-center text-sm">
                     Don&apos;t have an account?{" "}
-                    <Link href="/signup" className="underline underline-offset-4">
+                    <Link href={`/signup?redirect=${redirectTo}`} className="underline underline-offset-4">
                       Sign up
                     </Link>
                   </div>

@@ -6,8 +6,8 @@ export async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get("accessToken")?.value;
 
   const protectedRoutes = [
-    "/dashboard",
-    "/subscription",
+    "/home",
+    "/billing",
   ];
 
   // Redirect logic
@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
     (request.nextUrl.pathname.startsWith("/signin") ||
       request.nextUrl.pathname.startsWith("/signup"))
   ) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/home", request.url));
   }
 
   return NextResponse.next({
@@ -39,8 +39,8 @@ export const config = {
     "/signin",
     "/signup",
     "/",
-    "/dashboard/:path*",
-    "/subscription/:path*",
+    "/home/:path*",
+    "/billing/:path*",
     "/restaurant/:path*",
   ],
 };

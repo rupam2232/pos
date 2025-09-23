@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   IconInnerShadowTop,
-  IconListDetails,
   IconReceipt,
   IconSettings,
   IconTable,
@@ -13,6 +12,7 @@ import {
   IconUser,
   IconUsers,
   IconCreditCard,
+  IconHome,
 } from "@tabler/icons-react";
 
 // import { NavDocuments } from "@/components/nav-documents";
@@ -36,10 +36,10 @@ import { usePathname } from "next/navigation";
 const data = {
   navMain: [
     {
-      title: "Dashboard",
-      url: "/dashboard",
+      title: "Home",
+      url: "/home",
       showInSidebar: true,
-      icon: IconListDetails,
+      icon: IconHome,
     },
     {
       title: "Billing",

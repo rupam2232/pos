@@ -24,8 +24,8 @@ import loadRazorpayScript from "@/utils/loadRazorpayScript";
 const ClientPage = () => {
   const [currentSubscription, setCurrentSubscription] =
     useState<CurrentSubscription | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cardLoading, setCardLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [cardLoading, setCardLoading] = useState<string | null>(null);
   const router = useRouter();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -82,19 +82,36 @@ const ClientPage = () => {
     fetchSubscriptionDetails();
   }, [fetchSubscriptionDetails]);
 
+  const subscriptionPlanCardsDisableLogic = (plan: string) => {
+    if (cardLoading) return true;
+    if (!currentSubscription) return false;
+    if (currentSubscription.isTrial) return false;
+    if (currentSubscription.plan === plan) return true;
+    if (currentSubscription.plan === "pro") return true;
+    if (currentSubscription.plan === "medium" && plan === "starter")
+      return true;
+    return false;
+  };
+
   const onSubscribe = async (
     e: React.MouseEvent<HTMLButtonElement>,
     plan: string,
     card: { title: string; plan: string; description: string; price: number }
   ) => {
     e.preventDefault();
+    if (subscriptionPlanCardsDisableLogic(plan)) return;
+    if (!user) {
+      toast.error("You need to be signed in to subscribe");
+      router.push("/signin?redirect=/billing");
+      return;
+    }
     try {
       const res = await loadRazorpayScript();
       if (!res) {
         toast.error("Razorpay SDK failed to load");
         return;
       }
-      setCardLoading(true);
+      setCardLoading(plan);
       const response = await axios.post("/subscription/create", { plan });
       if (!response.data.data || !response.data.data.id) {
         toast.error("Invalid response from server");
@@ -150,19 +167,20 @@ const ClientPage = () => {
         notes: {
           paymentType: data.notes.paymentType ?? "subscription",
           period: data.notes.period ?? "monthly",
-          userId: data.notes.userId ?? user?._id,
-          email: data.notes.email ?? user?.email,
+          userId: data.notes.userId ?? user._id,
+          email: data.notes.email ?? user.email,
           amount: data.notes.amount ?? card.price,
           plan: data.notes.plan ?? plan,
           receipt: data.receipt,
         },
         theme: {
-          color: "#2563eb",
+          color: "#006239",
+          backdrop_color: "rgba(0, 0, 0, 0.5)",
         },
         prefill: {
-          email: user?.email || "",
+          email: user.email || "",
           contact: "+919977665544", // Dummy contact number, as Razorpay requires it
-          name: user?.firstName + " " + user?.lastName || "",
+          name: user.firstName + " " + user.lastName || "",
         },
         readonly: { email: true },
         hidden: { contact: true },
@@ -197,7 +215,7 @@ const ClientPage = () => {
         toast.error("Subscription failed. Please try again later");
       }
     } finally {
-      setCardLoading(false);
+      setCardLoading(null);
     }
   };
 
@@ -211,13 +229,35 @@ const ClientPage = () => {
 
   return (
     <div className="p-6">
-      <div>
-        <h1 className="text-2xl font-bold mb-2">Current Plan</h1>
-        <p className="mb-4">
-          {currentSubscription?.plan
-            ? `You are currently subscribed to the ${currentSubscription.plan} plan.`
-            : "You are not subscribed to any plan."}
+      <div className="mb-4 text-sm">
+        <p>
+          {currentSubscription?.isTrial ? (
+            "You are on a trial plan"
+          ) : currentSubscription?.plan ? (
+            <>
+              You are currently subscribed to the{" "}
+              <span className="font-bold">
+                {currentSubscription.plan.charAt(0).toUpperCase() +
+                  currentSubscription.plan.slice(1)}
+              </span>{" "}
+              plan
+            </>
+          ) : (
+            "You don't have an active subscription plan"
+          )}
         </p>
+        {currentSubscription?.subscriptionEndDate && (
+          <p>
+            Plan expiry:{" "}
+            {`${new Date(currentSubscription.subscriptionEndDate).getDate()} ${new Date(currentSubscription.subscriptionEndDate).toLocaleString("default", { month: "long" })} ${new Date(currentSubscription.subscriptionEndDate).getFullYear()}, ${new Date(currentSubscription.subscriptionEndDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+          </p>
+        )}
+        {currentSubscription?.isTrial && currentSubscription.trialExpiresAt && (
+          <p>
+            Trial expires:{" "}
+            {`${new Date(currentSubscription.trialExpiresAt).getDate()} ${new Date(currentSubscription.trialExpiresAt).toLocaleString("default", { month: "long" })} ${new Date(currentSubscription.trialExpiresAt).getFullYear()}, ${new Date(currentSubscription.trialExpiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+          </p>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         {cardData.map((card) => (
@@ -236,11 +276,18 @@ const ClientPage = () => {
               <CardAction className="w-full">
                 <Button
                   className="w-full"
+                  variant={
+                    currentSubscription?.plan === card.plan
+                      ? "outline"
+                      : "default"
+                  }
                   onClick={(e) => onSubscribe(e, card.plan, card)}
-                  disabled={cardLoading}
+                  disabled={subscriptionPlanCardsDisableLogic(card.plan)}
                 >
-                  {cardLoading ? (
-                    <Loader2 className="animate-spin mr-2" />
+                  {cardLoading === card.plan ? (
+                    <Loader2 className="animate-spin" />
+                  ) : currentSubscription?.plan === card.plan ? (
+                    "Current Plan"
                   ) : (
                     `Get ${card.plan.charAt(0).toUpperCase() + card.plan.slice(1)}`
                   )}
@@ -257,50 +304,12 @@ const ClientPage = () => {
             </CardContent>
           </Card>
         ))}
-        {/* <Card className="gap-2 w-full md:w-1/3">
-          <CardHeader>
-            <CardTitle className="text-3xl">Medium</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-lg font-semibold">
-              ₹500 INR/month{" "}
-              <span className="text-sm font-normal">(inclusive of GST)</span>
-            </p>
-            <CardAction className="w-full">
-              <Button className="w-full">Get Medium</Button>
-            </CardAction>
-
-            <div>
-              <ul className="list-disc list-inside space-y-2">
-                <li>Feature 1</li>
-                <li>Feature 2</li>
-                <li>Feature 3</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-2 w-full md:w-1/3">
-          <CardHeader>
-            <CardTitle className="text-3xl">Pro</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-lg font-semibold">
-              ₹800 INR/month{" "}
-              <span className="text-sm font-normal">(inclusive of GST)</span>
-            </p>
-            <CardAction className="w-full">
-              <Button className="w-full">Get Pro</Button>
-            </CardAction>
-
-            <div>
-              <ul className="list-disc list-inside space-y-2">
-                <li>Feature 1</li>
-                <li>Feature 2</li>
-                <li>Feature 3</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card> */}
+      </div>
+      <div className="text-xs text-gray-500">
+        <p>
+          Note: All plans are billed monthly. You can upgrade your plan at any
+          time. No refunds for mid-cycle cancellations.
+        </p>
       </div>
     </div>
   );

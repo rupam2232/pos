@@ -1,10 +1,10 @@
 export interface CurrentSubscription {
   _id: string;
   userId: string;
-  plan?: "Starter" | "Medium" | "Pro";
+  plan?: "starter" | "medium" | "pro";
   isSubscriptionActive: boolean;
   trialExpiresAt?: string;
-  subscriptionStartDate?: Date;
-  subscriptionEndDate?: Date;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
   isTrial?: boolean;
 }

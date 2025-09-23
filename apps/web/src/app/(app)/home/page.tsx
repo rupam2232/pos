@@ -24,7 +24,7 @@ import {
   setAllRestaurants,
   setActiveRestaurant,
 } from "@/store/restaurantSlice";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 import type { RestaurantMinimalInfo } from "@repo/ui/types/Restaurant";
 import CreateRestaurantDialog from "@/components/create-restaurant-dialog";
@@ -40,6 +40,8 @@ export default function Page() {
     useState<RestaurantMinimalInfo | null>(null);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
 
   const fetchOwnersRestaurants = useCallback(async () => {
     setIsLoading(true);
@@ -132,9 +134,11 @@ export default function Page() {
       <div className="@container/main flex flex-1 flex-col gap-2">
         <div className="flex flex-col gap-4 py-4 md:gap-6">
           <div className="flex items-start justify-between">
-              <p className="text-muted-foreground px-4 lg:px-6">
-                Welcome to your dashboard, {user?.firstName || "User"}!
-              </p>
+            <p className="text-muted-foreground px-4 lg:px-6">
+              {from === "signup"
+                ? `Welcome to ${process.env.NEXT_PUBLIC_APP_NAME}, ${user?.firstName || "User"}!`
+                : `Welcome back, ${user?.firstName || "User"}!`}
+            </p>
             {user?.role === "owner" && (
               <div className="px-4 lg:px-6">
                 <CreateRestaurantDialog

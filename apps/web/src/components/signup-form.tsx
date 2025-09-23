@@ -31,7 +31,7 @@ import type { AppDispatch } from "@/store/store";
 import { signIn, signOut } from "@/store/authSlice";
 import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, Loader2, RotateCcw } from "lucide-react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
@@ -48,6 +48,8 @@ export function SignupForm({
 }) {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/home";
   const [emailSignupLoading, setEmailSignupLoading] = useState<boolean>(false);
   const [googleSignupLoading, setGoogleSignupLoading] =
     useState<boolean>(false);
@@ -93,9 +95,9 @@ export function SignupForm({
         response.data?.message &&
         response.data.message.toLowerCase().includes("sign up")
       ) {
-        router.replace("/dashboard?from=signup");
+        router.replace("/home?from=signup");
       } else {
-        router.replace("/dashboard");
+        router.replace(redirectTo);
       }
     } catch (error) {
       dispatch(signOut());
@@ -186,7 +188,7 @@ export function SignupForm({
       const response = await axios.post("/auth/signup", data);
       dispatch(signIn(response.data.data));
       toast.success(response.data.message || "Sign up successful!");
-      router.replace("/dashboard?from=signup");
+      router.replace("/home?from=signup");
       if (setDrawerOpen) {
         setDrawerOpen(false);
       }
@@ -476,7 +478,7 @@ export function SignupForm({
                   </Button>
                   <div className="text-center text-sm">
                     Already have an account?{" "}
-                    <Link href="/signin" className="underline underline-offset-4">
+                    <Link href={`/signin?redirect=${redirectTo}`} className="underline underline-offset-4">
                       Sign in
                     </Link>
                   </div>
