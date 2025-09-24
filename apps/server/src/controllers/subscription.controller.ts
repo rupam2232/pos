@@ -9,6 +9,58 @@ export const getSubscriptionDetails = asyncHandler(async (req, res) => {
   if (!subscription) {
     throw new ApiError(404, "Subscription not found");
   }
+  if (
+    subscription.subscriptionEndDate &&
+    subscription.subscriptionEndDate < new Date()
+  ) {
+    subscription.isSubscriptionActive = false;
+    subscription.isTrial = false;
+    subscription.plan = undefined;
+    subscription.subscriptionStartDate = undefined;
+    subscription.subscriptionEndDate = undefined;
+    await subscription.save({ validateBeforeSave: false });
+  }
+
+  if (subscription.isTrial && !subscription.trialExpiresAt) {
+    if (
+      subscription.subscriptionEndDate &&
+      subscription.subscriptionEndDate > new Date()
+    ) {
+      subscription.isTrial = false;
+      await subscription.save({ validateBeforeSave: false });
+    } else {
+      subscription.isTrial = false;
+      subscription.isSubscriptionActive = false;
+      subscription.plan = undefined;
+      subscription.subscriptionStartDate = undefined;
+      subscription.subscriptionEndDate = undefined;
+      await subscription.save({ validateBeforeSave: false });
+    }
+  }
+  if (
+    subscription.isTrial &&
+    subscription.trialExpiresAt &&
+    subscription.trialExpiresAt < new Date()
+  ) {
+    subscription.isSubscriptionActive = false;
+    subscription.isTrial = false;
+    subscription.plan = undefined;
+    subscription.subscriptionStartDate = undefined;
+    subscription.subscriptionEndDate = undefined;
+    await subscription.save({ validateBeforeSave: false });
+  }
+  if (
+    !subscription.isTrial &&
+    !subscription.trialExpiresAt &&
+    !subscription.subscriptionEndDate
+  ) {
+    subscription.isSubscriptionActive = false;
+    subscription.plan = undefined;
+    subscription.subscriptionStartDate = undefined;
+    subscription.subscriptionEndDate = undefined;
+    await subscription.save({ validateBeforeSave: false });
+  }
+
   res
     .status(200)
     .json(

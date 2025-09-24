@@ -36,6 +36,23 @@ export const isSubscriptionActive = asyncHandler(async (req, _, next) => {
       "Your subscription has expired. Please renew to continue using the service"
     );
   }
+  if(subscription.isTrial && !subscription.trialExpiresAt){
+    if (subscription.subscriptionEndDate && subscription.subscriptionEndDate > new Date()) {
+      subscription.isTrial = false;
+      subscription.save({ validateBeforeSave: false });
+    } else {
+      subscription.isTrial = false;
+      subscription.isSubscriptionActive = false;
+      subscription.plan = undefined;
+      subscription.subscriptionStartDate = undefined;
+      subscription.subscriptionEndDate = undefined;
+      subscription.save({ validateBeforeSave: false });
+      throw new ApiError(
+        403,
+        "Your subscription is not active. Please subscribe to continue using the service"
+      );
+    }
+  }
   if (
     subscription.isTrial &&
     subscription.trialExpiresAt &&

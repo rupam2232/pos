@@ -42,12 +42,12 @@ export default function NavbarComp() {
         <div className="flex items-center gap-4">
           {authenticated ? (
             <NavbarButton
-              href="/dashboard"
+              href="/home"
               as={Link}
               variant="primary"
               className="bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
             >
-              Dashboard
+              Go to App
             </NavbarButton>
           ) : (
             <>
@@ -101,12 +101,12 @@ export default function NavbarComp() {
             {authenticated ? (
               <NavbarButton
                 onClick={() => setIsMobileMenuOpen(false)}
-                href="/dashboard"
+                href="/home"
                 as={Link}
                 variant="primary"
                 className="w-full bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
               >
-                Dashboard
+                Go to App
               </NavbarButton>
             ) : (
               <>

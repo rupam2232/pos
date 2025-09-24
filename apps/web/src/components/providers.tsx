@@ -21,7 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
         >
           {children}
-        <Toaster richColors expand={true} position="top-right" />
+          <Toaster richColors expand={true} position="top-right" />
         </GoogleOAuthProvider>
       </ReduxProvider>
     </NextThemesProvider>

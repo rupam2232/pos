@@ -2,7 +2,6 @@
 import { Separator } from "@repo/ui/components/separator";
 import { SidebarTrigger } from "@repo/ui/components/sidebar";
 import { useEffect, useRef, useState } from "react";
-import ToggleTheme from "./toggle-Theme";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
@@ -49,12 +48,12 @@ export function SiteHeader() {
   }, [pathname]);
 
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) sticky top-0 z-10 px-1 backdrop-blur-sm bg-background/70">
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) sticky top-0 z-11 px-1 backdrop-blur-sm bg-background/70">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
+          className="mx-2 data-[orientation=vertical]:h-4 bg-zinc-400"
         />
         {pathname.startsWith("/restaurant/") ? (
           <div className="text-base font-medium flex items-center space-x-2">
@@ -95,7 +94,6 @@ export function SiteHeader() {
           <h3 className="text-base font-medium">{pageTitle.current}</h3>
         )}
         <div className="ml-auto flex items-center gap-2">
-          <ToggleTheme />
           {currentTime ? (
             <span className="text-sm text-gray-500">
               {`${currentTime

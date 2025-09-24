@@ -4,8 +4,8 @@ import {
   IconCreditCard,
   IconDotsVertical,
   IconLogout,
-  IconNotification,
-  IconUserCircle,
+  // IconNotification,
+  // IconUserCircle,
 } from "@tabler/icons-react";
 
 import {
@@ -29,9 +29,66 @@ import {
   useSidebar,
 } from "@repo/ui/components/sidebar";
 import { UserState } from "@/store/authSlice";
+import ToggleTheme from "./toggle-Theme";
+import Link from "next/link";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog";
+import { Button } from "@repo/ui/components/button";
+import axios from "@/utils/axiosInstance";
+import { useSelector, useDispatch } from "react-redux";
+import { signOut } from "@/store/authSlice";
+import { RootState } from "@/store/store";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { AxiosError } from "axios";
+import { ApiResponse } from "@repo/ui/types/ApiResponse";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { cn } from "@repo/ui/lib/utils";
 
 export function NavUser({ user }: { user: UserState["user"] }) {
   const { isMobile } = useSidebar();
+  const dispatch = useDispatch();
+  const userState = useSelector((state: RootState) => state.auth.status);
+  const router = useRouter();
+  const [isLogoutBtnLoading, setisLogoutBtnLoading] = useState(false);
+
+  const handleLogout = async () => {
+    if (!userState) {
+      toast.error("You are not logged in");
+      return;
+    }
+    try {
+      setisLogoutBtnLoading(true);
+      const toastId = toast.loading("Logging out...");
+      const response = await axios.post("/auth/signout");
+      if (!response.data.success) {
+        toast.error("Error logging out", { id: toastId });
+        return;
+      }
+      dispatch(signOut());
+      router.replace("/");
+      toast.success("Logged out successfully", { id: toastId });
+    } catch (error) {
+      console.error("Error logging out:", error);
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast.error(
+        axiosError.response?.data.message ||
+          "Error logging out. Please try again"
+      );
+    } finally {
+      setisLogoutBtnLoading(false);
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -87,26 +144,69 @@ export function NavUser({ user }: { user: UserState["user"] }) {
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-accent" />
+            <div className="flex items-center justify-between px-2">
+              <span className="text-sm text-accent-foreground dark:text-muted-foreground">
+                Theme
+              </span>
+              <ToggleTheme className="border-accent" />
+            </div>
+            <DropdownMenuSeparator className="bg-accent" />
             <DropdownMenuGroup>
+              {/* <DropdownMenuItem>
+                <Link href="/account" className="absolute inset-0" />
+                  <IconUserCircle />
+                  Account
+              </DropdownMenuItem> */}
               <DropdownMenuItem>
-                <IconUserCircle />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
+                <Link href="/billing" className="absolute inset-0" />
                 <IconCreditCard />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <IconNotification />
                 Notifications
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <IconLogout />
-              Log out
-            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-accent" />
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="!text-red-600 data-[variant=destructive]:*:[svg]:!text-red-600 w-full justify-start hover:bg-destructive/20 dark:hover:bg-destructive/30 px-2 py-1.5 h-auto"
+                >
+                  <IconLogout />
+                  Log out
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will log you out of the
+                    application.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={isLogoutBtnLoading}
+                    className={cn(
+                      "bg-red-600 text-white hover:bg-red-500",
+                      isLogoutBtnLoading && "w-21"
+                    )}
+                    onClick={handleLogout}
+                  >
+                    {isLogoutBtnLoading ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      "Log out"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
