@@ -198,7 +198,7 @@ const Page = () => {
       }}
     >
       <DialogTrigger className="hidden">Open Dialog</DialogTrigger>
-      <DialogContent className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-screen">
+      <DialogContent className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-screen">
         <DialogHeader>
           <DialogTitle className="pb-2! p-6">
             {step === 1

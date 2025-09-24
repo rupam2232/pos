@@ -33,7 +33,7 @@ export const verifyAuth = asyncHandler(async (req, res, next) => {
   }
   const decodedToken = decoded as accessTokenUser;
 
-  const user: UserType = await User.findById(decodedToken._id).select("-password");
+  const user: UserType = await User.findById(decodedToken._id).select("-password -__v");
 
   if (!user) {
     throw new ApiError(401, "Invalid Access Token");

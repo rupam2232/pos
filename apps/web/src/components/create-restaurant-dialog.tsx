@@ -179,15 +179,31 @@ const CreateRestaurantDialog = ({
   ) => {
     const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"];
 
+    if (rejectedFiles.length > 0) {
+      if (rejectedFiles[0]?.errors[0]?.code === "file-too-large") {
+        setImageErrorMessage("Logo file size exceeds 1MB.");
+        return;
+      } else if (rejectedFiles[0]?.errors[0]?.code === "file-invalid-type") {
+        setImageErrorMessage("Only .jpeg, .jpg, .png files are allowed.");
+        return;
+      } else {
+        setImageErrorMessage(
+          rejectedFiles[0]?.errors[0]?.message ||
+            "Failed to upload logo. Please try again."
+        );
+        return;
+      }
+    }
+
     if (
-      rejectedFiles.length > 0 ||
-      (acceptedFiles.length > 0 &&
-        (!acceptedFiles[0]?.type ||
-          !allowedImageTypes.includes(acceptedFiles[0].type)))
+      acceptedFiles.length > 0 &&
+      (!acceptedFiles[0]?.type ||
+        !allowedImageTypes.includes(acceptedFiles[0].type))
     ) {
       setImageErrorMessage("Only .jpeg, .jpg, .png files are allowed.");
       return;
     }
+
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0] as File;
       if (file.size > MAX_IMAGE_SIZE) {

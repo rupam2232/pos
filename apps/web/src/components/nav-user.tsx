@@ -105,11 +105,11 @@ export function NavUser({ user }: { user: UserState["user"] }) {
                   alt={user?.firstName}
                   draggable={false}
                 />
-                <AvatarFallback className="rounded-lg">{`${user?.firstName[0]?.toUpperCase()}${user?.lastName ? user?.lastName[0]?.toUpperCase() : ""}`}</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{`${user?.firstName && user?.firstName[0]?.toUpperCase()}${user?.lastName ? user.lastName[0]?.toUpperCase() : ""}`}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
-                  {user?.firstName} {user?.lastName ?? ""}
+                  {user?.firstName ?? ""} {user?.lastName ?? ""}
                 </span>
                 <span className="text-muted-foreground truncate text-xs">
                   {user?.email}

@@ -136,8 +136,8 @@ export default function Page() {
           <div className="flex items-start justify-between">
             <p className="text-muted-foreground px-4 lg:px-6">
               {from === "signup"
-                ? `Welcome to ${process.env.NEXT_PUBLIC_APP_NAME}, ${user?.firstName || "User"}!`
-                : `Welcome back, ${user?.firstName || "User"}!`}
+                ? `Welcome to ${process.env.NEXT_PUBLIC_APP_NAME}, ${user?.firstName ?? "User"}!`
+                : `Welcome back, ${user?.firstName ?? "User"}!`}
             </p>
             {user?.role === "owner" && (
               <div className="px-4 lg:px-6">

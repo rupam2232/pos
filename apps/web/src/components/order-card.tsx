@@ -383,7 +383,7 @@ const OrderCard = ({
             </Table>
           </div>
         </div>
-        <div className="flex gap-2 pt-3 justify-between">
+        <div className="flex gap-2 pt-3 justify-between sm:flex-row flex-col">
           <OrderDetails
             order={order}
             // setOrders={setOrders}

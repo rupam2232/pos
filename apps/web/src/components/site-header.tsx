@@ -93,7 +93,7 @@ export function SiteHeader() {
         ) : (
           <h3 className="text-base font-medium">{pageTitle.current}</h3>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto md:flex items-center gap-2 hidden">
           {currentTime ? (
             <span className="text-sm text-gray-500">
               {`${currentTime
