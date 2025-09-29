@@ -76,7 +76,7 @@ const MyOrdersClientPage = () => {
           <div className="flex items-center gap-3">
             {/* <StatusIcon className={`h-5 w-5 ${status.color}`} /> */}
             <div>
-              <h3 className="font-semibold text-foreground">Order #{order._id.slice(-6)}</h3>
+              <h3 className="font-semibold text-foreground">Order #{order.orderNo}</h3>
               {/* <p className="text-sm text-muted-foreground">{orderDate}</p> */}
             </div>
           </div>

@@ -442,7 +442,7 @@ const TableDetails = ({
               </p>
 
               <TableQRCode
-                qrCodeData={`${window.location.origin}/${tableDetails?.restaurantDetails?.slug}/table/${tableDetails.qrSlug}`}
+                qrCodeData={`${window.location.origin}/${tableDetails?.restaurantDetails?.slug}/menu?tableId=${tableDetails.qrSlug}`}
                 qrCodeImage={tableDetails.restaurantDetails.logoUrl?.replace(
                   "/upload/",
                   "/upload/r_max/"
