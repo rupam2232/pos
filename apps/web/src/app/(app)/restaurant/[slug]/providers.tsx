@@ -12,8 +12,8 @@ import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const activeRestaurantId = useSelector(
-    (state: RootState) => state.restaurantsSlice.activeRestaurant?._id
+  const activeRestaurant = useSelector(
+    (state: RootState) => state.restaurantsSlice.activeRestaurant
   );
   const socket = useSocket();
   const { slug } = useParams<{ slug: string }>();
@@ -38,12 +38,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [slug, dispatch]);
 
   useEffect(() => {
-    if (!socket || !activeRestaurantId) return;
+    if (!socket || !activeRestaurant) return;
     const handleConnect = () => {
-      socket.emit("authenticate", activeRestaurantId);
+      socket.emit("authenticate", activeRestaurant._id);
       console.log(
         "Emitted authenticate event with restaurant ID:",
-        activeRestaurantId,
+        activeRestaurant._id,
         socket.id
       );
     };
@@ -53,17 +53,35 @@ export function Providers({ children }: { children: React.ReactNode }) {
       handleConnect();
     } else {
       socket.on("connect", handleConnect);
-
-      socket.on("newOrder", (data) => {
-        toast.success(data.message);
-      });
     }
+
+    socket.on("newOrder", (data) => {
+      toast.success(data.message);
+      // Show browser notification
+      if (Notification.permission === "granted") {
+        new Notification("New Order", {
+          tag: "newOrder", // Prevent multiple notifications
+          body: `You have a new order #${data.order.orderNo}`,
+          icon: activeRestaurant.logoUrl ?? "/favicon.ico",
+        });
+      } else {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            new Notification("New Order", {
+              tag: "newOrder",
+              body: `You have a new order #${data.order.orderNo}`,
+              icon: activeRestaurant.logoUrl ?? "/favicon.ico",
+            });
+          }
+        });
+      }
+    });
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("newOrder");
     };
-  }, [activeRestaurantId, socket]);
+  }, [activeRestaurant, socket]);
 
   return <>{children}</>;
 }
