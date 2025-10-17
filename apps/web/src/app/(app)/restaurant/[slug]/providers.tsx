@@ -56,23 +56,31 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
 
     socket.on("newOrder", (data) => {
-      toast.success(data.message);
       // Show browser notification
       if (Notification.permission === "granted") {
+        toast.success(data.message, {
+          action: { label: "Close", onClick: () => toast.dismiss() },
+        });
         new Notification("New Order", {
           tag: "newOrder", // Prevent multiple notifications
           body: `You have a new order #${data.order.orderNo}`,
           icon: activeRestaurant.logoUrl ?? "/favicon.ico",
         });
       } else {
-        Notification.requestPermission().then((permission) => {
-          if (permission === "granted") {
-            new Notification("New Order", {
-              tag: "newOrder",
-              body: `You have a new order #${data.order.orderNo}`,
-              icon: activeRestaurant.logoUrl ?? "/favicon.ico",
-            });
-          }
+        toast.success(data.message, {
+          action: {
+            label: "Notify",
+            onClick: () =>
+              Notification.requestPermission().then((permission) => {
+                if (permission === "granted") {
+                  new Notification("New Order", {
+                    tag: "newOrder",
+                    body: `You have a new order #${data.order.orderNo}`,
+                    icon: activeRestaurant.logoUrl ?? "/favicon.ico",
+                  });
+                }
+              }),
+          },
         });
       }
     });

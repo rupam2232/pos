@@ -12,7 +12,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       typeof window !== "undefined" &&
       Notification.permission !== "granted"
     ) {
-      toast.info("Enable notifications for new orders", {
+      toast.info("Please enable notifications", {
         action: {
           label: "Enable",
           onClick: () => Notification.requestPermission(),

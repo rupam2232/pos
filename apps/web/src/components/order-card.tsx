@@ -361,7 +361,7 @@ const OrderCard = ({
                       {item.quantity}
                     </TableCell>
                     <TableCell className="text-right">
-                      ₹{item.finalPrice.toFixed(2)}
+                      ₹{(item.finalPrice * item.quantity).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
