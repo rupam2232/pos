@@ -190,7 +190,7 @@ const BillReceipt = ({
           </thead>
           <tbody>
             {orderDetails.orderedFoodItems.map((item) => (
-              <tr key={item.foodItemId}>
+              <tr key={item.foodItemId + item.variantDetails?.variantName}>
                 <td>
                   {item.foodName}{" "}
                   {item.variantDetails &&

@@ -42,5 +42,9 @@ export const config = {
     "/home/:path*",
     "/billing/:path*",
     "/restaurant/:path*",
-  ],
+    "/:slug/bill/:path*",
+    "/:slug/menu",
+    "/:slug/my-orders",
+    "/:slug/cart"
+  ]
 };
