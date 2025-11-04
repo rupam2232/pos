@@ -303,7 +303,7 @@ const CheckoutClientPage = () => {
                     <span>₹{restaurantCartItemSubtotal.toFixed(2)}</span>
                   </div>
                 </div>
-                {taxDetails && !taxDetails.isTaxIncludedInPrice && (
+                {(taxDetails && !taxDetails.isTaxIncludedInPrice && taxDetails.taxLabel) && (
                   <div className="flex justify-between text-sm">
                     <span>{taxDetails.taxLabel}</span>
                     <span>

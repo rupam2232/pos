@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AppDispatch, RootState } from "@/store/store";
 import { setActiveRestaurant } from "@/store/restaurantSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -18,6 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const socket = useSocket();
   const { slug } = useParams<{ slug: string }>();
   const dispatch = useDispatch<AppDispatch>();
+  const connectHandlerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -38,7 +39,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [slug, dispatch]);
 
   useEffect(() => {
-    if (!socket || !activeRestaurant) return;
+    if (!socket || !activeRestaurant?._id) return;
+
+    // ensure removing any previous handlers on same socket instance
+    if (connectHandlerRef.current) {
+      socket.off("connect", connectHandlerRef.current);
+      connectHandlerRef.current = null;
+    }
+
     const handleConnect = () => {
       socket.emit("authenticate", activeRestaurant._id);
       console.log(
@@ -48,6 +56,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       );
     };
 
+    connectHandlerRef.current = handleConnect;
+
     // If already connected, emit immediately
     if (socket.connected) {
       handleConnect();
@@ -55,12 +65,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       socket.on("connect", handleConnect);
     }
 
-    socket.on("newOrder", (data) => {
+    const newOrderHandler = (data: { message: string; order: { orderNo: string } }) => {
       // Show browser notification
       if (Notification.permission === "granted") {
-        toast.success(data.message, {
-          action: { label: "Close", onClick: () => toast.dismiss() },
-        });
+        toast.success(data.message);
         new Notification("New Order", {
           tag: "newOrder", // Prevent multiple notifications
           body: `You have a new order #${data.order.orderNo}`,
@@ -83,13 +91,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         });
       }
-    });
+    }
+
+    socket.off("newOrder", newOrderHandler); // Remove any existing handlers to prevent duplicates
+    socket.on("newOrder", newOrderHandler);
 
     return () => {
-      socket.off("connect", handleConnect);
-      socket.off("newOrder");
+      if (connectHandlerRef.current) {
+        socket.off("connect", connectHandlerRef.current);
+        connectHandlerRef.current = null;
+      }
+      socket.off("newOrder", newOrderHandler);
     };
-  }, [activeRestaurant, socket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRestaurant?._id, socket]);
 
   return <>{children}</>;
 }
