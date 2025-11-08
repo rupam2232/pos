@@ -57,7 +57,7 @@ export default function NavbarComp() {
                 variant="secondary"
                 className="shadow-xs hover:bg-primary-foreground/10 font-medium hover:translate-none"
               >
-                Sign In
+                Sign in
               </NavbarButton>
               <NavbarButton
                 href="/signup"
@@ -65,7 +65,7 @@ export default function NavbarComp() {
                 variant="primary"
                 className="bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
               >
-                Sign Up
+                Get Started for free
               </NavbarButton>
             </>
           )}
@@ -97,7 +97,7 @@ export default function NavbarComp() {
               <span className="block">{item.name}</span>
             </Link>
           ))}
-          <div className="flex w-full flex-col gap-4">
+          <div className="flex w-full gap-4">
             {authenticated ? (
               <NavbarButton
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -114,10 +114,10 @@ export default function NavbarComp() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   href="/signin"
                   as={Link}
-                  variant="primary"
-                  className="w-full bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
+                  variant="secondary"
+                  className="w-full text-primary-foreground shadow-xs bg-secondary/60 hover:bg-muted font-medium hover:translate-none flex justify-center items-center"
                 >
-                  Sign In
+                  Sign in
                 </NavbarButton>
                 <NavbarButton
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -126,7 +126,7 @@ export default function NavbarComp() {
                   variant="primary"
                   className="w-full bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
                 >
-                  Sign Up
+                  Get Started for free
                 </NavbarButton>
               </>
             )}

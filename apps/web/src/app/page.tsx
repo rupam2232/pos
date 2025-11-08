@@ -1,6 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import Showcase from "@/components/Showcase";
+// import Showcase from "@/components/Showcase";
 import Features from "@/components/Features";
 import Pricing from "@/components/Pricing";
 import CTA from "@/components/CTA";
@@ -11,7 +11,7 @@ export default function Home() {
     <>
       <Navbar />
       <Hero />
-      <Showcase />
+      {/* <Showcase /> */}
       <Features />
       <Pricing />
       <CTA />

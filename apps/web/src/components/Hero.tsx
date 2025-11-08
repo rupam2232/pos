@@ -21,8 +21,9 @@ export default function Hero() {
         opacity: 0.4,
         cellSize: 50,
         lightLineColor: "#4a4a4a",
-        darkLineColor: "#2a2a2a",
+        darkLineColor: "#6e6e6e",
       }}
+      className="h-screen"
     />
   );
 }

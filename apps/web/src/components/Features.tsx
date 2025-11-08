@@ -12,7 +12,7 @@ const features = [
 export default function Features() {
   return (
     <section id="features" className="py-24 px-6 md:px-16 text-center">
-      <h2 className="text-4xl font-bold mb-12">Key Features</h2>
+      {/* <h2 className="text-4xl font-bold mb-12">Key Features</h2> */}
       <div className="grid md:grid-cols-4 gap-8">
         {features.map((f, i) => (
           <motion.div
