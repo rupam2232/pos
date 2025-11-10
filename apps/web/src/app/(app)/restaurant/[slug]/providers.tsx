@@ -10,6 +10,7 @@ import { useParams } from "next/navigation";
 import type { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import axios from "@/utils/axiosInstance";
+import * as orderSound from "@/utils/orderSound";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const activeRestaurant = useSelector(
@@ -68,6 +69,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const newOrderHandler = (data: { message: string; order: { orderNo: string } }) => {
       // Show browser notification
       if (Notification.permission === "granted") {
+
         toast.success(data.message);
         new Notification("New Order", {
           tag: "newOrder", // Prevent multiple notifications
@@ -91,6 +93,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         });
       }
+      // Play sound notification
+      orderSound.play();
     }
 
     socket.off("newOrder", newOrderHandler); // Remove any existing handlers to prevent duplicates

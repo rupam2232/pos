@@ -635,7 +635,8 @@ const CreateUpdateFoodItem = ({
                     <input {...getInputProps()} name="logoUrl" />
                     <Button
                       type="button"
-                      className="bg-transparent hover:bg-transparent text-primary/50 group-hover:text-primary"
+                      variant="ghost"
+                      className="rounded-xl w-full h-full"
                     >
                       <ImagePlusIcon />
                       Select Images

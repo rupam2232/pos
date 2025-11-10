@@ -99,6 +99,9 @@ export function SignupForm({
       } else {
         router.replace(redirectTo);
       }
+      if (setDrawerOpen) {
+        setDrawerOpen(false);
+      }
     } catch (error) {
       dispatch(signOut());
       const axiosError = error as AxiosError<ApiResponse>;

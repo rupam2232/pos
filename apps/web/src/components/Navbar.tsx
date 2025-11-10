@@ -47,7 +47,7 @@ export default function NavbarComp() {
               variant="primary"
               className="bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
             >
-              Go to App
+              Open App
             </NavbarButton>
           ) : (
             <>
@@ -65,7 +65,7 @@ export default function NavbarComp() {
                 variant="primary"
                 className="bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
               >
-                Get Started for free
+                Get Started free
               </NavbarButton>
             </>
           )}
@@ -106,7 +106,7 @@ export default function NavbarComp() {
                 variant="primary"
                 className="w-full bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
               >
-                Go to App
+                Open App
               </NavbarButton>
             ) : (
               <>
@@ -126,7 +126,7 @@ export default function NavbarComp() {
                   variant="primary"
                   className="w-full bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-medium hover:translate-none"
                 >
-                  Get Started for free
+                  Get Started free
                 </NavbarButton>
               </>
             )}

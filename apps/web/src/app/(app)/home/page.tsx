@@ -28,7 +28,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 import type { RestaurantMinimalInfo } from "@repo/ui/types/Restaurant";
 import CreateRestaurantDialog from "@/components/create-restaurant-dialog";
-// import { Separator } from "@repo/ui/components/separator";
+import * as orderSound from "@/utils/orderSound";
 
 export default function Page() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -201,7 +201,8 @@ export default function Page() {
                         <Button
                           variant="outline"
                           className="text-sm"
-                          onClick={() => {
+                          onClick={async () => {
+                            await orderSound.enableSoundByUserGesture();
                             dispatch(
                               setActiveRestaurant({
                                 _id: restaurant._id,
@@ -269,7 +270,8 @@ export default function Page() {
                     <Button
                       variant="outline"
                       className="text-sm"
-                      onClick={() => {
+                      onClick={async () => {
+                        await orderSound.enableSoundByUserGesture();
                         dispatch(
                           setActiveRestaurant({
                             _id: staffsrestaurant._id,
