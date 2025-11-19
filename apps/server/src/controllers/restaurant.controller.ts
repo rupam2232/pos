@@ -748,6 +748,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       {
         $match: {
           restaurantId: restaurant._id,
+          isPaid: true,
           status: "completed",
         },
       },
@@ -757,6 +758,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       {
         $match: {
           restaurantId: restaurant._id,
+          isPaid: true,
           status: "completed",
           createdAt: { $gte: startOfMonth },
         },
@@ -767,6 +769,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       {
         $match: {
           restaurantId: restaurant._id,
+          isPaid: true,
           status: "completed",
           createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
         },
@@ -802,7 +805,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
   // ]);
 
   // 3. Sales trend (last 30 days)
-  const salesTrend = await Order.aggregate([
+  const rawSalesTrend = await Order.aggregate([
     {
       $match: {
         restaurantId: restaurant._id,
@@ -819,6 +822,23 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
     },
     { $sort: { _id: 1 } },
   ]);
+
+  const salesTrendMap = new Map(rawSalesTrend.map((item) => [item._id, item]));
+
+  const salesTrend = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateString = date.toISOString().split("T")[0];
+    if (salesTrendMap.has(dateString)) {
+      salesTrend.push(salesTrendMap.get(dateString));
+    } else {
+      salesTrend.push({
+        _id: dateString,
+        total: 0,
+        orders: 0,
+      });
+    }
+  }
 
   // 4. Top 5 most ordered food items (by quantity)
   const topFoodItems = await Order.aggregate([

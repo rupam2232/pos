@@ -103,14 +103,17 @@ const ClientPage = () => {
   }, [slug, fetchDashboardStats]);
 
   useEffect(() => {
+    console.log("first one")
     socket?.on("newOrder", () => {
-      router.refresh();
+      console.log("new order received");
+      fetchDashboardStats();
     });
 
     return () => {
       socket?.off("newOrder");
+      console.log("listener removed");
     };
-  }, [socket, router]);
+  }, [socket, router, fetchDashboardStats]);
 
 
   return (
