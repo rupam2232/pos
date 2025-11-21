@@ -96,25 +96,24 @@ const ClientPage = () => {
     } finally {
       setIsPageLoading(false);
     }
-  }, [slug, router, dispatch]);
+  }, [slug, dispatch]);
 
   useEffect(() => {
     fetchDashboardStats();
   }, [slug, fetchDashboardStats]);
 
+  const handleNewOrder = useCallback(() => {
+    fetchDashboardStats();
+  }, [fetchDashboardStats]);
+
   useEffect(() => {
-    console.log("first one")
-    socket?.on("newOrder", () => {
-      console.log("new order received");
-      fetchDashboardStats();
-    });
+    if (!socket) return;
+    socket.on("newOrder", handleNewOrder);
 
     return () => {
-      socket?.off("newOrder");
-      console.log("listener removed");
+      socket.off("newOrder", handleNewOrder);
     };
-  }, [socket, router, fetchDashboardStats]);
-
+  }, [socket, handleNewOrder]);
 
   return (
     <div className="flex flex-1 flex-col">

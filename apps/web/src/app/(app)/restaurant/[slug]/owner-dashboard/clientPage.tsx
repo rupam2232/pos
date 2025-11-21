@@ -103,14 +103,13 @@ const ClientPage = () => {
   }, [slug, fetchDashboardStats]);
 
   useEffect(() => {
-    socket?.on("newOrder", () => {
-      router.refresh();
-    });
+    if (!socket) return;
+    socket.on("newOrder", fetchDashboardStats);
 
     return () => {
-      socket?.off("newOrder");
+      socket.off("newOrder", fetchDashboardStats);
     };
-  }, [socket, router]);
+  }, [socket, fetchDashboardStats]);
 
   const handleToggleRestaurantStatus = async () => {
     try {

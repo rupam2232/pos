@@ -168,8 +168,8 @@ const Page = () => {
     [allOrders, currentPage, tabName, isPageChanging]
   );
 
-  useEffect(() => {
-    socket?.on("newOrder", ({ order }) => {
+  const handleNewOrder = useCallback(
+    ({ order }: { order: any }) => {
       if (tabName !== "all" && tabName !== "new") return;
       setAllOrders((prevOrders) =>
         prevOrders
@@ -185,13 +185,18 @@ const Page = () => {
               totalPages: 1,
             }
       );
-    });
+    },
+    [tabName]
+  );
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("newOrder", handleNewOrder);
 
     return () => {
-      socket?.off("newOrder");
+      socket.off("newOrder", handleNewOrder);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket]);
+  }, [socket, handleNewOrder]);
 
   useEffect(() => {
     fetchOrders();

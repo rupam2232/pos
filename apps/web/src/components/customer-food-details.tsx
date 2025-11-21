@@ -587,7 +587,7 @@ const CustomerFoodDetails = ({
                       <Separator className="mx-1" />
                       <CardContent className="px-3">
                         {foodItemDetails.tags.map((tag, index) => (
-                          <Badge key={index} className="mx-1 my-1">
+                          <Badge variant="secondary" key={index} className="mx-1 my-1">
                             {tag}
                           </Badge>
                         ))}
