@@ -68,9 +68,9 @@ const ClientPage = () => {
   const fetchDashboardStats = useCallback(async () => {
     try {
       setIsPageLoading(true);
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const statsResponse = await axios.get(
-        `/restaurant/${slug}/owner-dashboard-stats`
-      );
+        `/restaurant/${slug}/owner-dashboard-stats?timezone=${userTimezone}`);
 
       if (statsResponse.data.success) {
         setStats(statsResponse.data.data);

@@ -14,6 +14,8 @@ import { restaurantCreatedTemplate } from "../utils/emailTemplates.js";
 import sendEmail from "../utils/sendEmail.js";
 import { Order } from "../models/order.model.js";
 import { Table } from "../models/table.model.js";
+import { startOfMonth, startOfDay, endOfDay } from "date-fns";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 const isProduction = process.env?.NODE_ENV === "production";
 
 export const createRestaurant = asyncHandler(async (req, res) => {
@@ -731,16 +733,31 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You are not the owner of this restaurant");
   }
 
-  // Date helpers
-  const now = new Date();
-  // const startOfToday = new Date(
-  //   now.getFullYear(),
-  //   now.getMonth(),
-  //   now.getDate()
-  // );
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+  // Date helpers with dynamic timezone
+  const timeZone = (req.query.timezone as string) || "Asia/Kolkata";
+  const nowUtc = new Date();
+  const nowInTZ = toZonedTime(nowUtc, timeZone);
+
+  // Start of the current month in user's TZ -> back to UTC for query
+  const startOfMonthInTZ = startOfMonth(nowInTZ);
+  const startOfMonthVal = fromZonedTime(startOfMonthInTZ, timeZone);
+
+  // Start / end of the previous month in user's TZ -> back to UTC
+  const startOfLastMonthInTZ = startOfMonth(
+    new Date(nowInTZ.getFullYear(), nowInTZ.getMonth() - 1, 1)
+  );
+  const startOfLastMonth = fromZonedTime(startOfLastMonthInTZ, timeZone);
+
+  const endOfLastMonthInTZ = endOfDay(
+    new Date(nowInTZ.getFullYear(), nowInTZ.getMonth(), 0)
+  );
+  const endOfLastMonth = fromZonedTime(endOfLastMonthInTZ, timeZone);
+
+  // Start of 30 days ago in user's TZ -> back to UTC
+  const startOf30DaysAgoInTZ = startOfDay(
+    new Date(nowInTZ.getTime() - 29 * 24 * 60 * 60 * 1000)
+  );
+  const startOf30DaysAgoVal = fromZonedTime(startOf30DaysAgoInTZ, timeZone);
 
   // 1. Total sales (all time, this month, last month)
   const [allTimeSales, thisMonthSales, lastMonthSales] = await Promise.all([
@@ -760,7 +777,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
           restaurantId: restaurant._id,
           isPaid: true,
           status: "completed",
-          createdAt: { $gte: startOfMonth },
+          createdAt: { $gte: startOfMonthVal },
         },
       },
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
@@ -788,7 +805,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
     Order.countDocuments({
       restaurantId: restaurant._id,
       status: "completed",
-      createdAt: { $gte: startOfMonth },
+      createdAt: { $gte: startOfMonthVal },
     }),
     Order.countDocuments({
       restaurantId: restaurant._id,
@@ -810,12 +827,18 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       $match: {
         restaurantId: restaurant._id,
         status: "completed",
-        createdAt: { $gte: new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000) },
+        createdAt: { $gte: startOf30DaysAgoVal },
       },
     },
     {
       $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+        _id: {
+          $dateToString: {
+            format: "%Y-%m-%d",
+            date: "$createdAt",
+            timezone: timeZone,
+          },
+        },
         total: { $sum: "$totalAmount" },
         orders: { $sum: 1 },
       },
@@ -826,9 +849,15 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
   const salesTrendMap = new Map(rawSalesTrend.map((item) => [item._id, item]));
 
   const salesTrend = [];
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-    const dateString = date.toISOString().split("T")[0];
+  for (let i = 0; i < 30; i++) {
+    const dateInTZ = new Date(
+      startOf30DaysAgoInTZ.getTime() + i * 24 * 60 * 60 * 1000
+    );
+    const year = dateInTZ.getFullYear();
+    const month = String(dateInTZ.getMonth() + 1).padStart(2, "0");
+    const day = String(dateInTZ.getDate()).padStart(2, "0");
+    const dateString = `${year}-${month}-${day}`;
+    
     if (salesTrendMap.has(dateString)) {
       salesTrend.push(salesTrendMap.get(dateString));
     } else {
