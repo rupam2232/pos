@@ -60,9 +60,10 @@ const ClientPage = () => {
   const fetchDashboardStats = useCallback(async () => {
     try {
       setIsPageLoading(true);
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const [orderResponse, statsResponse] = await Promise.all([
         axios.get(`/order/${slug}`),
-        axios.get(`/restaurant/${slug}/staff-dashboard-stats`),
+        axios.get(`/restaurant/${slug}/staff-dashboard-stats?timezone=${userTimezone}`),
       ]);
       if (orderResponse.data.success) {
         setLatestOrders(orderResponse.data.data);
@@ -96,7 +97,7 @@ const ClientPage = () => {
     } finally {
       setIsPageLoading(false);
     }
-  }, [slug, dispatch]);
+  }, [slug, dispatch, router]);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -238,7 +239,7 @@ const ClientPage = () => {
                         Orders ready and awaiting service
                       </p>
                     </div>
-                    <Link href={`/restaurant/${slug}/orders`}>
+                    <Link href={`/restaurant/${slug}/orders?tab=ready`}>
                       <Button size="sm">View</Button>
                     </Link>
                   </div>

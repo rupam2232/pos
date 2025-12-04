@@ -1,6 +1,11 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { toast } from "sonner";
 import {
   Tabs,
@@ -11,10 +16,12 @@ import {
 import axios from "@/utils/axiosInstance";
 import { useDispatch } from "react-redux";
 import { signOut } from "@/store/authSlice";
-import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
-import type { OrderDetails as OrderDetailsType } from "@repo/ui/types/Order";
+import type {
+  OrderDetails as OrderDetailsType,
+  Order,
+} from "@repo/ui/types/Order";
 import OrderCard from "@/components/order-card";
 import { Input } from "@repo/ui/components/input";
 import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
@@ -28,8 +35,12 @@ import { useSocket } from "@/context/SocketContext";
 const Page = () => {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
+  const searchParams = useSearchParams();
+  const tab = searchParams.get("tab");
+  const search = searchParams.get("search");
+  const pathName = usePathname();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [tabName, setTabName] = useState<string>("all");
+  const [tabName, setTabName] = useState<string>(tab || "all");
   const [allOrders, setAllOrders] = useState<OrderDetailsType>(null);
   const [tabPages, setTabPages] = useState<{ [key: string]: number }>({
     all: 1,
@@ -40,8 +51,8 @@ const Page = () => {
   const observer = useRef<IntersectionObserver>(null);
   const currentPage = tabPages[tabName] || 1;
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [searchInput, setSearchInput] = useState<string>("");
-  const debounced = useDebounceCallback(setSearchInput, 300);
+  const [searchInput, setSearchInput] = useState<string>(search || "");
+  const [debouncedSearchInput, setDebouncedSearchInput] = useState<string>("");
   const socket = useSocket();
 
   const fetchOrders = useCallback(async () => {
@@ -50,7 +61,7 @@ const Page = () => {
       return;
     }
 
-    if (tabName === "search" && searchInput.trim() === "") return;
+    if (tabName === "search" && debouncedSearchInput.trim() === "") return;
 
     try {
       let query = "";
@@ -74,7 +85,7 @@ const Page = () => {
           query = "status=completed&status=cancelled";
           break;
         case "search":
-          query = `search=${searchInput}`;
+          query = `search=${debouncedSearchInput}`;
           break;
 
         default:
@@ -98,7 +109,10 @@ const Page = () => {
             limit: 1,
             totalPages: 1,
           });
-          toast.error("Failed to fetch orders. Please try again later");
+          // Only show error if it's not a search that might just have no results yet
+          if (tabName !== "search") {
+            toast.error("Failed to fetch orders. Please try again later");
+          }
         }
       } else {
         setIsPageChanging(true);
@@ -143,7 +157,7 @@ const Page = () => {
       setIsPageChanging(false);
       setIsLoading(false);
     }
-  }, [slug, router, dispatch, currentPage, tabName, searchInput]);
+  }, [slug, router, dispatch, currentPage, tabName, debouncedSearchInput]);
 
   const lastElementRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -169,7 +183,7 @@ const Page = () => {
   );
 
   const handleNewOrder = useCallback(
-    ({ order }: { order: any }) => {
+    ({ order }: { order: Order }) => {
       if (tabName !== "all" && tabName !== "new") return;
       setAllOrders((prevOrders) =>
         prevOrders
@@ -211,9 +225,36 @@ const Page = () => {
     }));
   }, [tabName]);
 
+  const updateSearchParam = useDebounceCallback((value: string) => {
+    const currentParams = new URLSearchParams(searchParams);
+    if (value.trim()) {
+      currentParams.set("search", value);
+      currentParams.set("tab", "search");
+    } else {
+      currentParams.delete("search");
+      if (tabName === "search") {
+        currentParams.set("tab", "all");
+      }
+    }
+    router.replace(`${pathName}?${currentParams.toString()}`);
+    setDebouncedSearchInput(value);
+  }, 500);
+
+  const onTabChange = (tab: string) => {
+    setTabName(tab);
+    const currentParams = new URLSearchParams(searchParams);
+    currentParams.set("tab", tab);
+    if (tab !== "search") {
+      currentParams.delete("search");
+      setSearchInput("");
+      setDebouncedSearchInput("");
+    }
+    router.replace(`${pathName}?${currentParams.toString()}`);
+  };
+
   return (
     <div className="flex flex-1 flex-col p-4 md:gap-6 lg:p-6">
-      <Tabs defaultValue="all" value={tabName} onValueChange={setTabName}>
+      <Tabs defaultValue="all" value={tabName} onValueChange={onTabChange}>
         <ScrollArea className="w-full pb-3">
           <div className="flex items-center justify-between">
             <TabsList>
@@ -267,14 +308,16 @@ const Page = () => {
                   className="w-60 placeholder:text-muted-foreground placeholder:truncate flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
                   placeholder="Search orders by ID, table name, food item name..."
                   type="search"
+                  value={searchInput}
                   onChange={(e) => {
-                    debounced(e.target.value);
-                    if (e.target.value.trim() === "") {
+                    const value = e.target.value;
+                    setSearchInput(value);
+                    if (value.trim() === "") {
                       setTabName("all");
-                      setSearchInput("");
                     } else {
                       setTabName("search");
                     }
+                    updateSearchParam(value);
                   }}
                   ref={searchInputRef}
                   onKeyDown={(e) => {
@@ -285,7 +328,12 @@ const Page = () => {
                         return;
                       }
                       setTabName("search");
-                      fetchOrders();
+                      // Force update immediately if enter is pressed
+                      updateSearchParam.cancel(); // Cancel debounce
+                      const currentParams = new URLSearchParams(searchParams);
+                      currentParams.set("search", searchInput);
+                      currentParams.set("tab", "search");
+                      router.replace(`${pathName}?${currentParams.toString()}`);
                     }
                   }}
                 />
@@ -295,17 +343,14 @@ const Page = () => {
                   size="icon"
                   onClick={() => {
                     if (searchInputRef.current) {
-                      searchInputRef.current.value = "";
                       setSearchInput("");
                       setTabName("all");
+                      updateSearchParam("");
                     }
                   }}
                   className={cn(
                     "hover:opacity-100 hover:bg-accent h-6 w-6",
-                    searchInputRef.current &&
-                      searchInputRef.current.value !== ""
-                      ? ""
-                      : "invisible"
+                    searchInput === "" && "invisible"
                   )}
                 >
                   <X />

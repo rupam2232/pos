@@ -545,18 +545,25 @@ export const getStaffDashboardStats = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Restaurant slug is required");
   }
   const { slug } = req.params;
+  // Date helpers with dynamic timezone
+  const timeZone = (req.query.timezone as string) || "Asia/Kolkata";
 
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
+  const nowUtc = new Date();
+  const nowInTZ = toZonedTime(nowUtc, timeZone);
 
-  const yesterdayStart = new Date();
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-  yesterdayStart.setHours(0, 0, 0, 0);
-  const yesterdayEnd = new Date();
-  yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
-  yesterdayEnd.setHours(23, 59, 59, 999);
+  const startInTZ = startOfDay(nowInTZ);
+  const start = fromZonedTime(startInTZ, timeZone);
+  const endInTZ = endOfDay(nowInTZ);
+  const end = fromZonedTime(endInTZ, timeZone);
+
+  const yesterdayInTZ = new Date(nowInTZ);
+  yesterdayInTZ.setDate(yesterdayInTZ.getDate() - 1);
+
+  const yesterdayStartInTZ = startOfDay(yesterdayInTZ);
+  const yesterdayStart = fromZonedTime(yesterdayStartInTZ, timeZone);
+
+  const yesterdayEndInTZ = endOfDay(yesterdayInTZ);
+  const yesterdayEnd = fromZonedTime(yesterdayEndInTZ, timeZone);
 
   const restaurant = await Restaurant.findOne({ slug });
 

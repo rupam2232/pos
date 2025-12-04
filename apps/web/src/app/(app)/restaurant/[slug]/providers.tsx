@@ -77,7 +77,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
         connectHandlerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, activeRestaurant?._id]);
 
   return <>{children}</>;
