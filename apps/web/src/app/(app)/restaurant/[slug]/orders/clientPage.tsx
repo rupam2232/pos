@@ -52,7 +52,7 @@ const Page = () => {
   const currentPage = tabPages[tabName] || 1;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchInput, setSearchInput] = useState<string>(search || "");
-  const [debouncedSearchInput, setDebouncedSearchInput] = useState<string>("");
+  const debouncedSearchInput = useDebounceCallback(setSearchInput, 300);
   const socket = useSocket();
 
   const fetchOrders = useCallback(async () => {
@@ -61,7 +61,7 @@ const Page = () => {
       return;
     }
 
-    if (tabName === "search" && debouncedSearchInput.trim() === "") return;
+    if (tabName === "search" && searchInput.trim() === "") return;
 
     try {
       let query = "";
@@ -85,7 +85,7 @@ const Page = () => {
           query = "status=completed&status=cancelled";
           break;
         case "search":
-          query = `search=${debouncedSearchInput}`;
+          query = `search=${searchInput}`;
           break;
 
         default:
@@ -157,7 +157,7 @@ const Page = () => {
       setIsPageChanging(false);
       setIsLoading(false);
     }
-  }, [slug, router, dispatch, currentPage, tabName, debouncedSearchInput]);
+  }, [slug, router, dispatch, currentPage, tabName, searchInput]);
 
   const lastElementRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -213,6 +213,12 @@ const Page = () => {
   }, [socket, handleNewOrder]);
 
   useEffect(() => {
+    if (!searchInputRef.current || !search) return;
+    searchInputRef.current.value = search;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInputRef]);
+
+  useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
 
@@ -225,36 +231,24 @@ const Page = () => {
     }));
   }, [tabName]);
 
-  const updateSearchParam = useDebounceCallback((value: string) => {
-    const currentParams = new URLSearchParams(searchParams);
-    if (value.trim()) {
-      currentParams.set("search", value);
-      currentParams.set("tab", "search");
-    } else {
-      currentParams.delete("search");
-      if (tabName === "search") {
-        currentParams.set("tab", "all");
-      }
-    }
-    router.replace(`${pathName}?${currentParams.toString()}`);
-    setDebouncedSearchInput(value);
-  }, 500);
-
-  const onTabChange = (tab: string) => {
-    setTabName(tab);
-    const currentParams = new URLSearchParams(searchParams);
-    currentParams.set("tab", tab);
-    if (tab !== "search") {
+  useEffect(() => {
+   const currentParams = new URLSearchParams(searchParams);
+    currentParams.set("tab", tabName);
+    if (tabName !== "search") {
       currentParams.delete("search");
       setSearchInput("");
-      setDebouncedSearchInput("");
+      if(searchInputRef.current){
+        searchInputRef.current.value = "";
+      }
+    } else {
+      currentParams.set("search", searchInput);
     }
     router.replace(`${pathName}?${currentParams.toString()}`);
-  };
+  }, [tabName, searchInput, pathName, searchParams, router])
 
   return (
     <div className="flex flex-1 flex-col p-4 md:gap-6 lg:p-6">
-      <Tabs defaultValue="all" value={tabName} onValueChange={onTabChange}>
+      <Tabs defaultValue="all" value={tabName} onValueChange={setTabName}>
         <ScrollArea className="w-full pb-3">
           <div className="flex items-center justify-between">
             <TabsList>
@@ -288,7 +282,6 @@ const Page = () => {
                   key={tab}
                   value={tab}
                   className="font-medium data-[state=active]:font-semibold data-[state=active]:bg-primary! data-[state=active]:text-primary-foreground! data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200"
-                  onClick={() => setTabName(tab)}
                 >
                   {label}
                 </TabsTrigger>
@@ -308,32 +301,26 @@ const Page = () => {
                   className="w-60 placeholder:text-muted-foreground placeholder:truncate flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
                   placeholder="Search orders by ID, table name, food item name..."
                   type="search"
-                  value={searchInput}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    setSearchInput(value);
-                    if (value.trim() === "") {
+                    debouncedSearchInput(e.target.value);
+                    if (e.target.value.trim() === "") {
                       setTabName("all");
+                      setSearchInput("");
                     } else {
                       setTabName("search");
                     }
-                    updateSearchParam(value);
                   }}
                   ref={searchInputRef}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      if (searchInput.trim() === "") {
+                      if (searchInputRef.current?.value.trim() === "") {
                         toast.error("Search input cannot be empty");
                         return;
                       }
+                      debouncedSearchInput.cancel();
                       setTabName("search");
-                      // Force update immediately if enter is pressed
-                      updateSearchParam.cancel(); // Cancel debounce
-                      const currentParams = new URLSearchParams(searchParams);
-                      currentParams.set("search", searchInput);
-                      currentParams.set("tab", "search");
-                      router.replace(`${pathName}?${currentParams.toString()}`);
+                      setSearchInput(searchInputRef.current?.value || "");
                     }
                   }}
                 />
@@ -344,8 +331,8 @@ const Page = () => {
                   onClick={() => {
                     if (searchInputRef.current) {
                       setSearchInput("");
+                      searchInputRef.current.value = "";
                       setTabName("all");
-                      updateSearchParam("");
                     }
                   }}
                   className={cn(

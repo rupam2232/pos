@@ -487,13 +487,13 @@ const TableDetails = ({
                     variant={"outline"}
                     onClick={() =>
                       router.push(
-                        `/restaurant/${tableDetails.restaurantDetails.slug}/orders/${tableDetails.currentOrder?.orderId}`
+                        `/restaurant/${tableDetails.restaurantDetails.slug}/orders?tab=search&search=${tableDetails.currentOrder?.orderNo}`
                       )
                     }
                     className=""
                   >
                     <IconReceipt />
-                    View Current Order
+                    View Order
                   </Button>
                 </div>
               )}

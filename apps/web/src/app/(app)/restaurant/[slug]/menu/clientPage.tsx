@@ -52,7 +52,7 @@ const MenuPage = () => {
   const router = useRouter();
   const observer = useRef<IntersectionObserver>(null);
   const user = useSelector((state: RootState) => state.auth.user);
-  const debounced = useDebounceCallback(setSearchInput, 300);
+  const debouncedSearchInput = useDebounceCallback(setSearchInput, 300);
   const currentPage = tabPages[tabName] || 1;
 
   const fetchFoodItems = useCallback(async () => {
@@ -236,7 +236,7 @@ const MenuPage = () => {
                   placeholder="Search food items by name, category, tags..."
                   type="search"
                   onChange={(e) => {
-                    debounced(e.target.value);
+                    debouncedSearchInput(e.target.value);
                     if (e.target.value.trim() === "") {
                       setTabName("all");
                       setSearchInput("");
@@ -248,12 +248,13 @@ const MenuPage = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      if (searchInput.trim() === "") {
+                      if (searchInputRef.current?.value.trim() === "") {
                         toast.error("Search input cannot be empty");
                         return;
                       }
+                      debouncedSearchInput.cancel();
                       setTabName("search");
-                      fetchFoodItems();
+                      setSearchInput(searchInputRef.current?.value || "");
                     }
                   }}
                 />

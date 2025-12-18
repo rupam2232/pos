@@ -263,9 +263,9 @@ const ClientPage = () => {
                         Orders completed but not paid
                       </p>
                     </div>
-                    <Button size="sm" variant="outline">
-                      Settle
-                    </Button>
+                    <Link href={`/restaurant/${slug}/orders?tab=unPaid`}>
+                      <Button size="sm" variant="outline">View</Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

@@ -156,7 +156,7 @@ const OrderDetails = ({
                   )
                 }
               >
-                <IconReceipt /> Print Bill
+                <IconReceipt /> See Bill
               </Button>
               <div className="flex items-center justify-between text-sm font-medium">
                 <span>Table: {orderDetails.table.tableName}</span>

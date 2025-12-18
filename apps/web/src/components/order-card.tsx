@@ -404,7 +404,7 @@ const OrderCard = ({
                 )
               }
             >
-              <IconReceipt /> Print Bill
+              <IconReceipt /> See Bill
             </Button>
           ) : (
             <Button onClick={handleUpdatePaidStatus} disabled={isBtnLoading}>

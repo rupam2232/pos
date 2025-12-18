@@ -17,6 +17,7 @@ export interface TableDetails extends Table {
   };
   currentOrder?: {
     orderId: string;
+    orderNo: number;
     status:
       | "pending"
       | "preparing"

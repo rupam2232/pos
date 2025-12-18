@@ -312,6 +312,7 @@ export const getTableBySlug = asyncHandler(async (req, res) => {
         currentOrder: canViewOrder
           ? {
               orderId: "$currentOrder._id",
+              orderNo: "$currentOrder.orderNo",
               status: "$currentOrder.status",
               finalAmount: "$currentOrder.totalAmount",
               foodItems: "$currentOrder.foodItems",
