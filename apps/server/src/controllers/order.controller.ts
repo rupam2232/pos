@@ -740,6 +740,33 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
       }
     : {};
 
+  const postGroupSearchMatch = decodedSearch
+    ? {
+        $or: [
+          { "table.tableName": { $regex: decodedSearch, $options: "i" } },
+          { "table.qrSlug": { $regex: decodedSearch, $options: "i" } },
+          { customerName: { $regex: decodedSearch, $options: "i" } },
+          { customerPhone: { $regex: decodedSearch, $options: "i" } },
+          { notes: { $regex: decodedSearch, $options: "i" } },
+          {
+            orderNo: isNaN(Number(decodedSearch)) ? -1 : Number(decodedSearch),
+          },
+          {
+            "orderedFoodItems.foodName": {
+              $regex: decodedSearch,
+              $options: "i",
+            },
+          },
+          {
+            "orderedFoodItems.variantName": {
+              $regex: decodedSearch,
+              $options: "i",
+            },
+          },
+        ],
+      }
+    : {};
+
   const sortStage: Record<string, 1 | -1> = {};
   if (sortBy) {
     sortStage[sortBy.toString()] = sortType === "asc" ? 1 : -1;
@@ -772,7 +799,6 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
       },
     },
     { $unwind: { path: "$foodItemDetails" } },
-    ...(decodedSearch ? [{ $match: searchMatch }] : []),
     {
       $group: {
         _id: "$_id",
@@ -784,6 +810,9 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
         isPaid: { $first: "$isPaid" },
         externalPlatform: { $first: "$externalPlatform" },
         createdAt: { $first: "$createdAt" },
+        customerName: { $first: "$customerName" },
+        customerPhone: { $first: "$customerPhone" },
+        notes: { $first: "$notes" },
         orderedFoodItems: {
           $push: {
             foodItemId: "$foodItems.foodItemId",
@@ -802,6 +831,10 @@ export const getOrdersByRestaurant = asyncHandler(async (req, res) => {
           },
         },
       },
+    },
+    ...(decodedSearch ? [{ $match: postGroupSearchMatch }] : []),
+    {
+      $unset: ["customerName", "customerPhone", "notes"],
     },
     {
       $addFields: {
