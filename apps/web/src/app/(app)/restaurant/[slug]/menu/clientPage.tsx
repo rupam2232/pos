@@ -433,7 +433,7 @@ const MenuPage = () => {
                   </Card>
                 </FoodDetails>
               ))}
-              {(isPageChanging || allFoodItems.totalPages !== currentPage) &&
+              {(isPageChanging || allFoodItems.totalPages > currentPage) &&
                 Array.from({ length: 6 }).map((_, index) => (
                   <Card
                     key={index}

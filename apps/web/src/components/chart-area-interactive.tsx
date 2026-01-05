@@ -6,7 +6,6 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -18,13 +17,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@repo/ui/components/chart"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@repo/ui/components/select"
 
 export const description = "An interactive area chart"
 
@@ -69,14 +61,14 @@ export function ChartAreaInteractive({data}: {
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Total Sales</CardTitle>
+        <CardTitle>Sales Graph</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
-            Total for the last 3 months
+            Sales of the last 30 days
           </span>
-          <span className="@[540px]/card:hidden">Last 3 months</span>
+          <span className="@[540px]/card:hidden">Last 30 days</span>
         </CardDescription>
-        <CardAction>
+        {/* <CardAction>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger
               className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden"
@@ -97,7 +89,7 @@ export function ChartAreaInteractive({data}: {
               </SelectItem>
             </SelectContent>
           </Select>
-        </CardAction>
+        </CardAction> */}
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer

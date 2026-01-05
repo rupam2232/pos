@@ -374,7 +374,7 @@ const Page = () => {
                   key={order._id}
                   order={order}
                   ref={
-                    index === allOrders.orders.length - 1
+                    index === allOrders.orders.length - 4
                       ? lastElementRef
                       : null
                   }
@@ -382,7 +382,7 @@ const Page = () => {
                   restaurantSlug={slug}
                 />
               ))}
-              {isPageChanging &&
+              {isPageChanging || allOrders.totalPages > currentPage &&
                 Array.from({ length: 3 }).map((_, index) => (
                   <div
                     key={index}

@@ -12,7 +12,7 @@ export interface StaffDashboardStats {
 
 export interface OwnerDashboardStats {
   kpis: {
-    totalSales: {
+    allTimeSales: {
       value: number;
       description: string;
     };
@@ -20,11 +20,11 @@ export interface OwnerDashboardStats {
       value: number;
       description: string;
     };
-    avgOrderValue: {
+    thisMonthSales: {
       value: number;
       description: string;
     };
-    unpaidOrders: {
+    todaySales: {
       value: number;
       description: string;
     };

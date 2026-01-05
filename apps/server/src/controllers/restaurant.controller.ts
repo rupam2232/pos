@@ -745,20 +745,22 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
   const nowUtc = new Date();
   const nowInTZ = toZonedTime(nowUtc, timeZone);
 
+  const startOfToday = fromZonedTime(startOfDay(nowInTZ), timeZone);
+
+  const startOfYesterday = fromZonedTime(startOfDay(new Date(nowInTZ.getTime() - 24 * 60 * 60 * 1000)), timeZone);
+  const endOfYesterday = fromZonedTime(endOfDay(new Date(nowInTZ.getTime() - 24 * 60 * 60 * 1000)), timeZone);
+
   // Start of the current month in user's TZ -> back to UTC for query
-  const startOfMonthInTZ = startOfMonth(nowInTZ);
-  const startOfMonthVal = fromZonedTime(startOfMonthInTZ, timeZone);
+  const startOfMonthVal = fromZonedTime(startOfMonth(nowInTZ), timeZone);
 
   // Start / end of the previous month in user's TZ -> back to UTC
-  const startOfLastMonthInTZ = startOfMonth(
+  const startOfLastMonth = fromZonedTime(startOfMonth(
     new Date(nowInTZ.getFullYear(), nowInTZ.getMonth() - 1, 1)
-  );
-  const startOfLastMonth = fromZonedTime(startOfLastMonthInTZ, timeZone);
+  ), timeZone);
 
-  const endOfLastMonthInTZ = endOfDay(
+  const endOfLastMonth = fromZonedTime(endOfDay(
     new Date(nowInTZ.getFullYear(), nowInTZ.getMonth(), 0)
-  );
-  const endOfLastMonth = fromZonedTime(endOfLastMonthInTZ, timeZone);
+  ), timeZone);
 
   // Start of 30 days ago in user's TZ -> back to UTC
   const startOf30DaysAgoInTZ = startOfDay(
@@ -767,7 +769,7 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
   const startOf30DaysAgoVal = fromZonedTime(startOf30DaysAgoInTZ, timeZone);
 
   // 1. Total sales (all time, this month, last month)
-  const [allTimeSales, thisMonthSales, lastMonthSales] = await Promise.all([
+  const [allTimeSales, thisMonthSales, lastMonthSales, todaySales, yesterdaySales] = await Promise.all([
     Order.aggregate([
       {
         $match: {
@@ -800,6 +802,28 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       },
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          isPaid: true,
+          status: "completed",
+          createdAt: { $gte: startOfToday },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    ]),
+    Order.aggregate([
+      {
+        $match: {
+          restaurantId: restaurant._id,
+          isPaid: true,
+          status: "completed",
+          createdAt: { $gte: startOfYesterday, $lte: endOfYesterday },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    ]),
   ]);
 
   // 2. Total completed orders (all time, this month, last month)
@@ -820,13 +844,6 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
     }),
   ]);
-
-  // 3. Total cancelled orders (all time, this month, last month)
-  // const [allTimeCancelledOrders, thisMonthCancelledOrders, lastMonthCancelledOrders] = await Promise.all([
-  //   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled" }),
-  //   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled", createdAt: { $gte: startOfMonth } }),
-  //   Order.countDocuments({ restaurantId: restaurant._id, status: "cancelled", createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
-  // ]);
 
   // 3. Sales trend (last 30 days)
   const rawSalesTrend = await Order.aggregate([
@@ -938,46 +955,17 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
     { $project: { _id: 1, tableName: "$table.tableName", count: 1 } },
   ]);
 
-  // 6. Payment method breakdown
-  // const paymentBreakdown = await Order.aggregate([
-  //   {
-  //     $match: {
-  //       restaurantId: restaurant._id,
-  //       status: { $in: ["completed", "served"] },
-  //     },
-  //   },
-  //   {
-  //     $group: {
-  //       _id: "$paymentMethod",
-  //       count: { $sum: 1 },
-  //       total: { $sum: "$totalAmount" },
-  //     },
-  //   },
-  // ]);
-
-  // 7. Average order value (this month)
-  const avgOrderValue = thisMonthCompletedOrders
-    ? (thisMonthSales[0]?.total || 0) / thisMonthCompletedOrders
-    : 0;
-
-  // 8. Unpaid/outstanding orders
-  const unpaidOrders = await Order.countDocuments({
-    restaurantId: restaurant._id,
-    status: "completed",
-    isPaid: false,
-  });
-
-  // 9. Recent orders
-  // const recentOrders = await Order.find({ restaurantId: restaurant._id })
-  //   .sort({ createdAt: -1 })
-  //   .limit(5)
-  //   .select("orderNo totalAmount status createdAt customerName");
-
-  // 10. Percentage changes
-  const salesChangePercent =
+  // Percentage changes
+  const salesChangePercentofMonth =
     lastMonthSales[0]?.total && lastMonthSales[0].total !== 0
       ? (((thisMonthSales[0]?.total || 0) - lastMonthSales[0].total) /
           lastMonthSales[0].total) *
+        100
+      : null;
+  const salesChangePercentofToday =
+    yesterdaySales[0]?.total && yesterdaySales[0].total !== 0
+      ? (((todaySales[0]?.total || 0) - yesterdaySales[0].total) /
+          yesterdaySales[0].total) *
         100
       : null;
   const completedOrdersChangePercent =
@@ -992,12 +980,9 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
       200,
       {
         kpis: {
-          totalSales: {
+          allTimeSales: {
             value: allTimeSales[0]?.total || 0,
-            description:
-              salesChangePercent !== null
-                ? `${salesChangePercent > 0 ? "+" : ""}${salesChangePercent.toFixed(1)}% from last month`
-                : "No data for last month",
+            description: "",
           },
           totalCompletedOrders: {
             value: allTimeCompletedOrders,
@@ -1006,20 +991,22 @@ export const getOwnerDashboardStats = asyncHandler(async (req, res) => {
                 ? `${completedOrdersChangePercent > 0 ? "+" : ""}${completedOrdersChangePercent.toFixed(1)}% from last month`
                 : "No data for last month",
           },
-          avgOrderValue: {
-            value: avgOrderValue,
-            description: "This month",
+          thisMonthSales: {
+            value: thisMonthSales[0]?.total || 0,
+            description: salesChangePercentofMonth !== null
+              ? `${salesChangePercentofMonth > 0 ? "+" : ""}${salesChangePercentofMonth.toFixed(1)}% from last month`
+              : "No data for last month",
           },
-          unpaidOrders: {
-            value: unpaidOrders,
-            description: "Unpaid completed orders",
+          todaySales: {
+            value: todaySales[0]?.total || 0,
+            description: salesChangePercentofToday !== null
+              ? `${salesChangePercentofToday > 0 ? "+" : ""}${salesChangePercentofToday.toFixed(1)}% from yesterday`
+              : "No data for yesterday",
           },
         },
         salesTrend,
         topFoodItems,
         topTables,
-        // paymentBreakdown,
-        // recentOrders,
       },
       "Owner dashboard stats retrieved successfully"
     )

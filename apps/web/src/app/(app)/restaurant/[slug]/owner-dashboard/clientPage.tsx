@@ -191,17 +191,17 @@ const ClientPage = () => {
             <Card className="@container/card">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Sales
+                  All Time Sales
                 </CardTitle>
                 <IconChartBar className="size-4" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    ₹{stats?.kpis.totalSales.value.toFixed(2) ?? 0}
+                    ₹{stats?.kpis.allTimeSales.value.toFixed(2) ?? 0}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {stats?.kpis.totalSales.description}
+                    Total revenue generated to date
                   </p>
                 </div>
               </CardContent>
@@ -229,17 +229,17 @@ const ClientPage = () => {
             <Card className="@container/card">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Average Order Value
+                  This Month Sales
                 </CardTitle>
                 <ChartNoAxesColumn className="size-4" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    ₹{stats?.kpis.avgOrderValue.value.toFixed(2) ?? 0}
+                    ₹{stats?.kpis.thisMonthSales.value.toFixed(2) ?? 0}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {stats?.kpis.avgOrderValue.description}
+                    {stats?.kpis.thisMonthSales.description}
                   </p>
                 </div>
               </CardContent>
@@ -248,17 +248,17 @@ const ClientPage = () => {
             <Card className="@container/card">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Unpaid Orders
+                  Today Sales
                 </CardTitle>
                 <IconReceiptOff className="size-4" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold">
-                    {stats?.kpis.unpaidOrders.value.toFixed(2) ?? 0}
+                    ₹{stats?.kpis.todaySales.value.toFixed(2) ?? 0}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {stats?.kpis.unpaidOrders.description}
+                    {stats?.kpis.todaySales.description}
                   </p>
                 </div>
               </CardContent>
