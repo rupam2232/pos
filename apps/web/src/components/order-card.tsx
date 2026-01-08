@@ -50,12 +50,14 @@ const OrderCard = ({
   restaurantSlug,
   ref,
   className,
+  cardContentClassName,
   setOrders,
 }: {
   order: Order;
   restaurantSlug: string;
   ref?: React.Ref<HTMLDivElement>;
   className?: string;
+  cardContentClassName?: string;
   setOrders: React.Dispatch<React.SetStateAction<OrderDetailsType>>;
 }) => {
   const dispatch = useDispatch();
@@ -207,7 +209,7 @@ const OrderCard = ({
         className
       )}
     >
-      <CardContent className="flex flex-col justify-between h-full">
+      <CardContent className={cn("flex flex-col justify-between h-full", cardContentClassName)}>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm font-medium">
             <span>Table: {order.table.tableName}</span>

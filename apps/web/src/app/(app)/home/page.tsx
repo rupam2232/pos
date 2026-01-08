@@ -25,6 +25,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 import type { RestaurantMinimalInfo } from "@repo/ui/types/Restaurant";
 import CreateRestaurantDialog from "@/components/create-restaurant-dialog";
+import "@/utils/orderSound";
 
 export default function Page() {
   const user = useSelector((state: RootState) => state.auth.user);

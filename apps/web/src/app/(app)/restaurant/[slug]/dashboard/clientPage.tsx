@@ -101,7 +101,7 @@ const ClientPage = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-  }, [slug, fetchDashboardStats]);
+  }, [fetchDashboardStats]);
 
   const handleNewOrder = useCallback(() => {
     fetchDashboardStats();
@@ -269,57 +269,8 @@ const ClientPage = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* <Card>
-                  <CardHeader className="flex items-center justify-between pb-2">
-                    <CardTitle className="text-sm text-muted-foreground">
-                      Avg Preparation
-                    </CardTitle>
-                    <Clock className="size-4" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-2xl font-bold">
-                          {demoAvgPrepMinutes} min
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          Average prep time (today)
-                        </p>
-                      </div>
-                      <Button size="sm" variant="ghost">
-                        Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card> */}
-
-              {/* <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm">
-                    {demoRecentActivity.map((act) => (
-                      <li
-                        key={act.id}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Activity className="size-4 text-muted-foreground" />
-                          <span>{act.text}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {act.time}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card> */}
-
               <Card>
-                <CardHeader className="flex items-center justify-between text-muted-foreground text-sm">
+                <CardHeader className="flex flex-col sm:flex-row items-center justify-between text-muted-foreground text-sm">
                   <CardTitle>Table Map</CardTitle>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2">
@@ -365,25 +316,6 @@ const ClientPage = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {quickActions.map((a) => {
-                      const Icon = a.icon as any;
-                      return (
-                        <Button key={a.id} size="sm" variant="outline">
-                          <Icon className="size-4 mr-2 inline" />
-                          {a.label}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card> */}
             </div>
 
             <Card>
@@ -400,7 +332,7 @@ const ClientPage = () => {
                   </Link>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-0 sm:px-3 md:px-6">
                 {isPageLoading ? (
                   <ScrollArea className="h-auto lg:h-[calc(100vh-140px)]">
                     <div className="space-y-2">
@@ -422,6 +354,7 @@ const ClientPage = () => {
                           setOrders={setLatestOrders}
                           restaurantSlug={slug}
                           className="hover:scale-100"
+                          cardContentClassName="px-2 sm:px-3 md:px-6"
                         />
                       ))}
                     </div>

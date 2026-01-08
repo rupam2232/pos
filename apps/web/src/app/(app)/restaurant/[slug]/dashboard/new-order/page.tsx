@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import ClientPage from "./clientPage";
 
-
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Create New Order",
@@ -10,9 +9,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function Page() {
-  return (
-    <div>
-      <ClientPage />
-    </div>
-  );
+  return <ClientPage />;
 }

@@ -257,7 +257,7 @@ const CreateUpdateFoodItem = ({
             setImageFiles(tempImageFiles);
             if (axiosError.response?.status === 401) {
               dispatch(signOut());
-              router.push("/signin");
+              router.push(`/signin?redirect=${window.location.pathname}`);
             }
             reject(error);
           }
@@ -326,7 +326,7 @@ const CreateUpdateFoodItem = ({
             );
             if (axiosError.response?.status === 401) {
               dispatch(signOut());
-              router.push("/signin");
+              router.push(`/signin?redirect=${window.location.pathname}`);
             }
             reject(error);
           }
@@ -538,7 +538,7 @@ const CreateUpdateFoodItem = ({
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
-        router.push("/signin");
+        router.push(`/signin?redirect=${window.location.pathname}`);
       }
     } finally {
       setFormLoading(false);
