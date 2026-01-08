@@ -386,7 +386,6 @@ const OrderCard = ({
         <div className="flex gap-2 pt-3 justify-between sm:flex-row flex-col">
           <OrderDetails
             order={order}
-            // setOrders={setOrders}
             restaurantSlug={restaurantSlug}
             orderStatusIcons={orderStatusIcons}
             status={status}

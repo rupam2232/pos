@@ -12,7 +12,6 @@ import {
 import { Button } from "@repo/ui/components/button";
 import type {
   Order,
-  // OrderDetails as OrderDetailsType,
   FullOrderDetailsType,
 } from "@repo/ui/types/Order";
 import axios from "@/utils/axiosInstance";
@@ -487,26 +486,6 @@ const OrderDetails = ({
                     </div>
                   </div>
                 )}
-
-                {/* Payment Attempts */}
-                {/* <div>
-                  <h3 className="text-sm font-medium mb-1">Payment Attempts</h3>
-                  <div
-                    className={`bg-muted px-3 py-1 rounded-md ${orderDetails.paymentAttempts.length === 0 ? "text-xs text-muted-foreground" : "text-sm"}`}
-                  >
-                    {orderDetails.paymentAttempts.length > 0 ? (
-                      <ul className="list-disc list-inside">
-                        {orderDetails.paymentAttempts.map((attempt, index) => (
-                          <li key={index}>
-                            {JSON.stringify(attempt)}{" "}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>No payment attempts recorded</p>
-                    )}
-                  </div>
-                </div> */}
               </div>
             </div>
           ) : (
@@ -518,7 +497,6 @@ const OrderDetails = ({
             <DialogClose asChild>
               <Button variant="outline">Close</Button>
             </DialogClose>
-            {/* <Button type="submit">Save changes</Button> */}
           </DialogFooter>
         </ScrollArea>
       </DialogContent>

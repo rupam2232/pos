@@ -24,12 +24,10 @@ const TableQRCode = ({
   qrCodeData,
   qrCodeImage,
   qrCodeName = "table-qrcode",
-  // slug,
 }: {
   qrCodeData: string;
   qrCodeImage?: string;
   qrCodeName?: string;
-  // slug?: string;
 }) => {
   const qrCode = useRef<QRCodeStyling | null>(null);
   const [open, setOpen] = useState(false);
@@ -72,7 +70,6 @@ const TableQRCode = ({
           reader.readAsDataURL(blob as Blob);
         });
       }
-      // Cleanup
       return () => {
         if (qrSrc) URL.revokeObjectURL(qrSrc);
       };
@@ -162,7 +159,6 @@ const TableQRCode = ({
                   className={`object-contain rounded-md ${qrSrc ? "" : "hidden"}`}
                 />
 
-                {/* Instructions */}
                 <p
                   style={{
                     fontSize: "10px",

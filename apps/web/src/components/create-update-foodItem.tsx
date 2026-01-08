@@ -129,6 +129,9 @@ const CreateUpdateFoodItem = ({
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const remoteCategories = foodItemDetails?.restaurantDetails?.categories ?? [];
+  const effectiveCategories =
+    remoteCategories.length > 0 ? remoteCategories : categories;
 
   const form = useForm<z.infer<typeof foodItemSchema>>({
     resolver: zodResolver(foodItemSchema),
@@ -483,7 +486,7 @@ const CreateUpdateFoodItem = ({
           return updated;
         });
       }
-      if(setTabName) {
+      if (setTabName) {
         setTabName("all"); // Reset tab name to "all"
       }
       setAllFoodItems((prev) => {
@@ -950,11 +953,13 @@ const CreateUpdateFoodItem = ({
                                   )}
                                 >
                                   {field.value
-                                    ? categories.length > 0 ? 
-                                    categories.find((category) => category === field.value)
-                                    : foodItemDetails?.restaurantDetails.categories.find(
-                                        (category) => category === field.value
-                                      )
+                                    ? categories.length > 0
+                                      ? categories.find(
+                                          (category) => category === field.value
+                                        )
+                                      : foodItemDetails?.restaurantDetails.categories.find(
+                                          (category) => category === field.value
+                                        )
                                     : "Select category"}
                                   <ChevronsUpDown className="opacity-50" />
                                 </Button>
@@ -971,10 +976,16 @@ const CreateUpdateFoodItem = ({
                                     No category found.
                                   </CommandEmpty>
                                   <div className="p-1 pb-0 w-full space-y-1">
-                                    <CreateRestaurantCategory isLoading={formLoading} setIsLoading={setFormLoading} restaurantSlug={restaurantSlug} setCategories={setCategories} categories={categories} />
+                                    <CreateRestaurantCategory
+                                      isLoading={formLoading}
+                                      setIsLoading={setFormLoading}
+                                      restaurantSlug={restaurantSlug}
+                                      setCategories={setCategories}
+                                      categories={categories}
+                                    />
                                     <Button
-                                    variant="ghost"
-                                    className="w-full text-sm font-normal h-min py-1.5 px-2! hover:bg-accent!"
+                                      variant="ghost"
+                                      className="w-full text-sm font-normal h-min py-1.5 px-2! hover:bg-accent!"
                                       onClick={() => {
                                         form.setValue("category", undefined);
                                       }}
@@ -989,66 +1000,29 @@ const CreateUpdateFoodItem = ({
                                         )}
                                       />
                                     </Button>
-                                    </div>
+                                  </div>
                                   <CommandGroup>
-                                    {(Array.isArray(
-                                      foodItemDetails?.restaurantDetails
-                                        .categories
-                                    ) &&
-                                      foodItemDetails?.restaurantDetails
-                                        .categories.length > 0) ||
-                                    categories.length > 0 ? (
-                                      categories.length > 0 ? (
-                                        categories.map((category) => (
-                                          <CommandItem
-                                            value={category}
-                                            className="cursor-pointer"
-                                            key={category}
-                                            onSelect={() => {
-                                              form.setValue(
-                                                "category",
-                                                category
-                                              );
-                                            }}
-                                          >
-                                            {category}
-                                            <Check
-                                              className={cn(
-                                                "ml-auto",
-                                                category === field.value
-                                                  ? "opacity-100"
-                                                  : "opacity-0"
-                                              )}
-                                            />
-                                          </CommandItem>
-                                        ))
-                                      ) : (
-                                        foodItemDetails?.restaurantDetails.categories.map(
-                                          (category) => (
-                                            <CommandItem
-                                              value={category}
-                                              className="cursor-pointer"
-                                              key={category}
-                                              onSelect={() => {
-                                                form.setValue(
-                                                  "category",
-                                                  category
-                                                );
-                                              }}
-                                            >
-                                              {category}
-                                              <Check
-                                                className={cn(
-                                                  "ml-auto",
-                                                  category === field.value
-                                                    ? "opacity-100"
-                                                    : "opacity-0"
-                                                )}
-                                              />
-                                            </CommandItem>
-                                          )
-                                        )
-                                      )
+                                    {effectiveCategories.length > 0 ? (
+                                      effectiveCategories.map((category) => (
+                                        <CommandItem
+                                          key={category}
+                                          value={category}
+                                          className="cursor-pointer"
+                                          onSelect={() =>
+                                            form.setValue("category", category)
+                                          }
+                                        >
+                                          {category}
+                                          <Check
+                                            className={cn(
+                                              "ml-auto",
+                                              category === field.value
+                                                ? "opacity-100"
+                                                : "opacity-0"
+                                            )}
+                                          />
+                                        </CommandItem>
+                                      ))
                                     ) : (
                                       <CommandItem disabled>
                                         No category available
