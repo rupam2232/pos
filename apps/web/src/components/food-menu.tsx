@@ -28,6 +28,7 @@ import CustomerFoodDetails from "./customer-food-details";
 import Link from "next/link";
 import { useCart } from "@/hooks/useCart";
 import { Table } from "@repo/ui/types/Table";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ClinetFoodMenu = ({
   slug,
@@ -56,6 +57,7 @@ const ClinetFoodMenu = ({
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItem | null>(
     null
   );
+  const isMobile = useIsMobile();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const observer = useRef<IntersectionObserver>(null);
   const debounced = useDebounceCallback(setSearchInput, 300);
@@ -254,9 +256,19 @@ const ClinetFoodMenu = ({
           setTabName(value);
         }}
       >
-        <ScrollArea className={cn("w-full pb-3", scrollClassName)}>
-          <div className="flex items-center justify-between">
+        <div className="flex sm:items-baseline justify-between flex-col-reverse gap-2 sm:flex-row">
+          <ScrollArea className={cn("w-full pb-2", scrollClassName)}>
             <TabsList>
+              {Array.from({ length: 10 }).map((_, index) => (
+                <TabsTrigger
+                  key={index}
+                  value={`tab-${index}`}
+                  className="font-medium data-[state=active]:font-semibold data-[state=active]:bg-primary! data-[state=active]:text-primary-foreground! data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200"
+                  onClick={() => setTabName(`tab-${index}`)}
+                >
+                  Tab {index + 1}
+                </TabsTrigger>
+              ))}
               <TabsTrigger
                 value="all"
                 className="font-medium data-[state=active]:font-semibold data-[state=active]:bg-primary! data-[state=active]:text-primary-foreground! data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200"
@@ -275,65 +287,64 @@ const ClinetFoodMenu = ({
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div
-              className="flex items-center gap-2 *:flex flex-wrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent mr-1"
-              onClick={() => {
-                if (searchInputRef.current) {
-                  searchInputRef.current.focus();
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          <div className="flex items-center gap-2 *:flex flex-nowrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent"
+            onClick={() => {
+              if (searchInputRef.current) {
+                searchInputRef.current.focus();
+              }
+            }}
+          >
+            <Search className="size-4 shrink-0 opacity-50" />
+            <Input
+              className="w-60 placeholder:text-muted-foreground flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
+              placeholder="Search food items by name, category, tags..."
+              type="search"
+              onChange={(e) => {
+                debounced(e.target.value);
+                if (e.target.value.trim() === "") {
+                  setTabName("all");
+                  setSearchInput("");
+                } else {
+                  setTabName("search");
                 }
               }}
-            >
-              <Search className="size-4 shrink-0 opacity-50" />
-              <Input
-                className="w-60 placeholder:text-muted-foreground flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 min-w-fit flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
-                placeholder="Search food items by name, category, tags..."
-                type="search"
-                onChange={(e) => {
-                  debounced(e.target.value);
-                  if (e.target.value.trim() === "") {
-                    setTabName("all");
-                    setSearchInput("");
-                  } else {
-                    setTabName("search");
+              ref={searchInputRef}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (searchInput.trim() === "") {
+                    return;
                   }
-                }}
-                ref={searchInputRef}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (searchInput.trim() === "") {
-                      return;
-                    }
-                    setTabName("search");
-                    fetchFoodItems();
-                  }
-                }}
-              />
+                  setTabName("search");
+                  fetchFoodItems();
+                }
+              }}
+            />
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (searchInputRef.current) {
-                    searchInputRef.current.value = "";
-                    setSearchInput("");
-                    setTabName("all");
-                  }
-                }}
-                className={cn(
-                  "hover:opacity-100 hover:bg-accent h-6 w-6",
-                  searchInputRef.current && searchInputRef.current.value !== ""
-                    ? ""
-                    : "invisible"
-                )}
-              >
-                <X />
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (searchInputRef.current) {
+                  searchInputRef.current.value = "";
+                  setSearchInput("");
+                  setTabName("all");
+                }
+              }}
+              className={cn(
+                "hover:opacity-100 hover:bg-accent h-6 w-6",
+                searchInputRef.current && searchInputRef.current.value !== ""
+                  ? ""
+                  : "invisible"
+              )}
+            >
+              <X />
+            </Button>
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
         <TabsContent value={tabName} className="mt-2">
           {isPageLoading ? (
             <div
@@ -431,7 +442,7 @@ const ClinetFoodMenu = ({
                       </div>
                     )}
                   </div>
-                  <CardContent className="p-3 relative">
+                  <CardContent className="p-3">
                     <div className="space-y-1">
                       <h3 className="font-semibold line-clamp-1">
                         {foodItem.foodName}
@@ -453,7 +464,7 @@ const ClinetFoodMenu = ({
                         cartItems.some(
                           (item) => item.foodId === foodItem._id
                         ) ? (
-                          <div className="flex items-center justify-between gap-2 dark:border-zinc-600 border rounded-md w-full">
+                          <div className="flex items-center justify-between dark:border-zinc-600 border rounded-md w-full">
                             <Button
                               type="button"
                               variant="ghost"
@@ -559,7 +570,15 @@ const ClinetFoodMenu = ({
                               }
                             }}
                           >
-                            <Plus /> Add to Cart
+                            {isMobile ? (
+                              <>
+                                <Plus /> Add
+                              </>
+                            ) : (
+                              <>
+                                <Plus /> Add to Cart
+                              </>
+                            )}
                           </Button>
                         )
                       ) : (
@@ -572,7 +591,7 @@ const ClinetFoodMenu = ({
                         </Button>
                       )}
                       {foodItem.hasVariants && (
-                        <p className="text-[10px] text-muted-foreground text-center absolute bottom-0 left-1/2 -translate-x-1/2">
+                        <p className="text-[10px] text-muted-foreground text-center absolute bottom-0 sm:left-1/2 sm:-translate-x-1/2 truncate">
                           *Variants available
                         </p>
                       )}

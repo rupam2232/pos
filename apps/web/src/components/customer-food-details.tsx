@@ -370,8 +370,8 @@ const CustomerFoodDetails = ({
     >
       <DrawerTrigger className="hidden">Open</DrawerTrigger>
       <DrawerContent className="w-full h-full data-[vaul-drawer-direction=bottom]:max-h-[85vh]">
-        <div className="w-full md:mx-auto md:w-2xl lg:w-3xl h-full">
-          <ScrollArea className="h-full pt-3 max-h-[80%]">
+        <div className="w-full md:mx-auto md:w-2xl lg:w-3xl h-full relative">
+          <ScrollArea className="h-full pt-3 max-h-[75%] sm:max-h-[80%]">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="animate-spin" />
@@ -603,7 +603,7 @@ const CustomerFoodDetails = ({
             )}
           </ScrollArea>
           {!isLoading && (
-            <Card className="w-full md:w-2xl lg:w-3xl p-3 backdrop-blur-2xl bg-muted/50">
+            <Card className={cn("w-full md:w-2xl lg:w-3xl p-3 backdrop-blur-2xl bg-muted/50 absolute", !foodItemDetails?.description && foodItemDetails?.variants?.length === 0 && foodItemDetails.tags?.length === 0 ? "bottom-0" : "bottom-6")}>
               <CardDescription>
                 {foodItemDetails &&
                 (variantName === "default"
@@ -645,7 +645,7 @@ const CustomerFoodDetails = ({
                       className="w-3/6 md:w-2/5 whitespace-pre-wrap flex-wrap h-auto gap-y-0 px-2"
                       onClick={handleAddItem}
                     >
-                      Add Item
+                      Add
                       {typeof itemDiscountedPrice === "number" ? (
                         <>
                           <span className="text-xs line-through text-muted-foreground items-baseline">

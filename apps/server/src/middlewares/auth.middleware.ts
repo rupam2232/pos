@@ -5,7 +5,8 @@ import { User } from "../models/user.model.js";
 import type { accessTokenUser } from "../utils/jwt.js";
 import type { User as UserType } from "../models/user.model.js";
 import { DeviceSession } from "../models/deviceSession.model.js";
-import { ApiResponse } from "../utils/ApiResponse.js";import { getCookieOptions } from "../utils/cookieOptions.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { getCookieOptions } from "../utils/cookieOptions.js";
 
 // Extend Express Request interface to include 'user'
 declare module "express-serve-static-core" {
@@ -44,7 +45,7 @@ export const verifyAuth = asyncHandler(async (req, res, next) => {
   // Find session by refresh token
   const deviceSession = await DeviceSession.findOne({
     userId: user._id,
-    refreshToken: refreshToken,
+    refreshToken,
   });
 
   if (!deviceSession || deviceSession.revoked) {

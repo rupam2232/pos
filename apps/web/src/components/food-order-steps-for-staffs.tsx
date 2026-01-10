@@ -33,11 +33,13 @@ const FoodOrderStepsForStaffs = ({
   setStep,
   onClose,
   className,
+  footerClassName,
 }: {
   step: number;
   setStep: React.Dispatch<React.SetStateAction<number>>;
   onClose?: () => void;
   className?: string;
+  footerClassName?: string;
 }) => {
   const router = useRouter();
   const { slug } = useParams<{ slug: string }>();
@@ -201,7 +203,7 @@ const FoodOrderStepsForStaffs = ({
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      <div className="flex-1 overflow-y-auto px-6 mb-3 sm:mb-0 custom-scrollbar">
+      <div className="flex-1 px-6 custom-scrollbar overflow-y-auto">
         {step === 1 && (
           <>
             {isTablePageLoading ? (
@@ -211,7 +213,7 @@ const FoodOrderStepsForStaffs = ({
                 ))}
               </div>
             ) : allTables && allTables.tables.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 px-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-2 mb-20">
                 {allTables.tables.map((t, index) => (
                   <div
                     ref={
@@ -272,15 +274,12 @@ const FoodOrderStepsForStaffs = ({
           </>
         )}
         {step === 2 && (
-            <>
           <ClinetFoodMenu
             slug={slug}
             tableId={tableId}
             isStaffCreatingOrder={true}
             scrollClassName="max-w-[calc(100vw-3rem)] overflow-y-auto"
           />
-          <div className="h-[3rem] sm:h-[2rem] md:hidden"></div>
-          </>
         )}
         {step === 3 && (
           <>
@@ -534,7 +533,9 @@ const FoodOrderStepsForStaffs = ({
         )}
       </div>
 
-      <div className="bg-background border-t p-4 flex items-center justify-between sm:justify-between flex-col-reverse gap-2 sm:flex-row fixed bottom-0 left-0 right-0 z-15">
+      <div className="h-[6rem] sm:h-[4rem] md:hidden"></div>
+
+      <div className={cn("bg-background border-t p-4 flex items-center justify-between sm:justify-between flex-col-reverse gap-2 sm:flex-row fixed bottom-0 left-0 right-0 z-15", footerClassName)}>
         {step === 1 && (
           <>
             <Button
