@@ -36,6 +36,28 @@ const TableQRCode = ({
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setOpen(true);
+      window.history.pushState({ qrCodeData }, "", window.location.href);
+    } else {
+      window.history.back();
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setOpen(false);
+    };
+
+    if (open) {
+      window.addEventListener("popstate", handlePopState);
+    }
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [open]);
+
   useEffect(
     () => {
       if (open) {
@@ -110,7 +132,7 @@ const TableQRCode = ({
   }, [isImageLoaded, imageUrl, qrCodeName]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <Tooltip>
         <TooltipTrigger asChild>
           <DialogTrigger className="w-min [&_svg]:size-6! p-5 bg-transparent hover:bg-secondary/10 border border-accent-foreground/60">

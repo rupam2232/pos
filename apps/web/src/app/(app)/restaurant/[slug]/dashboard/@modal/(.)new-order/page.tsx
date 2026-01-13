@@ -6,14 +6,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@repo/ui/components/dialog";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 import FoodOrderStepsForStaffs from "@/components/food-order-steps-for-staffs";
 
 const Page = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const [step, setStep] = useState<number>(1);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
+  
+  function getDashboardUrl(path: string): string {
+    return path.replace(/\/new-order\/?$/, "");
+  }
+  
+  function handleDialogClose() {
+    const dashboardUrl = getDashboardUrl(pathname);
+    router.push(dashboardUrl);
+  }
 
   return (
     <Dialog
@@ -21,7 +31,7 @@ const Page = () => {
       onOpenChange={(open) => {
         setDrawerOpen(open);
         if (!open) {
-          router.back();
+          handleDialogClose();
         }
       }}
     >
@@ -39,7 +49,10 @@ const Page = () => {
         <FoodOrderStepsForStaffs
           step={step}
           setStep={setStep}
-          onClose={() => setDrawerOpen(false)}
+          onClose={() => {
+            setDrawerOpen(false); 
+            handleDialogClose();
+          }}
           className="flex-1 min-h-0"
         />
       </DialogContent>

@@ -332,7 +332,7 @@ const OrderCard = ({
               <TableBody>
                 {order.orderedFoodItems.map((item, index) => (
                   <TableRow
-                    key={item.foodItemId + index}
+                    key={item.foodItemId + index + order._id}
                     className="text-foreground/80"
                   >
                     <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">

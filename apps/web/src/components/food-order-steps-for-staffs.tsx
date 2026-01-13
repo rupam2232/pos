@@ -1,6 +1,11 @@
 "use client";
 import { Button } from "@repo/ui/components/button";
-import { useRouter, useParams } from "next/navigation";
+import {
+  useRouter,
+  useParams,
+  useSearchParams,
+  usePathname,
+} from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import axios from "@/utils/axiosInstance";
@@ -45,7 +50,6 @@ const FoodOrderStepsForStaffs = ({
   const { slug } = useParams<{ slug: string }>();
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
   const [allTables, setAllTables] = useState<AllTables | null>(null);
   const [isTablePageLoading, setIsTablePageLoading] = useState<boolean>(false);
@@ -63,14 +67,22 @@ const FoodOrderStepsForStaffs = ({
   }>();
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
+  const stepFromUrl = useSearchParams().get("step");
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (stepFromUrl) {
+      setStep(Number(stepFromUrl));
+    } else {
+      setStep(1);
+      router.replace(`${pathname}?step=1`);
+    }
+  }, [stepFromUrl, setStep, router, pathname]);
 
   const fetchAllTables = useCallback(async () => {
     if (!slug) {
       console.error("Restaurant slug is required to fetch tables");
       toast.error("Restaurant slug is required to fetch tables");
-      return;
-    }
-    if (!drawerOpen) {
       return;
     }
     try {
@@ -105,7 +117,7 @@ const FoodOrderStepsForStaffs = ({
       setIsTablePageChanging(false);
       setIsTablePageLoading(false);
     }
-  }, [slug, router, dispatch, page, drawerOpen]);
+  }, [slug, router, dispatch, page]);
 
   useEffect(() => {
     fetchAllTables();
@@ -174,7 +186,6 @@ const FoodOrderStepsForStaffs = ({
         id: toastId,
       });
       clearCart();
-      setDrawerOpen(false);
       if (onClose) {
         onClose();
       } else {
@@ -292,7 +303,7 @@ const FoodOrderStepsForStaffs = ({
                     <p className="text-muted-foreground mb-6">
                       Add some delicious items from {slug}&apos;s menu
                     </p>
-                    <Button className="bg-primary hover:bg-primary/90">
+                    <Button className="bg-primary hover:bg-primary/90" onClick={() => router.replace(`${pathname}?step=2`)}>
                       Browse Menu
                     </Button>
                   </div>
@@ -535,7 +546,12 @@ const FoodOrderStepsForStaffs = ({
 
       <div className="h-[6rem] sm:h-[4rem] md:hidden"></div>
 
-      <div className={cn("bg-background border-t p-4 flex items-center justify-between sm:justify-between flex-col-reverse gap-2 sm:flex-row fixed bottom-0 left-0 right-0 z-15", footerClassName)}>
+      <div
+        className={cn(
+          "bg-background border-t p-4 flex items-center justify-between sm:justify-between flex-col-reverse gap-2 sm:flex-row fixed bottom-0 left-0 right-0 z-15",
+          footerClassName
+        )}
+      >
         {step === 1 && (
           <>
             <Button
@@ -549,7 +565,7 @@ const FoodOrderStepsForStaffs = ({
             <Button
               type="button"
               disabled={!tableId}
-              onClick={() => setStep(2)}
+              onClick={() => router.push(`${pathname}?step=2`)}
               className="w-full sm:w-auto"
             >
               Go to Menu
@@ -561,7 +577,10 @@ const FoodOrderStepsForStaffs = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setStep(1)}
+              onClick={() => {
+                // setStep(1);
+                router.push(`${pathname}?step=1`);
+              }}
               className="w-full sm:w-auto"
             >
               Go back to Tables
@@ -569,7 +588,7 @@ const FoodOrderStepsForStaffs = ({
             <Button
               type="button"
               disabled={cartItems.length === 0}
-              onClick={() => setStep(3)}
+              onClick={() => router.push(`${pathname}?step=3`)}
               className="w-full sm:w-auto"
             >
               View Cart ({cartItems.length})
@@ -581,7 +600,7 @@ const FoodOrderStepsForStaffs = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setStep(2)}
+              onClick={() => router.back()}
               className="w-full sm:w-auto"
             >
               Go back to Menu

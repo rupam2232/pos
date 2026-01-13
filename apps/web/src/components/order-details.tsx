@@ -16,7 +16,7 @@ import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useDispatch } from "react-redux";
 import { signOut } from "@/store/authSlice";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 import { Badge } from "@repo/ui/components/badge";
@@ -72,6 +72,8 @@ const OrderDetails = ({
   const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
   const router = useRouter();
+  const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
 
   const fetchOrderDetails = useCallback(async () => {
     setIsLoading(true);
@@ -98,14 +100,12 @@ const OrderDetails = ({
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
-        router.push(`/signin?redirect=${window.location.pathname}`);
+        router.push(`/signin?redirect=${pathname}`);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [restaurantSlug, order._id, dispatch, router]);
-
-  const [isOpen, setIsOpen] = useState(false);
+  }, [restaurantSlug, order._id, dispatch, router, pathname]);
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
@@ -299,7 +299,7 @@ const OrderDetails = ({
                     <TableBody>
                       {orderDetails.orderedFoodItems.map((item, index) => (
                         <TableRow
-                          key={item.foodItemId + index}
+                          key={order._id + item.foodItemId + index}
                           className="text-foreground/80"
                         >
                           <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">

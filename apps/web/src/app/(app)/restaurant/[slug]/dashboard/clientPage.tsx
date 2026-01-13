@@ -120,7 +120,7 @@ const ClientPage = () => {
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col">
         <div className="flex justify-end items-center px-6 pt-2">
-          <Link href={`/restaurant/${slug}/dashboard/new-order`}>
+          <Link href={`/restaurant/${slug}/dashboard/new-order?step=1`}>
             <Button>
               <Plus />
               Create New Order

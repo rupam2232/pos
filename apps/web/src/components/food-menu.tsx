@@ -19,8 +19,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@repo/ui/components/tabs";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@repo/ui/components/input-group";
 import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
-import { Input } from "@repo/ui/components/input";
 import { Loader2, Minus, Plus, Search, X } from "lucide-react";
 import { useDebounceCallback } from "usehooks-ts";
 import { Button } from "@repo/ui/components/button";
@@ -256,19 +261,11 @@ const ClinetFoodMenu = ({
           setTabName(value);
         }}
       >
-        <div className="flex sm:items-baseline justify-between flex-col-reverse gap-2 sm:flex-row">
-          <ScrollArea className={cn("w-full pb-2", scrollClassName)}>
+        <div className="flex flex-wrap items-center sm:items-baseline justify-between gap-2 pt-2">
+          <ScrollArea
+            className={cn("w-full sm:w-0 flex-1 pb-2 rounded-md", scrollClassName)}
+          >
             <TabsList>
-              {Array.from({ length: 10 }).map((_, index) => (
-                <TabsTrigger
-                  key={index}
-                  value={`tab-${index}`}
-                  className="font-medium data-[state=active]:font-semibold data-[state=active]:bg-primary! data-[state=active]:text-primary-foreground! data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200"
-                  onClick={() => setTabName(`tab-${index}`)}
-                >
-                  Tab {index + 1}
-                </TabsTrigger>
-              ))}
               <TabsTrigger
                 value="all"
                 className="font-medium data-[state=active]:font-semibold data-[state=active]:bg-primary! data-[state=active]:text-primary-foreground! data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200"
@@ -287,20 +284,11 @@ const ClinetFoodMenu = ({
                 </TabsTrigger>
               ))}
             </TabsList>
-            <ScrollBar orientation="horizontal" />
+            <ScrollBar orientation="horizontal" className="h-2" />
           </ScrollArea>
-          <div className="flex items-center gap-2 *:flex flex-nowrap pl-2 py-1 rounded-lg overflow-hidden border-zinc-400 cursor-text focus-within:ring-1 border focus-within:border-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 bg-transparent"
-            onClick={() => {
-              if (searchInputRef.current) {
-                searchInputRef.current.focus();
-              }
-            }}
-          >
-            <Search className="size-4 shrink-0 opacity-50" />
-            <Input
-              className="w-60 placeholder:text-muted-foreground flex rounded-md bg-transparent text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50 outline-0 border-none h-6 flex-1 focus-visible:outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-1 shadow-none dark:bg-transparent"
+          <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+            <InputGroupInput
               placeholder="Search food items by name, category, tags..."
-              type="search"
               onChange={(e) => {
                 debounced(e.target.value);
                 if (e.target.value.trim() === "") {
@@ -322,28 +310,29 @@ const ClinetFoodMenu = ({
                 }
               }}
             />
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                if (searchInputRef.current) {
-                  searchInputRef.current.value = "";
-                  setSearchInput("");
-                  setTabName("all");
-                }
-              }}
-              className={cn(
-                "hover:opacity-100 hover:bg-accent h-6 w-6",
-                searchInputRef.current && searchInputRef.current.value !== ""
-                  ? ""
-                  : "invisible"
-              )}
-            >
-              <X />
-            </Button>
-          </div>
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                className={cn(
+                  "hover:opacity-100 hover:bg-accent h-6 w-6",
+                  searchInputRef.current && searchInputRef.current.value !== ""
+                    ? ""
+                    : "hidden"
+                )}
+                onClick={() => {
+                  if (searchInputRef.current) {
+                    searchInputRef.current.value = "";
+                    setSearchInput("");
+                    setTabName("all");
+                  }
+                }}
+              >
+                <X />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
         </div>
         <TabsContent value={tabName} className="mt-2">
           {isPageLoading ? (
@@ -430,8 +419,7 @@ const ClinetFoodMenu = ({
                         src={foodItem.imageUrls[0]}
                         alt={foodItem.foodName}
                         fill
-                        priority={index < 3} // Load first 3 images with priority
-                        loading={index < 3 ? "eager" : "lazy"}
+                        loading="lazy"
                         draggable={false}
                         sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                         className="object-cover transition-all duration-200 group-hover:scale-101"

@@ -64,7 +64,7 @@ import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { signOut } from "@/store/authSlice";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   AlertDialog,
@@ -126,9 +126,11 @@ const CreateUpdateFoodItem = ({
   const [openChildAccordion, setOpenChildAccordion] = useState<string[] | null>(
     null
   ); // Child accordion state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const pathname = usePathname();
   const remoteCategories = foodItemDetails?.restaurantDetails?.categories ?? [];
   const effectiveCategories =
     remoteCategories.length > 0 ? remoteCategories : categories;
@@ -197,6 +199,23 @@ const CreateUpdateFoodItem = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foodItemDetails, form]);
 
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setIsDialogOpen(true);
+      window.history.pushState(null, "", window.location.href);
+    } else {
+      if (tempImages && tempImages.length > 0) {
+        tempImages.forEach((url) => handleImageRemove(url));
+      }
+      form.reset();
+      setImageFiles(null);
+      setImageErrorMessage("");
+      setOpenParentAccordion(null);
+      setOpenChildAccordion(null);
+      window.history.back();
+    }
+  };
+
   const handleImageRemove = useCallback(
     async (url: string) => {
       if (!imageUrls || imageUrls.length === 0) {
@@ -257,7 +276,7 @@ const CreateUpdateFoodItem = ({
             setImageFiles(tempImageFiles);
             if (axiosError.response?.status === 401) {
               dispatch(signOut());
-              router.push(`/signin?redirect=${window.location.pathname}`);
+              router.push(`/signin?redirect=${pathname}`);
             }
             reject(error);
           }
@@ -277,6 +296,7 @@ const CreateUpdateFoodItem = ({
       router,
       setFoodItemDetails,
       pendingImageOperations,
+      pathname,
     ]
   );
 
@@ -289,9 +309,6 @@ const CreateUpdateFoodItem = ({
             files.forEach((file) => {
               formData.append("foodItemImages", file);
             });
-            // if (isEditing && foodItemDetails?._id) {
-            //   formData.append("foodItemId", foodItemDetails._id);
-            // }
             const response = await axios.post("/media/food-item", formData, {
               headers: {
                 "Content-Type": "multipart/form-data",
@@ -326,7 +343,7 @@ const CreateUpdateFoodItem = ({
             );
             if (axiosError.response?.status === 401) {
               dispatch(signOut());
-              router.push(`/signin?redirect=${window.location.pathname}`);
+              router.push(`/signin?redirect=${pathname}`);
             }
             reject(error);
           }
@@ -335,8 +352,38 @@ const CreateUpdateFoodItem = ({
 
       setPendingImageOperations((prev) => [...prev, uploadPromise]);
     },
-    [imageUrls, form, dispatch, router]
+    [imageUrls, form, dispatch, router, pathname]
   );
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsDialogOpen(false);
+      if (tempImages && tempImages.length > 0) {
+        tempImages.forEach((url) => handleImageRemove(url));
+      }
+      form.reset();
+      setImageFiles(null);
+      setImageErrorMessage("");
+      setOpenParentAccordion(null);
+      setOpenChildAccordion(null);
+    };
+
+    if (isDialogOpen) {
+      window.addEventListener("popstate", handlePopState);
+    }
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [
+    isDialogOpen,
+    tempImages,
+    form,
+    setImageFiles,
+    setImageErrorMessage,
+    setOpenParentAccordion,
+    setOpenChildAccordion,
+    handleImageRemove,
+  ]);
 
   const onImageDrop = (
     acceptedFiles: File[],
@@ -538,7 +585,7 @@ const CreateUpdateFoodItem = ({
       );
       if (axiosError.response?.status === 401) {
         dispatch(signOut());
-        router.push(`/signin?redirect=${window.location.pathname}`);
+        router.push(`/signin?redirect=${pathname}`);
       }
     } finally {
       setFormLoading(false);
@@ -587,27 +634,17 @@ const CreateUpdateFoodItem = ({
   }, [form.formState.errors, fields, form, hasVariants]);
 
   return (
-    <Dialog
-      onOpenChange={(open) => {
-        if (!open) {
-          if (tempImages && tempImages.length > 0) {
-            tempImages.forEach((url) => handleImageRemove(url));
-          }
-          form.reset();
-          setImageFiles(null);
-          setImageErrorMessage("");
-          setOpenParentAccordion(null);
-          setOpenChildAccordion(null);
-        }
-      }}
-    >
+    <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
       {isEditing ? (
         <DialogTrigger className="w-2/4" type="button">
           <Pen />
           Edit
         </DialogTrigger>
       ) : (
-        <DialogTrigger type="button">Create a Food Item</DialogTrigger>
+        <DialogTrigger type="button">
+          <Plus />
+          New Food Item
+        </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-md">
         <ScrollArea className="max-h-[90vh]">
