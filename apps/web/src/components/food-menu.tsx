@@ -288,6 +288,7 @@ const ClinetFoodMenu = ({
           </ScrollArea>
           <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
             <InputGroupInput
+              type="search"
               placeholder="Search food items by name, category, tags..."
               onChange={(e) => {
                 debounced(e.target.value);

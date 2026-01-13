@@ -26,6 +26,7 @@ import { Avatar, AvatarImage } from "@repo/ui/components/avatar";
 import type { RestaurantMinimalInfo } from "@repo/ui/types/Restaurant";
 import CreateRestaurantDialog from "@/components/create-restaurant-dialog";
 import "@/utils/orderSound";
+import { Plus } from "lucide-react";
 
 export default function Page() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -142,7 +143,7 @@ export default function Page() {
                   setOwnersRestaurant={setOwnersRestaurant}
                   isLoading={isLoading}
                 >
-                  Create Restaurant
+                  <Plus /> New Restaurant
                 </CreateRestaurantDialog>
               </div>
             )}

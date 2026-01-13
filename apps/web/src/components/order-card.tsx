@@ -393,7 +393,7 @@ const OrderCard = ({
             status={status}
             handleUpdateStatus={handleUpdateStatus}
           >
-            <Button variant="outline">See Details</Button>
+            <Button variant="outline" className="border bg-background hover:bg-accent">See Details</Button>
           </OrderDetails>
           {order.isPaid ? (
             <Button

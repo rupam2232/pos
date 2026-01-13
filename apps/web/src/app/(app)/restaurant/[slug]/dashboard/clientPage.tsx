@@ -122,8 +122,7 @@ const ClientPage = () => {
         <div className="flex justify-end items-center px-6 pt-2">
           <Link href={`/restaurant/${slug}/dashboard/new-order?step=1`}>
             <Button>
-              <Plus />
-              Create New Order
+              <Plus />New Order
             </Button>
           </Link>
         </div>
@@ -308,9 +307,6 @@ const ClientPage = () => {
                         )}
                       >
                         <h3 className="font-medium">{t.tableName}</h3>
-                        <div className="text-xs">
-                          {t.isOccupied ? "Occupied" : "Available"}
-                        </div>
                       </div>
                     ))}
                   </div>
