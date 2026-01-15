@@ -22,7 +22,6 @@ import {
   TrendingUp,
   TrendingDown,
   LineChart,
-  Plus,
   CheckCheck,
 } from "lucide-react";
 import { IconReceipt, IconTable } from "@tabler/icons-react";
@@ -36,6 +35,7 @@ import Link from "next/link";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import type { AppDispatch } from "@/store/store";
 import type { StaffDashboardStats } from "@repo/ui/types/Stats";
+import StaffOrderDialog from "@/components/staff-order-dialog";
 
 const ClientPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -120,11 +120,7 @@ const ClientPage = () => {
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col">
         <div className="flex justify-end items-center px-6 pt-2">
-          <Link href={`/restaurant/${slug}/dashboard/new-order?step=1`}>
-            <Button>
-              <Plus />New Order
-            </Button>
-          </Link>
+          <StaffOrderDialog/>
         </div>
         <div className="flex flex-col gap-4 md:gap-6 p-4 pt-2! lg:p-6">
           <div className="grid grid-cols-1 @2xl/main:grid-cols-2 @5xl/main:grid-cols-4 gap-4">

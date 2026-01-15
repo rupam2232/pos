@@ -1,11 +1,6 @@
 "use client";
 import { Button } from "@repo/ui/components/button";
-import {
-  useRouter,
-  useParams,
-  useSearchParams,
-  usePathname,
-} from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import axios from "@/utils/axiosInstance";
@@ -67,17 +62,6 @@ const FoodOrderStepsForStaffs = ({
   }>();
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
-  const stepFromUrl = useSearchParams().get("step");
-  const pathname = usePathname();
-
-  useEffect(() => {
-    if (stepFromUrl) {
-      setStep(Number(stepFromUrl));
-    } else {
-      setStep(1);
-      router.replace(`${pathname}?step=1`);
-    }
-  }, [stepFromUrl, setStep, router, pathname]);
 
   const fetchAllTables = useCallback(async () => {
     if (!slug) {
@@ -303,7 +287,12 @@ const FoodOrderStepsForStaffs = ({
                     <p className="text-muted-foreground mb-6">
                       Add some delicious items from {slug}&apos;s menu
                     </p>
-                    <Button className="bg-primary hover:bg-primary/90" onClick={() => router.replace(`${pathname}?step=2`)}>
+                    <Button
+                      className="bg-primary hover:bg-primary/90"
+                      onClick={() => {
+                        window.history.back();
+                      }}
+                    >
                       Browse Menu
                     </Button>
                   </div>
@@ -544,7 +533,7 @@ const FoodOrderStepsForStaffs = ({
         )}
       </div>
 
-      <div className="h-[6rem] sm:h-[4rem] md:hidden"></div>
+      <div className="h-[6rem] sm:h-[4rem]"></div>
 
       <div
         className={cn(
@@ -565,7 +554,7 @@ const FoodOrderStepsForStaffs = ({
             <Button
               type="button"
               disabled={!tableId}
-              onClick={() => router.push(`${pathname}?step=2`)}
+              onClick={() => setStep(2)}
               className="w-full sm:w-auto"
             >
               Go to Menu
@@ -577,10 +566,7 @@ const FoodOrderStepsForStaffs = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                // setStep(1);
-                router.push(`${pathname}?step=1`);
-              }}
+              onClick={() => setStep(1)}
               className="w-full sm:w-auto"
             >
               Go back to Tables
@@ -588,7 +574,7 @@ const FoodOrderStepsForStaffs = ({
             <Button
               type="button"
               disabled={cartItems.length === 0}
-              onClick={() => router.push(`${pathname}?step=3`)}
+              onClick={() => setStep(3)}
               className="w-full sm:w-auto"
             >
               View Cart ({cartItems.length})
@@ -600,7 +586,7 @@ const FoodOrderStepsForStaffs = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.back()}
+              onClick={() => setStep(2)}
               className="w-full sm:w-auto"
             >
               Go back to Menu

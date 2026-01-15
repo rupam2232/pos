@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -112,7 +111,6 @@ const CreateUpdateFoodItem = ({
   setCategories, // Optional prop to update categories after creation or update
   setTabName, // Optional prop to set the current tab name
 }: CreateUpdateFoodItemProps) => {
-  const closeDialog = useRef<HTMLButtonElement>(null);
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024; // 1MB
   const [imageFiles, setImageFiles] = useState<File[] | null>(null);
   const [imageErrorMessage, setImageErrorMessage] = useState<string>("");
@@ -559,9 +557,7 @@ const CreateUpdateFoodItem = ({
       });
       setTempImages([]);
       form.reset();
-      if (closeDialog.current) {
-        closeDialog.current.click(); // Close the dialog if the ref is set
-      }
+      setIsDialogOpen(false);
 
       toast.success(
         response.data.message ||
@@ -632,6 +628,19 @@ const CreateUpdateFoodItem = ({
       }
     }
   }, [form.formState.errors, fields, form, hasVariants]);
+
+  useEffect(() => {
+    if (!imageErrorMessage) return;
+
+    const timer = setTimeout(() => {
+      setImageErrorMessage("");
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [imageErrorMessage]);
+
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
@@ -1121,7 +1130,7 @@ const CreateUpdateFoodItem = ({
                                 ? "Add another tag"
                                 : "E.g., spicy, smoky, cheesy"
                             }
-                            className="resize-none pb-4 whitespace-pre-wrap break-all"
+                            className="resize-none pb-4 whitespace-pre-wrap break-all focus-within:border-input focus-within:ring-1"
                           />
                         </FormControl>
                         <FormMessage />
@@ -1409,7 +1418,6 @@ const CreateUpdateFoodItem = ({
           </DialogHeader>
         </ScrollArea>
       </DialogContent>
-      <DialogClose ref={closeDialog} className="hidden" />
     </Dialog>
   );
 };
