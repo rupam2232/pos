@@ -43,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { IconReceipt, IconSalad } from "@tabler/icons-react";
+import VegNonVegTooltip from "./veg-nonveg-tooltip";
 
 const OrderDetails = ({
   children,
@@ -303,25 +304,7 @@ const OrderDetails = ({
                           className="text-foreground/80"
                         >
                           <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <div
-                                  className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
-                                >
-                                  <span
-                                    className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                                  ></span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {item.foodType === "veg"
-                                  ? "Veg"
-                                  : item.foodType === "non-veg"
-                                    ? "Non Veg"
-                                    : "Vegan"}
-                              </TooltipContent>
-                            </Tooltip>
-
+                            <VegNonVegTooltip foodType={item.foodType} innerClassName="size-1" />
                             {item.firstImageUrl ? (
                               <Avatar>
                                 <AvatarImage

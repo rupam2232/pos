@@ -105,16 +105,34 @@ export function play() {
 
 // Automatically enable sound on any user interaction or when tab becomes visible
 if (typeof window !== "undefined") {
+  const cleanup = () => {
+    document.removeEventListener("click", tryEnable);
+    document.removeEventListener("touchstart", tryEnable);
+    document.removeEventListener("visibilitychange", tryEnable);
+    document.removeEventListener("DOMContentLoaded", tryEnable);
+    window.removeEventListener("load", tryEnable);
+    window.removeEventListener("focus", tryEnable);
+    window.removeEventListener("pageshow", tryEnable);
+  };
+
   const tryEnable = () => {
     if (!enabled) {
-      // fire and forget; any errors are handled inside enableSoundByUserGesture
-      enableSoundByUserGesture().catch(() => {});
+      enableSoundByUserGesture()
+        .then((success) => {
+          if (success) {
+            cleanup();
+          }
+        })
+        .catch(() => {});
+    } else {
+      cleanup();
     }
   };
 
   document.addEventListener("click", tryEnable, { once: true });
   document.addEventListener("touchstart", tryEnable, { once: true });
-  document.addEventListener("visibilitychange", tryEnable); document.addEventListener("DOMContentLoaded", tryEnable);
+  document.addEventListener("visibilitychange", tryEnable);
+  document.addEventListener("DOMContentLoaded", tryEnable);
   window.addEventListener("load", tryEnable);
   window.addEventListener("focus", tryEnable);
   window.addEventListener("pageshow", tryEnable);

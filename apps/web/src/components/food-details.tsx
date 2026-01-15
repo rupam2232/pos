@@ -55,6 +55,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog";
+import VegNonVegTooltip from "./veg-nonveg-tooltip";
 
 const FoodDetails = ({
   children,
@@ -571,13 +572,7 @@ const FoodDetails = ({
                   </p>
                   <div className="flex items-center gap-1">
                     Food Type:{" "}
-                    <div
-                      className={`w-min border ${foodItemDetails.foodType === "veg" ? "border-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 ml-1`}
-                    >
-                      <span
-                        className={`${foodItemDetails.foodType === "veg" ? "bg-green-500" : ""} ${foodItemDetails.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                      ></span>
-                    </div>
+                    <VegNonVegTooltip foodType={foodItemDetails.foodType} innerClassName="size-1.5" />
                     <span className="font-bold">
                       {foodItemDetails.foodType === "veg"
                         ? "Veg"

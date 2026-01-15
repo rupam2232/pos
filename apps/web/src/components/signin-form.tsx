@@ -16,6 +16,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@repo/ui/components/form";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@repo/ui/components/input-group";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import axios from "@/utils/axiosInstance";
 import { toast } from "sonner";
@@ -27,7 +33,7 @@ import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export function SigninForm({
@@ -45,6 +51,7 @@ export function SigninForm({
   const redirectTo = searchParams.get("redirect") || "/home";
   const [emailLoginLoading, setEmailLoginLoading] = useState(false);
   const [googleLoginLoading, setGoogleLoginLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -210,14 +217,23 @@ export function SigninForm({
                             </Link>
                           </div>
                           <FormControl>
-                            <Input
-                              id="password"
-                              placeholder="••••••••"
-                              type="password"
-                              autoComplete="current-password"
-                              required
-                              {...field}
-                            />
+                            <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+                              <InputGroupInput
+                                id="password"
+                                placeholder="••••••••"
+                                type={showPassword ? "text" : "password"}
+                                autoComplete="current-password"
+                                required
+                                {...field}
+                              />
+                              <InputGroupAddon align="inline-end">
+                                <InputGroupButton
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? <Eye /> : <EyeOff />}
+                                </InputGroupButton>
+                              </InputGroupAddon>
+                            </InputGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -240,7 +256,10 @@ export function SigninForm({
                   </Button>
                   <div className="text-center text-sm">
                     Don&apos;t have an account?{" "}
-                    <Link href={`/signup?redirect=${redirectTo}`} className="underline underline-offset-4">
+                    <Link
+                      href={`/signup?redirect=${redirectTo}`}
+                      className="underline underline-offset-4"
+                    >
                       Sign up
                     </Link>
                   </div>

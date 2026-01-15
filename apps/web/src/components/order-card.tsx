@@ -44,6 +44,7 @@ import { AxiosError } from "axios";
 import { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useState } from "react";
 import { cn } from "@repo/ui/lib/utils";
+import VegNonVegTooltip from "./veg-nonveg-tooltip";
 
 const OrderCard = ({
   order,
@@ -336,24 +337,7 @@ const OrderCard = ({
                     className="text-foreground/80"
                   >
                     <TableCell className="font-medium flex items-center gap-2 text-left whitespace-pre-wrap">
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <div
-                            className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
-                          >
-                            <span
-                              className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                            ></span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {item.foodType === "veg"
-                            ? "Veg"
-                            : item.foodType === "non-veg"
-                              ? "Non Veg"
-                              : "Vegan"}
-                        </TooltipContent>
-                      </Tooltip>
+                      <VegNonVegTooltip foodType={item.foodType} innerClassName="size-1" />
                       <span>
                         {item.foodName}
                         {item.isVariantOrder ? ` (${item.variantName})` : ""}

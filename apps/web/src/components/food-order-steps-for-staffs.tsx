@@ -27,6 +27,7 @@ import { Label } from "@repo/ui/components/label";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import Link from "next/link";
 import { RootState } from "@/store/store";
+import VegNonVegTooltip from "./veg-nonveg-tooltip";
 
 const FoodOrderStepsForStaffs = ({
   step,
@@ -348,20 +349,7 @@ const FoodOrderStepsForStaffs = ({
                             )}
                           >
                             <div className="flex items-center space-x-2">
-                              <div
-                                className={`border ${item.foodType === "veg" ? "border-green-500" : ""} ${item.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5`}
-                              >
-                                <span
-                                  className={`${item.foodType === "veg" ? "bg-green-500" : ""} ${item.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                                ></span>
-                                <span className="sr-only">
-                                  {item.foodType === "veg"
-                                    ? "Veg"
-                                    : item.foodType === "non-veg"
-                                      ? "Non Veg"
-                                      : "Vegan"}
-                                </span>
-                              </div>
+                              <VegNonVegTooltip foodType={item.foodType} innerClassName="size-1" />
                               <h4 className="font-medium line-clamp-3">
                                 {item.foodName}{" "}
                                 {item.variantName && `(${item.variantName})`}

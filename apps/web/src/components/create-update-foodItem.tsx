@@ -83,6 +83,7 @@ import {
   AccordionTrigger,
 } from "@repo/ui/components/accordion";
 import CreateRestaurantCategory from "./create-restaurant-category";
+import { NonVegIcon, VegIcon } from "./veg-nonveg-tooltip";
 
 type CreateUpdateFoodItemProps = {
   isEditing?: boolean; // Optional prop to indicate if it's for editing an existing item
@@ -959,15 +960,11 @@ const CreateUpdateFoodItem = ({
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="veg">
-                              <div className="w-min border border-green-500 bg-white outline outline-white p-0.5 ml-1">
-                                <span className="bg-green-500 w-1.5 h-1.5 block rounded-full"></span>
-                              </div>
+                              <VegIcon className="ml-1"/>
                               Veg
                             </SelectItem>
                             <SelectItem value="non-veg">
-                              <div className="w-min border border-red-500 bg-white outline outline-white p-0.5 ml-1">
-                                <span className="bg-red-500 w-1.5 h-1.5 block rounded-full"></span>
-                              </div>
+                              <NonVegIcon className="ml-1"/>
                               Non Veg
                             </SelectItem>
                           </SelectContent>

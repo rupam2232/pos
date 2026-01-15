@@ -22,6 +22,12 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@repo/ui/components/input-otp";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@repo/ui/components/input-group";
 import { ScrollArea } from "@repo/ui/components/scroll-area";
 import axios from "@/utils/axiosInstance";
 import { toast } from "sonner";
@@ -33,7 +39,7 @@ import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, Loader2, RotateCcw } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, RotateCcw } from "lucide-react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import Link from "next/link";
 
@@ -57,6 +63,9 @@ export function SignupForm({
   const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
   const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
   const [resendTimer, setResendTimer] = useState<number | null>(null);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
 
   const startResendTimer = () => {
     let delay = 60; // seconds
@@ -342,14 +351,23 @@ export function SignupForm({
                         >
                           <FormLabel htmlFor="password">Password</FormLabel>
                           <FormControl>
-                            <Input
-                              id="password"
-                              placeholder="••••••••"
-                              type="password"
-                              autoComplete="new-password"
-                              required
-                              {...field}
-                            />
+                            <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+                              <InputGroupInput
+                                id="password"
+                                placeholder="••••••••"
+                                type={showPassword ? "text" : "password"}
+                                autoComplete="new-password"
+                                required
+                                {...field}
+                              />
+                              <InputGroupAddon align="inline-end">
+                                <InputGroupButton
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? <Eye /> : <EyeOff />}
+                                </InputGroupButton>
+                              </InputGroupAddon>
+                            </InputGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -369,14 +387,25 @@ export function SignupForm({
                             Confirm Password
                           </FormLabel>
                           <FormControl>
-                            <Input
-                              id="confirm-password"
-                              placeholder="••••••••"
-                              type="password"
-                              autoComplete="new-password"
-                              required
-                              {...field}
-                            />
+                            <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+                              <InputGroupInput
+                                id="confirm-password"
+                                placeholder="••••••••"
+                                type={showConfirmPassword ? "text" : "password"}
+                                autoComplete="new-password"
+                                required
+                                {...field}
+                              />
+                              <InputGroupAddon align="inline-end">
+                                <InputGroupButton
+                                  onClick={() =>
+                                    setShowConfirmPassword(!showConfirmPassword)
+                                  }
+                                >
+                                  {showConfirmPassword ? <Eye /> : <EyeOff />}
+                                </InputGroupButton>
+                              </InputGroupAddon>
+                            </InputGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -481,7 +510,10 @@ export function SignupForm({
                   </Button>
                   <div className="text-center text-sm">
                     Already have an account?{" "}
-                    <Link href={`/signin?redirect=${redirectTo}`} className="underline underline-offset-4">
+                    <Link
+                      href={`/signin?redirect=${redirectTo}`}
+                      className="underline underline-offset-4"
+                    >
                       Sign in
                     </Link>
                   </div>

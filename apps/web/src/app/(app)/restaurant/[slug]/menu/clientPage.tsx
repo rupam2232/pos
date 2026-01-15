@@ -37,6 +37,7 @@ import {
 import { ScrollArea, ScrollBar } from "@repo/ui/components/scroll-area";
 import { Search, X } from "lucide-react";
 import { useDebounceCallback } from "usehooks-ts";
+import VegNonVegTooltip from "@/components/veg-nonveg-tooltip";
 
 const MenuPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -330,7 +331,7 @@ const MenuPage = () => {
                 >
                   <Card
                     ref={
-                      index === allFoodItems.foodItems.length - 1
+                      index === allFoodItems.foodItems.length - 3
                         ? lastElementRef
                         : null
                     }
@@ -359,31 +360,7 @@ const MenuPage = () => {
                       </Tooltip>
                     </div>
                     <div className="absolute top-2 left-2 z-10">
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <div
-                            className={`border ${foodItem.foodType === "veg" ? "border-green-500" : ""} ${foodItem.foodType === "non-veg" ? "border-red-500" : ""} outline outline-white bg-white p-0.5 cursor-help`}
-                          >
-                            <span
-                              className={`${foodItem.foodType === "veg" ? "bg-green-500" : ""} ${foodItem.foodType === "non-veg" ? "bg-red-500" : ""} w-1.5 h-1.5 block rounded-full`}
-                            ></span>
-                            <span className="sr-only">
-                              {foodItem.foodType === "veg"
-                                ? "Veg"
-                                : foodItem.foodType === "non-veg"
-                                  ? "Non Veg"
-                                  : "Vegan"}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {foodItem.foodType === "veg"
-                            ? "Veg"
-                            : foodItem.foodType === "non-veg"
-                              ? "Non Veg"
-                              : "Vegan"}
-                        </TooltipContent>
-                      </Tooltip>
+                      <VegNonVegTooltip foodType={foodItem.foodType} innerClassName="size-1.5" />
                     </div>
                     <div className="relative aspect-square">
                       {foodItem.imageUrls?.length === 0 ? (
@@ -395,7 +372,7 @@ const MenuPage = () => {
                           src={foodItem.imageUrls?.[0] || "/placeholder.svg"}
                           alt={foodItem.foodName}
                           fill
-                          priority={index < 3} // Load first 3 images with priority
+                          priority={index < 3}
                           loading={index < 3 ? "eager" : "lazy"}
                           draggable={false}
                           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
