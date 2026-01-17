@@ -2,7 +2,6 @@
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
-import { Input } from "@repo/ui/components/input";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +22,10 @@ import {
   InputOTPSlot,
 } from "@repo/ui/components/input-otp";
 import {
+  PasswordInput,
+  PasswordInputStrengthChecker,
+} from "@repo/ui/components/password-input";
+import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
@@ -39,7 +42,16 @@ import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Loader2, RotateCcw } from "lucide-react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  RotateCcw,
+  User,
+} from "lucide-react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import Link from "next/link";
 
@@ -63,9 +75,9 @@ export function SignupForm({
   const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
   const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
   const [resendTimer, setResendTimer] = useState<number | null>(null);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState<boolean>(false);
+  const [passwordScore, setPasswordScore] = useState<number>(0);
 
   const startResendTimer = () => {
     let delay = 60; // seconds
@@ -173,6 +185,7 @@ export function SignupForm({
       startResendTimer();
       setIsOtpSent(true);
     } catch (error) {
+      setSignupStep(1);
       const axiosError = error as AxiosError<ApiResponse>;
       toast.error(
         axiosError.response?.data.message ||
@@ -288,27 +301,28 @@ export function SignupForm({
                       Or continue with
                     </span>
                   </div>
-                  <div className="grid gap-3">
+                  <div className="grid gap-4">
                     <FormField
                       control={form.control}
                       name="fullName"
                       render={({ field }) => (
                         <FormItem
-                          className={cn(
-                            "mt-4",
-                            signupStep === 1 ? "" : "hidden"
-                          )}
+                          className={cn(signupStep !== 1 ? "hidden" : "")}
                         >
-                          <FormLabel htmlFor="full-name">Full Name</FormLabel>
                           <FormControl>
-                            <Input
-                              id="full-name"
-                              type="text"
-                              placeholder="E.g., Rupam Mondal"
-                              autoComplete="name"
-                              required
-                              {...field}
-                            />
+                            <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+                              <InputGroupAddon>
+                                <User />
+                              </InputGroupAddon>
+                              <InputGroupInput
+                                id="full-name"
+                                placeholder="Full Name"
+                                type="text"
+                                autoComplete="name"
+                                required
+                                {...field}
+                              />
+                            </InputGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -319,21 +333,22 @@ export function SignupForm({
                       name="email"
                       render={({ field }) => (
                         <FormItem
-                          className={cn(
-                            "mt-4",
-                            signupStep === 1 ? "" : "hidden"
-                          )}
+                          className={cn(signupStep === 1 ? "" : "hidden")}
                         >
-                          <FormLabel htmlFor="email">Email</FormLabel>
                           <FormControl>
-                            <Input
-                              id="email"
-                              type="email"
-                              placeholder="abc@example.com"
-                              autoComplete="username"
-                              required
-                              {...field}
-                            />
+                            <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+                              <InputGroupAddon>
+                                <Mail />
+                              </InputGroupAddon>
+                              <InputGroupInput
+                                id="email"
+                                placeholder="Email"
+                                type="email"
+                                autoComplete="username"
+                                required
+                                {...field}
+                              />
+                            </InputGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -344,30 +359,22 @@ export function SignupForm({
                       name="password"
                       render={({ field }) => (
                         <FormItem
-                          className={cn(
-                            "mt-4",
-                            signupStep === 1 ? "" : "hidden"
-                          )}
+                          className={cn(signupStep === 1 ? "" : "hidden")}
                         >
-                          <FormLabel htmlFor="password">Password</FormLabel>
                           <FormControl>
-                            <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
-                              <InputGroupInput
-                                id="password"
-                                placeholder="••••••••"
-                                type={showPassword ? "text" : "password"}
-                                autoComplete="new-password"
-                                required
-                                {...field}
+                            <PasswordInput
+                              id="password"
+                              placeholder="Password"
+                              autoComplete="new-password"
+                              required
+                              {...field}
+                            >
+                              <PasswordInputStrengthChecker
+                                onScoreChange={(score) =>
+                                  setPasswordScore(score)
+                                }
                               />
-                              <InputGroupAddon align="inline-end">
-                                <InputGroupButton
-                                  onClick={() => setShowPassword(!showPassword)}
-                                >
-                                  {showPassword ? <Eye /> : <EyeOff />}
-                                </InputGroupButton>
-                              </InputGroupAddon>
-                            </InputGroup>
+                            </PasswordInput>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -378,19 +385,16 @@ export function SignupForm({
                       name="confirmPassword"
                       render={({ field }) => (
                         <FormItem
-                          className={cn(
-                            "mt-4",
-                            signupStep === 1 ? "" : "hidden"
-                          )}
+                          className={cn(signupStep === 1 ? "" : "hidden")}
                         >
-                          <FormLabel htmlFor="confirm-password">
-                            Confirm Password
-                          </FormLabel>
                           <FormControl>
                             <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+                              <InputGroupAddon>
+                                <LockKeyhole />
+                              </InputGroupAddon>
                               <InputGroupInput
                                 id="confirm-password"
-                                placeholder="••••••••"
+                                placeholder="Confirm Password"
                                 type={showConfirmPassword ? "text" : "password"}
                                 autoComplete="new-password"
                                 required
@@ -485,6 +489,14 @@ export function SignupForm({
                       if (signupStep === 1) {
                         // Validate the first step
                         form.handleSubmit(() => {
+                          if (passwordScore < 3) {
+                            form.setError("password", {
+                              type: "manual",
+                              message:
+                                "Password is too weak. Please use a stronger password.",
+                            });
+                            return;
+                          }
                           sendOtp();
                           setSignupStep(2);
                         })();

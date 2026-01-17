@@ -2,13 +2,13 @@ import { z } from "zod";
 
 export const signUpSchema = z
   .object({
-    email: z.string().email("Invalid email address"),
+    email: z.email("Invalid email address"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters long")
       .regex(
-        /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&.,:;'"<>?() \[\] {}|\\/~`_^+-]{8,}$/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+        /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&.,:;'"<>?() [\] {}|\\/~`_^+-]{8,}$/,
+        "Password must contain at least one uppercase letter, one lowercase letter, one special character, and one number"
       ),
     confirmPassword: z
       .string()
@@ -19,7 +19,7 @@ export const signUpSchema = z
   .superRefine((data, ctx) => {
     if (data.password !== data.confirmPassword) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["confirmPassword"],
         message: "Confirm password must match the password",
       });

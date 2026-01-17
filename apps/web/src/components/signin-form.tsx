@@ -2,7 +2,6 @@
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
-import { Input } from "@repo/ui/components/input";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -13,7 +12,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@repo/ui/components/form";
 import {
@@ -33,7 +31,7 @@ import { AxiosError } from "axios";
 import type { ApiResponse } from "@repo/ui/types/ApiResponse";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, LockKeyhole, Mail } from "lucide-react";
 import Link from "next/link";
 
 export function SigninForm({
@@ -181,22 +179,26 @@ export function SigninForm({
                       Or continue with
                     </span>
                   </div>
-                  <div className="grid gap-3">
+                  <div className="grid gap-4">
                     <FormField
                       control={form.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel htmlFor="email">Email</FormLabel>
                           <FormControl>
-                            <Input
-                              id="email"
-                              type="email"
-                              placeholder="abc@example.com"
-                              autoComplete="username"
-                              required
-                              {...field}
-                            />
+                            <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+                              <InputGroupAddon>
+                                <Mail />
+                              </InputGroupAddon>
+                              <InputGroupInput
+                                id="email"
+                                placeholder="Email"
+                                type="email"
+                                autoComplete="username"
+                                required
+                                {...field}
+                              />
+                            </InputGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -207,20 +209,14 @@ export function SigninForm({
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <div className="flex items-center">
-                            <FormLabel htmlFor="password">Password</FormLabel>
-                            <Link
-                              href="#"
-                              className="ml-auto text-sm underline-offset-2 hover:underline"
-                            >
-                              Forgot your password?
-                            </Link>
-                          </div>
                           <FormControl>
                             <InputGroup className="w-full sm:w-auto sm:min-w-[300px] border-zinc-400 has-[[data-slot=input-group-control]:focus-visible]:border-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-foreground has-[[data-slot=input-group-control]:focus-visible]:ring-1">
+                              <InputGroupAddon>
+                                <LockKeyhole />
+                              </InputGroupAddon>
                               <InputGroupInput
                                 id="password"
-                                placeholder="••••••••"
+                                placeholder="Password"
                                 type={showPassword ? "text" : "password"}
                                 autoComplete="current-password"
                                 required
@@ -239,6 +235,12 @@ export function SigninForm({
                         </FormItem>
                       )}
                     />
+                    <Link
+                      href="#"
+                      className="ml-auto text-sm underline-offset-2 hover:underline"
+                    >
+                      Forgot your password?
+                    </Link>
                   </div>
                   <Button
                     type="submit"
